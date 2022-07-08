@@ -1,0 +1,72 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext" xmlns:pro="http://www.liquibase.org/xml/ns/pro" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-3.9.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.9.xsd">
+  <changeSet author="John Watson" id="1">
+    <tagDatabase tag="v1.28.0" />
+  </changeSet>
+  <changeSet author="John Watson" id="2">
+    <insert tableName="accountCodes">
+      <column name="accountCodeId" value="12" />
+      <column name="schemeId" value="1" />
+      <column name="lineDescription" value="G00 - Gross value of claim" />
+      <column name="accountCodeAP" value="SOS710" />
+      <column name="accountCodeARAdm" value="SOS750" />
+      <column name="accountCodeARIrr" value="SOS770" />
+    </insert>
+    <insert tableName="accountCodes">
+      <column name="accountCodeId" value="13" />
+      <column name="schemeId" value="1" />
+      <column name="lineDescription" value="P05 - Late claim submission penalty" />
+      <column name="accountCodeAP" value="SOS921" />
+      <column name="accountCodeARAdm" value="SOS941" />
+      <column name="accountCodeARIrr" value="SOS961" />
+    </insert>
+    <insert tableName="accountCodes">
+      <column name="accountCodeId" value="14" />
+      <column name="schemeId" value="1" />
+      <column name="lineDescription" value="P06 - Late change penalty" />
+      <column name="accountCodeAP" value="SOS922" />
+      <column name="accountCodeARAdm" value="SOS942" />
+      <column name="accountCodeARIrr" value="SOS962" />
+    </insert>
+    <insert tableName="accountCodes">
+      <column name="accountCodeId" value="15" />
+      <column name="schemeId" value="1" />
+      <column name="lineDescription" value="P08 - Non declaration of land penalty" />
+      <column name="accountCodeAP" value="SOS923" />
+      <column name="accountCodeARAdm" value="SOS943" />
+      <column name="accountCodeARIrr" value="SOS963" />
+    </insert>
+    <insert tableName="accountCodes">
+      <column name="accountCodeId" value="16" />
+      <column name="schemeId" value="1" />
+      <column name="lineDescription" value="P14 - Cross compliance penalty" />
+      <column name="accountCodeAP" value="SOS924" />
+      <column name="accountCodeARAdm" value="SOS944" />
+      <column name="accountCodeARIrr" value="SOS964" />
+    </insert>
+    <insert tableName="accountCodes">
+      <column name="accountCodeId" value="17" />
+      <column name="schemeId" value="1" />
+      <column name="lineDescription" value="P22 - Rural Development refusals" />
+      <column name="accountCodeAP" value="SOS925" />
+      <column name="accountCodeARAdm" value="SOS945" />
+      <column name="accountCodeARIrr" value="SOS965" />
+    </insert>
+    <insert tableName="accountCodes">
+      <column name="accountCodeId" value="18" />
+      <column name="schemeId" value="1" />
+      <column name="lineDescription" value="P23 - Rural Development withdrawals" />
+      <column name="accountCodeAP" value="SOS926" />
+      <column name="accountCodeARAdm" value="SOS946" />
+      <column name="accountCodeARIrr" value="SOS966" />
+    </insert>
+    <insert tableName="accountCodes">
+      <column name="accountCodeId" value="19" />
+      <column name="schemeId" value="1" />
+      <column name="lineDescription" value="P24 - Over declaration reduction" />
+      <column name="accountCodeAP" value="SOS927" />
+      <column name="accountCodeARAdm" value="SOS947" />
+      <column name="accountCodeARIrr" value="SOS967" />
+    </insert>
+  </changeSet>
+</databaseChangeLog>

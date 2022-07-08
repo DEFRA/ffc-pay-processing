@@ -4,6 +4,7 @@ const ensureValueConsistency = require('./ensure-value-consistency')
 const { v4: uuidv4 } = require('uuid')
 
 const splitToLedger = (paymentRequest, targetValue, ledger) => {
+  console.log(`Performing ledger split for ${paymentRequest.invoiceNumber}`)
   const originalValue = paymentRequest.value
   const updatedValue = ledger === AP ? originalValue + targetValue : originalValue - targetValue
 

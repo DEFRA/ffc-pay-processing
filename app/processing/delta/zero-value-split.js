@@ -4,6 +4,7 @@ const calculateOverallDelta = require('./calculate-overall-delta')
 const { v4: uuidv4 } = require('uuid')
 
 const zeroValueSplit = (paymentRequest) => {
+  console.log(`Performing zero value split for ${paymentRequest.invoiceNumber}`)
   const positivePaymentRequest = copyPaymentRequest(paymentRequest, AP, 'A')
   const negativePaymentRequest = copyPaymentRequest(paymentRequest, AP, 'B')
 

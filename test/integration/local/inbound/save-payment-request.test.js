@@ -1,5 +1,6 @@
 const db = require('../../../../app/data')
 const savePaymentRequest = require('../../../../app/inbound')
+const { MONTHLY } = require('../../../../app/schedules')
 let scheme
 let paymentRequest
 describe('save payment requests', () => {
@@ -23,7 +24,7 @@ describe('save payment requests', () => {
       contractNumber: 'SFIP000001',
       marketingYear: 2022,
       currency: 'GBP',
-      schedule: 'M12',
+      schedule: MONTHLY,
       dueDate: '2021-08-15',
       value: 15000,
       invoiceLines: [
