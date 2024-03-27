@@ -210,7 +210,7 @@ describe('process payment requests', () => {
     expect(completedPaymentRequests.length).toBe(0)
   })
 
-  test('should process recovery request and create hold if no debt data', async () => {
+  test('should process recovery request and create auto hold if no debt data', async () => {
     // first payment request
     settlePaymentRequest(paymentRequest)
     await savePaymentRequest(paymentRequest, true)
@@ -221,7 +221,7 @@ describe('process payment requests', () => {
 
     await processPaymentRequests()
 
-    const holds = await db.hold.findAll({
+    const holds = await db.autoHold.findAll({
       where: {
         frn: paymentRequest.frn,
         closed: null
@@ -266,7 +266,7 @@ describe('process payment requests', () => {
     expect(mockSendMessage).not.toBeCalled()
   })
 
-  test('should process manual ledger request and create hold if useManualLedgerCheck equals true when delta value is < 0', async () => {
+  test('should process manual ledger request and create auto hold if useManualLedgerCheck equals true when delta value is < 0', async () => {
     processingConfig.useManualLedgerCheck = true
 
     // first payment request
@@ -280,7 +280,7 @@ describe('process payment requests', () => {
 
     await processPaymentRequests()
 
-    const holds = await db.hold.findAll({
+    const holds = await db.autoHold.findAll({
       where: {
         frn: paymentRequest.frn,
         closed: null
@@ -291,7 +291,7 @@ describe('process payment requests', () => {
     expect(mockSendMessage).toBeCalled()
   })
 
-  test('should process manual ledger request and create hold if useManualLedgerCheck equals true when delta value is > 0  but there is existing completed <0 value', async () => {
+  test('should process manual ledger request and create auto hold if useManualLedgerCheck equals true when delta value is > 0  but there is existing completed <0 value', async () => {
     processingConfig.useManualLedgerCheck = true
 
     // first payment request
@@ -308,7 +308,7 @@ describe('process payment requests', () => {
 
     await processPaymentRequests()
 
-    const holds = await db.hold.findAll({
+    const holds = await db.autoHold.findAll({
       where: {
         frn: paymentRequest.frn,
         closed: null
@@ -333,7 +333,7 @@ describe('process payment requests', () => {
 
     await processPaymentRequests()
 
-    const holds = await db.hold.findAll({
+    const holds = await db.autoHold.findAll({
       where: {
         frn: paymentRequest.frn,
         closed: null

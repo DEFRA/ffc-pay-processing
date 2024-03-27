@@ -19,11 +19,9 @@ jest.mock('../../../app/data', () => {
 jest.mock('../../../app/messaging/send-message')
 const { sendMessage: mockSendMessage } = require('../../../app/messaging/send-message')
 
-jest.mock('../../../app/holds')
-const { getHoldCategoryId: mockGetHoldCategoryId } = require('../../../app/holds')
-
-jest.mock('../../../app/reschedule')
-const { holdAndReschedule: mockHoldAndReschedule } = require('../../../app/reschedule')
+jest.mock('../../../app/auto-hold')
+const { getHoldCategoryId: mockGetHoldCategoryId } = require('../../../app/auto-hold')
+const { holdAndReschedule: mockHoldAndReschedule } = require('../../../app/auto-hold')
 
 const paymentRequest = require('../../mocks/payment-requests/payment-request')
 
@@ -55,7 +53,7 @@ describe('route debt to request editor', () => {
 
   test('should hold and reschedule payment request', async () => {
     await routeDebtToRequestEditor(paymentRequest)
-    expect(mockHoldAndReschedule).toHaveBeenCalledWith(paymentRequest.paymentRequestId, holdCategoryId, paymentRequest.frn, mockTransactionObject)
+    expect(mockHoldAndReschedule).toHaveBeenCalledWith(paymentRequest.paymentRequestId, holdCategoryId, paymentRequest.frn, paymentRequest.marketingYear, mockTransactionObject)
   })
 
   test('should commit transaction', async () => {

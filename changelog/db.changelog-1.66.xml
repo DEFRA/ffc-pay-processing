@@ -1,0 +1,117 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext" xmlns:pro="http://www.liquibase.org/xml/ns/pro" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-3.9.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.9.xsd">
+  <changeSet author="Sam Plackett" id="1">
+    <tagDatabase tag="v1.66.0" />
+  </changeSet>
+  <changeSet author="Sam Plackett" id="2">
+    <createTable tableName="autoHoldCategories">
+      <column autoIncrement="true" name="autoHoldCategoryId" type="INTEGER">
+        <constraints nullable="false" primaryKey="true" primaryKeyName="autoHoldCategoryId_pkey" />
+      </column>
+      <column name="schemeId" type="INTEGER" />
+      <column name="name" type="VARCHAR(255)" />
+    </createTable>
+    <createTable tableName="autoHolds">
+      <column autoIncrement="true" name="autoHoldId" type="INTEGER">
+        <constraints nullable="false" primaryKey="true" primaryKeyName="autoHoldId_pkey" />
+      </column>
+      <column name="frn" type="BIGINT" />
+      <column name="autoHoldCategoryId" type="INTEGER" />
+      <column name="marketingYear" type="INTEGER" />
+      <column name="added" type="TIMESTAMP" />
+      <column name="closed" type="TIMESTAMP" />
+      <column name="migrated" type="TIMESTAMP" />
+      <column name="migrationId" type="VARCHAR(20)" />
+    </createTable>
+  </changeSet>
+  <changeSet author="Sam Plackett" id="3">
+    <insert tableName="autoHoldCategories">
+      <column name="autoHoldCategoryId" value="135" />
+      <column name="schemeId" value="6" />
+      <column name="name" value="Waiting for Cross Border calculation" />
+    </insert>
+      <insert tableName="autoHoldCategories">
+      <column name="autoHoldCategoryId" value="7" />
+      <column name="schemeId" value="1" />
+      <column name="name" value="Awaiting debt enrichment" />
+    </insert>
+    <insert tableName="autoHoldCategories">
+      <column name="autoHoldCategoryId" value="8" />
+      <column name="schemeId" value="2" />
+      <column name="name" value="Awaiting debt enrichment" />
+    </insert>
+    <insert tableName="autoHoldCategories">
+      <column name="autoHoldCategoryId" value="28" />
+      <column name="schemeId" value="1" />
+      <column name="name" value="Manual ledger hold" />
+    </insert>
+    <insert tableName="autoHoldCategories">
+      <column name="autoHoldCategoryId" value="29" />
+      <column name="schemeId" value="2" />
+      <column name="name" value="Manual ledger hold" />
+    </insert>
+    <insert tableName="autoHoldCategories">
+      <column name="autoHoldCategoryId" value="31" />
+      <column name="schemeId" value="3" />
+      <column name="name" value="Awaiting debt enrichment" />
+    </insert>
+    <insert tableName="autoHoldCategories">
+      <column name="autoHoldCategoryId" value="42" />
+      <column name="schemeId" value="3" />
+      <column name="name" value="Manual ledger hold" />
+    </insert>
+    <insert tableName="autoHoldCategories">
+      <column name="autoHoldCategoryId" value="44" />
+      <column name="schemeId" value="4" />
+      <column name="name" value="Awaiting debt enrichment" />
+    </insert>
+    <insert tableName="autoHoldCategories">
+      <column name="autoHoldCategoryId" value="55" />
+      <column name="schemeId" value="4" />
+      <column name="name" value="Manual ledger hold" />
+    </insert>
+    <insert tableName="autoHoldCategories">
+      <column name="autoHoldCategoryId" value="57" />
+      <column name="schemeId" value="5" />
+      <column name="name" value="Awaiting debt enrichment" />
+    </insert>
+    <insert tableName="autoHoldCategories">
+      <column name="autoHoldCategoryId" value="68" />
+      <column name="schemeId" value="5" />
+      <column name="name" value="Manual ledger hold" />
+    </insert>
+    <insert tableName="autoHoldCategories">
+      <column name="autoHoldCategoryId" value="85" />
+      <column name="schemeId" value="6" />
+      <column name="name" value="Awaiting debt enrichment" />
+    </insert>
+    <insert tableName="autoHoldCategories">
+      <column name="autoHoldCategoryId" value="112" />
+      <column name="schemeId" value="7" />
+      <column name="name" value="Awaiting debt enrichment" />
+    </insert>
+    <insert tableName="autoHoldCategories">
+      <column name="autoHoldCategoryId" value="116" />
+      <column name="schemeId" value="6" />
+      <column name="name" value="Manual ledger hold" />
+    </insert>
+    <insert tableName="autoHoldCategories">
+      <column name="autoHoldCategoryId" value="117" />
+      <column name="schemeId" value="7" />
+      <column name="name" value="Manual ledger hold" />
+    </insert>
+    <insert tableName="autoHoldCategories">
+      <column name="autoHoldCategoryId" value="122" />
+      <column name="schemeId" value="12" />
+      <column name="name" value="Manual ledger hold" />
+    </insert>
+    <insert tableName="autoHoldCategories">
+      <column name="autoHoldCategoryId" value="124" />
+      <column name="schemeId" value="12" />
+      <column name="name" value="Awaiting debt enrichment" />
+    </insert>
+  </changeSet>
+  <changeSet author="Sam Plackett" id="4">
+    <addForeignKeyConstraint baseColumnNames="autoHoldCategoryId" baseTableName="autoHolds" constraintName="fk_autoHolds_autoHoldCategoryId" referencedColumnNames="autoHoldCategoryId" referencedTableName="autoHoldCategories" />
+  </changeSet>
+</databaseChangeLog>

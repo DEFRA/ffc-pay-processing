@@ -11,7 +11,8 @@ const sendHoldEvent = async (hold, status) => {
 }
 
 const sendV2HoldEvent = async (hold, status) => {
-  const schemeId = await getSchemeId(hold.holdCategoryId)
+  const holdCategoryId = hold.holdCategoryId ?? hold.autoHoldCategoryId
+  const schemeId = await getSchemeId(holdCategoryId)
   const event = {
     source: SOURCE,
     type: `${HOLD_PREFIX}.${status}`,

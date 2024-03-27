@@ -2,8 +2,7 @@ const util = require('util')
 const db = require('../data')
 const { messageConfig } = require('../config')
 const { sendMessage } = require('../messaging/send-message')
-const { getHoldCategoryId } = require('../holds')
-const { holdAndReschedule } = require('../reschedule')
+const { getHoldCategoryId, holdAndReschedule } = require('../auto-hold')
 const { AWAITING_LEDGER_CHECK } = require('../constants/hold-categories-names')
 const { ROUTED_LEDGER } = require('../constants/messages')
 
@@ -15,7 +14,7 @@ const routeManualLedgerToRequestEditor = async (deltaCalculationResult) => {
     await sendMessage(manualLedgerMessage, ROUTED_LEDGER, messageConfig.manualTopic)
     console.log('Payment request routed to request editor for manual ledger check:', util.inspect(manualLedgerMessage, false, null, true))
     const holdCategoryId = await getHoldCategoryId(deltaPaymentRequest.schemeId, AWAITING_LEDGER_CHECK, transaction)
-    await holdAndReschedule(deltaPaymentRequest.paymentRequestId, holdCategoryId, deltaPaymentRequest.frn, transaction)
+    await holdAndReschedule(deltaPaymentRequest.paymentRequestId, holdCategoryId, deltaPaymentRequest.frn, deltaPaymentRequest.marketingYear, transaction)
     await transaction.commit()
   } catch (error) {
     await transaction.rollback()

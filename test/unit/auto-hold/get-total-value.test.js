@@ -1,4 +1,4 @@
-const { getTotalValue } = require('../../../../app/processing/auto-hold/get-total-value')
+const { getTotalValue } = require('../../../app/auto-hold/get-total-value')
 
 const paymentRequests = [{
   value: 1

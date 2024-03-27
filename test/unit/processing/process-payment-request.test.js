@@ -1,8 +1,8 @@
 jest.mock('../../../app/processing/transform-payment-request')
 const { transformPaymentRequest: mockTransformPaymentRequest } = require('../../../app/processing/transform-payment-request')
 
-jest.mock('../../../app/processing/auto-hold')
-const { applyAutoHold: mockApplyAutoHold } = require('../../../app/processing/auto-hold')
+jest.mock('../../../app/auto-hold/apply-auto-hold')
+const { applyAutoHold: mockApplyAutoHold } = require('../../../app/auto-hold')
 
 jest.mock('../../../app/processing/requires-debt-data')
 const { requiresDebtData: mockRequiresDebtData } = require('../../../app/processing/requires-debt-data')
@@ -46,6 +46,7 @@ describe('process payment request', () => {
 
     mockIsCrossBorder.mockReturnValue(false)
     mockTransformPaymentRequest.mockResolvedValue({ deltaPaymentRequest: paymentRequest, completedPaymentRequests: [paymentRequest] })
+    mockApplyAutoHold.mockResolvedValue(false)
     mockRequiresDebtData.mockReturnValue(false)
     mockRequiresManualLedgerCheck.mockResolvedValue(false)
   })

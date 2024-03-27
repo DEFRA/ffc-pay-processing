@@ -1,17 +1,17 @@
-jest.mock('../../../../app/config')
-const { autoHold: mockAutoHoldConfig } = require('../../../../app/config').processingConfig
+jest.mock('../../../app/config')
+const { autoHold: mockAutoHoldConfig } = require('../../../app/config').processingConfig
 
-jest.mock('../../../../app/processing/auto-hold/get-total-value')
-const { getTotalValue: mockGetTotalValue } = require('../../../../app/processing/auto-hold/get-total-value')
+jest.mock('../../../app/auto-hold/get-total-value')
+const { getTotalValue: mockGetTotalValue } = require('../../../app/auto-hold/get-total-value')
 
-jest.mock('../../../../app/processing/auto-hold/apply-hold')
-const { applyHold: mockApplyHold } = require('../../../../app/processing/auto-hold/apply-hold')
+jest.mock('../../../app/auto-hold/apply-hold')
+const { applyHold: mockApplyHold } = require('../../../app/auto-hold/apply-hold')
 
-const paymentRequest = require('../../../mocks/payment-requests/payment-request')
+const paymentRequest = require('../../mocks/payment-requests/payment-request')
 
-const { TOP_UP, RECOVERY } = require('../../../../app/constants/adjustment-types')
+const { TOP_UP, RECOVERY } = require('../../../app/constants/adjustment-types')
 
-const { applyAutoHold } = require('../../../../app/processing/auto-hold/apply-auto-hold')
+const { applyAutoHold } = require('../../../app/auto-hold/apply-auto-hold')
 
 const paymentRequests = [paymentRequest]
 
@@ -38,7 +38,7 @@ describe('apply auto hold', () => {
     mockGetTotalValue.mockReturnValue(1)
     paymentRequest.paymentRequestNumber = 2
     await applyAutoHold(paymentRequests)
-    expect(mockApplyHold).toHaveBeenCalledWith(paymentRequest.schemeId, paymentRequest.paymentRequestId, paymentRequest.frn, TOP_UP)
+    expect(mockApplyHold).toHaveBeenCalledWith(paymentRequest.schemeId, paymentRequest.paymentRequestId, paymentRequest.frn, paymentRequest.marketingYear, TOP_UP)
   })
 
   test('should return true if top up hold applied', async () => {
@@ -52,7 +52,7 @@ describe('apply auto hold', () => {
     mockGetTotalValue.mockReturnValue(0)
     paymentRequest.paymentRequestNumber = 2
     await applyAutoHold(paymentRequests)
-    expect(mockApplyHold).toHaveBeenCalledWith(paymentRequest.schemeId, paymentRequest.paymentRequestId, paymentRequest.frn, TOP_UP)
+    expect(mockApplyHold).toHaveBeenCalledWith(paymentRequest.schemeId, paymentRequest.paymentRequestId, paymentRequest.frn, paymentRequest.marketingYear, TOP_UP)
   })
 
   test('should not apply top up hold if top up but auto hold top ups disabled', async () => {
@@ -75,7 +75,7 @@ describe('apply auto hold', () => {
     mockGetTotalValue.mockReturnValue(-1)
     paymentRequest.paymentRequestNumber = 2
     await applyAutoHold(paymentRequests)
-    expect(mockApplyHold).toHaveBeenCalledWith(paymentRequest.schemeId, paymentRequest.paymentRequestId, paymentRequest.frn, RECOVERY)
+    expect(mockApplyHold).toHaveBeenCalledWith(paymentRequest.schemeId, paymentRequest.paymentRequestId, paymentRequest.frn, paymentRequest.marketingYear, RECOVERY)
   })
 
   test('should return true if recovery hold applied', async () => {
