@@ -11,7 +11,7 @@ const processReturnMessage = async (message, receiver) => {
       console.log('Settlement statuses updated from return file')
     } else {
       await receiver.deadLetterMessage(message)
-      console.error('Unable to find settlement for payment request', message.body)
+      console.error('Settlement could not be processed for payment request', message.body)
     }
   } catch (err) {
     console.error('Unable to process return request:', err)
