@@ -29,9 +29,9 @@
   ],
   "license": "OGL-UK-3.0",
   "dependencies": {
-    "@azure/identity": "4.3.0",
-    "@hapi/boom": "10.0.0",
-    "@hapi/hapi": "20.2.2",
+    "@azure/identity": "4.4.1",
+    "@hapi/boom": "10.0.1",
+    "@hapi/hapi": "20.3.0",
     "applicationinsights": "2.5.1",
     "ffc-messaging": "2.9.1",
     "ffc-pay-event-publisher": "1.2.0",
