@@ -53,7 +53,7 @@ describe('process acknowledgement', () => {
   test('should process invalid acknowledgement if not successfully acknowledged', async () => {
     acknowledgement.success = false
     await processAcknowledgement(acknowledgement)
-    expect(mockProcessInvalid).toHaveBeenCalledWith(paymentRequest.schemeId, paymentRequest.paymentRequestId, paymentRequest.frn, acknowledgement)
+    expect(mockProcessInvalid).toHaveBeenCalledWith(paymentRequest.schemeId, paymentRequest.paymentRequestId, paymentRequest.frn, paymentRequest.sourceSystem, acknowledgement)
   })
 
   test('should not process invalid acknowledgement if successfully acknowledged', async () => {

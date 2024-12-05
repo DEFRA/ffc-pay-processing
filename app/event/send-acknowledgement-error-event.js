@@ -2,9 +2,9 @@ const { sendAckInvalidBankDetailsErrorEvent } = require('./send-ack-invalid-bank
 const { sendProcessingAckErrorEvent } = require('./send-ack-error-event')
 const { BANK_ACCOUNT_ANOMALY } = require('../constants/hold-categories-names')
 
-const sendAcknowledgementErrorEvent = async (holdCategoryName, acknowledgement, frn) => {
+const sendAcknowledgementErrorEvent = async (holdCategoryName, acknowledgement, frn, sourceSystem) => {
   if (holdCategoryName === BANK_ACCOUNT_ANOMALY) {
-    await sendAckInvalidBankDetailsErrorEvent(frn)
+    await sendAckInvalidBankDetailsErrorEvent(frn, sourceSystem)
   } else {
     await sendProcessingAckErrorEvent(acknowledgement)
   }
