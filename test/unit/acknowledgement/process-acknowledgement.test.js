@@ -10,16 +10,16 @@ const { getPaymentRequest: mockGetPaymentRequest } = require('../../../app/ackno
 jest.mock('../../../app/acknowledgement/process-invalid')
 const { processInvalid: mockProcessInvalid } = require('../../../app/acknowledgement/process-invalid')
 
-const paymentRequest = require('../../mocks/payment-requests/payment-request')
-
 const { processAcknowledgement } = require('../../../app/acknowledgement/process-acknowledgement')
 
 let acknowledgement
+let paymentRequest
 
 describe('process acknowledgement', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     acknowledgement = JSON.parse(JSON.stringify(require('../../mocks/acknowledgement')))
+    paymentRequest = JSON.parse(JSON.stringify(require('../../mocks/payment-requests/payment-request')))
     mockGetPaymentRequest.mockResolvedValue(paymentRequest)
   })
 
@@ -39,7 +39,7 @@ describe('process acknowledgement', () => {
     expect(mockSendAckEvent).not.toHaveBeenCalled()
   })
 
-  test('should get associated payment request by invoice number if not successfully acknowledged', async () => {
+  test('should get associated payment request by invoice number if not successfully acknowledged and message does not contain "Duplicate"', async () => {
     acknowledgement.success = false
     await processAcknowledgement(acknowledgement)
     expect(mockGetPaymentRequest).toHaveBeenCalledWith(acknowledgement.invoiceNumber)
@@ -50,10 +50,10 @@ describe('process acknowledgement', () => {
     expect(mockGetPaymentRequest).not.toHaveBeenCalled()
   })
 
-  test('should process invalid acknowledgement if not successfully acknowledged', async () => {
+  test('should process invalid acknowledgement if not successfully acknowledged and message does not contain "Duplicate"', async () => {
     acknowledgement.success = false
     await processAcknowledgement(acknowledgement)
-    expect(mockProcessInvalid).toHaveBeenCalledWith(paymentRequest.schemeId, paymentRequest.paymentRequestId, paymentRequest.frn, paymentRequest.sourceSystem, acknowledgement)
+    expect(mockProcessInvalid).toHaveBeenCalledWith(paymentRequest, acknowledgement)
   })
 
   test('should not process invalid acknowledgement if successfully acknowledged', async () => {
