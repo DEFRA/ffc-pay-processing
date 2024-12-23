@@ -1,18 +1,15 @@
-const invoicePatterns = {
-  FDMR: /F\d{7}C\d{7}V\d{3}/g,
-};
+const invoicePatterns = require('../constants/invoice-patterns')
 
-const verifySettlement = (settlement) => {
-  for (const [key, pattern] of Object.entries(invoicePatterns)) {
-    const matches = settlement.match(pattern);
+const verifyInvoiceNumber = (invoiceNumber) => {
+  for (const [pattern] of Object.entries(invoicePatterns)) {
+    const matches = invoiceNumber.match(pattern)
     if (matches) {
-      console.log(`Blocked invoice pattern "${key}" detected:`, matches);
-      return false; 
+      return false
     }
   }
-  return true;
-};
+  return true
+}
 
 module.exports = {
-  verifySettlement,
-};
+  verifyInvoiceNumber
+}
