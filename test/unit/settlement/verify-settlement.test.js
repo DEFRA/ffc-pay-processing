@@ -1,6 +1,5 @@
 const { verifyInvoiceNumber } = require('../../../app/settlement/verify-settlement')
 
-// Mock invoice patterns for testing
 const mockInvoicePatterns = {
   pattern1: /F\d{7}C\d{7}V\d{3}/,
   pattern2: /ABC-\d{3}/
