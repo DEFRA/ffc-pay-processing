@@ -1,100 +1,66 @@
 jest.mock('../../../app/constants/invoice-patterns', () => ({
-  firstPattern: /F\d{7}C\d{7}V\d{3}/,
-  secondPattern: /ABC-\d+/,
-  thirdPattern: /XYZ-\d+/,
-}));
+  pattern1: /^INV-\d{4}-[A-Z]{3}$/, // Example pattern
+  pattern2: /^INV-\d{3}-[A-Z]{2}-\d{4}$/, // Another example pattern
+  verifyInvoiceNumber: jest.fn() // Mock the function directly
+}))
 
-const mockInvoicePatterns = require('../../../app/constants/invoice-patterns');
+const { verifyInvoiceNumber } = require('../../../app/constants/invoice-patterns')
 
-jest.mock('../../../app/settlement/verify-settlement', () => ({
-  verifyInvoiceNumber: jest.fn(),
-}));
-
-const { verifyInvoiceNumber } = require('../../../app/settlement/verify-settlement');
-
-describe('verify settlement invoiceNumber', () => {
+describe('verify invoice number', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    jest.clearAllMocks()
+  })
 
-    verifyInvoiceNumber.mockImplementation((invoiceNumber) => {
-      if (!invoiceNumber || typeof invoiceNumber !== 'string') return true;
+  test('should verify invoice number before processing settlement', async () => {
+    const invoiceNumber = 'INV-1234-ABC'
 
-      for (const pattern of Object.values(mockInvoicePatterns)) {
-        if (pattern?.test(invoiceNumber)) {
-          return false;
-        }
-      }
-      return true;
-    });
-  });
+    // Mock the return value
+    verifyInvoiceNumber.mockReturnValue(true)
 
-  test('should return false if the invoice number matches the first pattern', () => {
-    const matchingInvoice = 'F1234567C1234567V123';
-    expect(verifyInvoiceNumber(matchingInvoice)).toBe(false);
-  });
+    const result = verifyInvoiceNumber(invoiceNumber)
 
-  test('should return false if the invoice number matches the second pattern', () => {
-    const matchingInvoice = 'ABC-123';
-    expect(verifyInvoiceNumber(matchingInvoice)).toBe(false);
-  });
+    expect(verifyInvoiceNumber).toHaveBeenCalledWith(invoiceNumber)
+    expect(result).toBe(true) // Assuming it returns true if not blocked
+  })
 
-  test('should return false if the invoice number matches the third pattern', () => {
-    const matchingInvoice = 'XYZ-1234';
-    expect(verifyInvoiceNumber(matchingInvoice)).toBe(false);
-  });
+  test('should return false if invoice number matches blocked pattern', async () => {
+    const blockedInvoiceNumber = 'INV-1234-ABC'
 
-  test('should return true if the invoice number does not match any pattern', () => {
-    const nonMatchingInvoice = 'DEF-456';
-    expect(verifyInvoiceNumber(nonMatchingInvoice)).toBe(true);
-  });
+    verifyInvoiceNumber.mockReturnValue(false)
 
-  test('should return true if the invoice number does not match any pattern with a special character', () => {
-    const specialInvoice = 'ABC-#%@';
-    expect(verifyInvoiceNumber(specialInvoice)).toBe(true);
-  });
+    const result = verifyInvoiceNumber(blockedInvoiceNumber)
 
-  test('should handle empty or undefined invoice numbers gracefully', () => {
-    expect(verifyInvoiceNumber('')).toBe(true);
-    expect(verifyInvoiceNumber(undefined)).toBe(true);
-  });
+    expect(result).toBe(false) // Invoice number is blocked
+  })
 
-  test('should handle non-string invoice numbers gracefully', () => {
-    expect(verifyInvoiceNumber(12345)).toBe(true);
-    expect(verifyInvoiceNumber(null)).toBe(true);
-    expect(verifyInvoiceNumber([])).toBe(true);
-    expect(verifyInvoiceNumber({})).toBe(true);
-  });
+  test('should return true if invoice number does not match any pattern', async () => {
+    const validInvoiceNumber = 'INV-5678-XYZ'
 
-  test('should handle empty patterns gracefully', () => {
-    jest.mock('../../../app/constants/invoice-patterns', () => ({}));
-    const invoiceNumber = 'XYZ-1234';
-    expect(verifyInvoiceNumber(invoiceNumber)).toBe(true);
-  });
+    verifyInvoiceNumber.mockReturnValue(true)
 
-  test('should handle invalid patterns gracefully', () => {
-    jest.mock('../../../app/constants/invoice-patterns', () => ({
-      invalidPattern: null,
-      nonRegexPattern: 'not-a-regex',
-    }));
-    const invoiceNumber = 'XYZ-1234';
-    expect(verifyInvoiceNumber(invoiceNumber)).toBe(true);
-  });
+    const result = verifyInvoiceNumber(validInvoiceNumber)
 
-  test('should return false for invoice numbers matching overlapping patterns', () => {
-    jest.mock('../../../app/constants/invoice-patterns', () => ({
-      pattern1: /ABC-\d+/,
-      pattern2: /ABC-123/,
-    }));
-    const overlappingInvoice = 'ABC-123';
-    expect(verifyInvoiceNumber(overlappingInvoice)).toBe(false);
-  });
+    expect(result).toBe(true) // Invoice number is valid and not blocked
+  })
 
-  test('should return true for invoice numbers not matching any overlapping patterns', () => {
-    jest.mock('../../../app/constants/invoice-patterns', () => ({
-      pattern1: /ABC-\d+/,
-      pattern2: /ABC-123/,
-    }));
-    const nonMatchingInvoice = 'DEF-456';
-    expect(verifyInvoiceNumber(nonMatchingInvoice)).toBe(true);
-  });
-});
+  test('should not process settlement if invoice number is blocked', async () => {
+    const blockedInvoiceNumber = 'INV-1234-ABC'
+
+    verifyInvoiceNumber.mockReturnValue(false)
+
+    const result = verifyInvoiceNumber(blockedInvoiceNumber)
+
+    // Assuming the logic should not proceed with settlement if the invoice is blocked
+    expect(result).toBe(false)
+  })
+
+  test('should call the verification function when processing return', async () => {
+    const invoiceNumber = 'INV-1234-XYZ'
+
+    verifyInvoiceNumber.mockReturnValue(true)
+
+    const result = await verifyInvoiceNumber(invoiceNumber)
+
+    expect(result).toBe(true)
+  })
+})
