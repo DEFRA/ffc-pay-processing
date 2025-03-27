@@ -1,3 +1,5 @@
+const { BPS } = require('./schemes')
+
 module.exports = `
   WITH "plannedSchedules" AS (
     SELECT DISTINCT ON ("paymentRequests"."frn", "paymentRequests"."schemeId", "paymentRequests"."marketingYear", "paymentRequests"."agreementNumber")
@@ -40,8 +42,13 @@ module.exports = `
         AND "paymentRequests"."frn" = "autoHolds"."frn"
         AND "schemes"."schemeId" = "autoHoldCategories"."schemeId"
         AND "paymentRequests"."marketingYear" = "autoHolds"."marketingYear"
-        AND ("autoHolds"."agreementNumber" IS NULL OR "paymentRequests"."agreementNumber" = "autoHolds"."agreementNumber")
-        AND ("autoHolds"."contractNumber" IS NULL OR "paymentRequests"."contractNumber" = "autoHolds"."contractNumber")
+        AND (
+          "schemes"."schemeId" = ${BPS}
+          OR (
+            ("autoHolds"."agreementNumber" IS NULL OR "paymentRequests"."agreementNumber" = "autoHolds"."agreementNumber")
+            AND ("autoHolds"."contractNumber" IS NULL OR "paymentRequests"."contractNumber" = "autoHolds"."contractNumber")
+          )
+        )
       )
       AND NOT EXISTS (
         SELECT 1
