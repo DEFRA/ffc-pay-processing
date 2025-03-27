@@ -1,13 +1,39 @@
 resources:
+  identity: pay-processing
+  postgreSql:
+    name: ffc-pay-processing
   topics:
-    - name: processing
-    - name: acknowledgement
-    - name: return
-    - name: debt
-    - name: qc
-    - name: paymentSubmit
-    - name: qcManualCheck
-    - name: manualCheck
-    - name: event
-    - name: xb
-    - name: xbResponse
+    - name: ffc-pay-processing
+      role: receiver
+      subscriptions:
+        - name: ffc-pay-processing
+    - name: ffc-pay-acknowledgement
+      role: receiver
+      subscriptions:
+        - name: ffc-pay-processing
+    - name: ffc-pay-return
+      role: receiver
+      subscriptions:
+        - name: ffc-pay-processing
+    - name: ffc-pay-debt-data-response
+      role: receiver
+      subscriptions:
+        - name: ffc-pay-processing
+    - name: ffc-pay-quality-check
+      role: receiver
+      subscriptions:
+        - name: ffc-pay-processing
+    - name: ffc-pay-xb-response
+      role: receiver
+      subscriptions:
+        - name: ffc-pay-processing
+    - name: ffc-pay-submit
+      role: sender
+    - name: ffc-pay-debt-data
+      role: sender
+    - name: ffc-pay-manual-check-data
+      role: sender
+    - name: ffc-pay-event
+      role: sender
+    - name: ffc-pay-events
+      role: sender

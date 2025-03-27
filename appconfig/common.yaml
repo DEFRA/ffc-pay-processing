@@ -1,0 +1,12 @@
+container.processingTopicAddress: queue:ffc-pay-processing
+container.acknowledgementTopicAddress: queue:ffc-pay-acknowledgement
+container.returnTopicAddress: queue:ffc-pay-return
+container.paymentSubmitTopicAddress: queue:ffc-pay-submit
+container.debtTopicAddress: queue:ffc-pay-debt-data
+container.qcTopicAddress: queue:ffc-pay-debt-data-response
+container.manualCheckTopicAddress: queue:ffc-pay-manual-check-data
+container.qcManualCheckTopicAddress: queue:ffc-pay-quality-check
+container.xbTopicAddress: queue:ffc-pay-xb
+container.xbResponseTopicAddress: queue:ffc-pay-xb-response
+container.eventTopicAddress: queue:ffc-pay-event
+container.eventsTopicAddress: queue:ffc-pay-events
