@@ -5,6 +5,7 @@ module.exports = (sequelize, DataTypes) => {
     frn: DataTypes.BIGINT,
     marketingYear: DataTypes.INTEGER,
     agreementNumber: DataTypes.STRING,
+    contractNumber: DataTypes.STRING,
     added: DataTypes.DATE,
     closed: DataTypes.DATE
   },

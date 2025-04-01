@@ -1,4 +1,4 @@
-const { SFI, SFI_PILOT } = require('../../../app/constants/schemes')
+const { SFI, SFI_PILOT, BPS } = require('../../../app/constants/schemes')
 const { AWAITING_LEDGER_CHECK, AWAITING_DEBT_ENRICHMENT } = require('../../../app/constants/hold-categories-names')
 
 module.exports = {
@@ -11,6 +11,11 @@ module.exports = {
     autoHoldCategoryId: 1,
     schemeId: SFI,
     name: 'SFI Hold category'
+  },
+  bpsAutoHoldCategory: {
+    autoHoldCategoryId: 5,
+    schemeId: BPS,
+    name: 'BPS Hold category'
   },
   sfiPilotHoldCategory: {
     holdCategoryId: 2,

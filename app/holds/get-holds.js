@@ -32,7 +32,7 @@ const getHolds = async (pageProperties, open = true) => {
       }]
     }],
     raw: true,
-    attributes: [['autoHoldId', 'holdId'], 'frn', [db.Sequelize.col('autoHoldCategory.name'), 'holdCategoryName'], [db.Sequelize.col('autoHoldCategory.scheme.schemeId'), 'holdCategorySchemeId'], [db.Sequelize.col('autoHoldCategory.scheme.name'), 'holdCategorySchemeName'], 'marketingYear', 'agreementNumber', [db.Sequelize.col('added'), 'dateTimeAdded'], [db.Sequelize.col('closed'), 'dateTimeClosed']]
+    attributes: [['autoHoldId', 'holdId'], 'frn', [db.Sequelize.col('autoHoldCategory.name'), 'holdCategoryName'], [db.Sequelize.col('autoHoldCategory.scheme.schemeId'), 'holdCategorySchemeId'], [db.Sequelize.col('autoHoldCategory.scheme.name'), 'holdCategorySchemeName'], 'marketingYear', 'agreementNumber', 'contractNumber', [db.Sequelize.col('added'), 'dateTimeAdded'], [db.Sequelize.col('closed'), 'dateTimeClosed']]
   })
 
   const mergedResults = [...holds, ...autoHolds]
