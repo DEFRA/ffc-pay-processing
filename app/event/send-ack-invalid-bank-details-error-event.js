@@ -2,7 +2,6 @@ const { processingConfig, messageConfig } = require('../config')
 const { EventPublisher } = require('ffc-pay-event-publisher')
 const { SOURCE } = require('../constants/source')
 const { PAYMENT_INVALID_BANK } = require('../constants/events')
-const { invoiceNumber } = require('../../test/mocks/acknowledgement')
 
 const sendAckInvalidBankDetailsErrorEvent = async (paymentRequest) => {
   if (processingConfig.useV2Events) {
@@ -11,7 +10,7 @@ const sendAckInvalidBankDetailsErrorEvent = async (paymentRequest) => {
 }
 
 const sendV2AckInvalidBankDetailsErrorEvent = async (paymentRequest) => {
-  const { frn, sourceSystem, contractNumber, agreementNumber, batch, claimDate, value, sbi } = paymentRequest
+  const { frn, sourceSystem, contractNumber, agreementNumber, batch, claimDate, value, sbi, invoiceNumber } = paymentRequest
   const event = {
     source: SOURCE,
     type: PAYMENT_INVALID_BANK,
