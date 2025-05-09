@@ -1,0 +1,13 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext" xmlns:pro="http://www.liquibase.org/xml/ns/pro" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-3.9.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.9.xsd">
+  <changeSet author="Ross Massie" id="1">
+    <tagDatabase tag="v1.84.0" />
+  </changeSet>
+  <changeSet author="Ross Massie" id="2">
+    <insert tableName="holdCategories">
+      <column name="holdCategoryId" value="158" />
+      <column name="schemeId" value="12" />
+      <column name="name" value="Partial Recovery Process" />
+    </insert>
+  </changeSet>
+</databaseChangeLog>
