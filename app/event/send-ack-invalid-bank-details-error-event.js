@@ -1,9 +1,6 @@
 const { processingConfig, messageConfig } = require('../config')
 const { EventPublisher } = require('ffc-pay-event-publisher')
 const { SOURCE } = require('../constants/source')
-const { PAYMENT_INVALID_BANK } = require('../constants/events')
-const { schemeId } = require('../../test/mocks/payment-requests/payment-request')
-const scheme = require('../data/models/scheme')
 
 const sendAckInvalidBankDetailsErrorEvent = async (paymentRequest) => {
   if (processingConfig.useV2Events) {
