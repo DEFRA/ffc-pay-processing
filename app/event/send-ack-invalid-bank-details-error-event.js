@@ -10,7 +10,7 @@ const sendAckInvalidBankDetailsErrorEvent = async (paymentRequest) => {
 }
 
 const sendV2AckInvalidBankDetailsErrorEvent = async (paymentRequest) => {
-  const { frn, sourceSystem, contractNumber, agreementNumber, batch, claimDate, value, sbi } = paymentRequest
+  const { frn, sourceSystem, contractNumber, agreementNumber, batch, claimDate, value, sbi, invoiceNumber, schemeId } = paymentRequest
   const event = {
     source: SOURCE,
     type: PAYMENT_INVALID_BANK,
@@ -23,7 +23,9 @@ const sendV2AckInvalidBankDetailsErrorEvent = async (paymentRequest) => {
       batch,
       claimDate,
       value,
-      sbi
+      sbi,
+      invoiceNumber,
+      schemeId
     }
   }
   const eventPublisher = new EventPublisher(messageConfig.eventsTopic)
