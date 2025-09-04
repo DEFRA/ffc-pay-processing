@@ -64,3 +64,32 @@ describe('send events for zero value payment requests', () => {
     expect(mockPublishEvent.mock.calls[0][0].data).toMatchObject(paymentRequest)
   })
 })
+// JavaScript
+
+test('should call createEvent with paymentRequest when V2 events enabled', async () => {
+  const paymentRequest = { id: 'test-id' }
+  const spyCreateEvent = jest.spyOn(require('../../../app/event/send-zero-value-event'), 'createEvent')
+  require('../../../app/config').processingConfig.useV2Events = true
+  await sendZeroValueEvent(paymentRequest)
+  expect(spyCreateEvent).toHaveBeenCalledWith(paymentRequest)
+  spyCreateEvent.mockRestore()
+})
+
+test('should instantiate EventPublisher with eventsTopic when V2 events enabled', async () => {
+  const paymentRequest = { id: 'test-id' }
+  require('../../../app/config').processingConfig.useV2Events = true
+  require('../../../app/config').messageConfig.eventsTopic = 'test-topic'
+  await sendZeroValueEvent(paymentRequest)
+  expect(MockEventPublisher).toHaveBeenCalledWith('test-topic')
+})
+
+test('should call publishEvent with event from createEvent when V2 events enabled', async () => {
+  const paymentRequest = { id: 'test-id' }
+  require('../../../app/config').processingConfig.useV2Events = true
+  await sendZeroValueEvent(paymentRequest)
+  expect(mockPublishEvent).toHaveBeenCalledWith(expect.objectContaining({
+    source: SOURCE,
+    type: PAYMENT_PROCESSED_NO_FURTHER_ACTION,
+    data: paymentRequest
+  }))
+})
