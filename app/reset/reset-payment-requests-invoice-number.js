@@ -3,7 +3,7 @@ const { sendResetEvent } = require('../event')
 const { resetPaymentRequestById } = require('./reset-payment-request-id')
 
 const resetPaymentRequestByInvoiceNumber = async (invoiceNumber, transaction) => {
-  //todo the query!
+  // todo the query!
   console.log(`Resetting payment request with invoice number ${invoiceNumber}`)
   const paymentRequest = await db.paymentRequest.findOne({ where: { invoiceNumber } }, { transaction })
   if (!paymentRequest) {
