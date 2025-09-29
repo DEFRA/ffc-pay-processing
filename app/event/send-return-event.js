@@ -1,4 +1,4 @@
-const { processingConfig, messageConfig } = require('../config')
+const { messageConfig } = require('../config')
 const { EventPublisher } = require('ffc-pay-event-publisher')
 const { getPaymentRequestByInvoiceAndFrn } = require('../processing/get-payment-request-by-invoice-frn')
 const { UNKNOWN } = require('../constants/unknown')
@@ -17,18 +17,6 @@ const sendProcessingReturnEvent = async (message, isError = false) => {
 }
 
 const raiseCompletedReturnEvent = async (invoiceNumber, frn) => {
-  if (processingConfig.useV2Events) {
-    await raiseV2CompletedReturnEvent(invoiceNumber, frn)
-  }
-}
-
-const raiseErrorEvent = async (invoiceNumber, frn, settled) => {
-  if (processingConfig.useV2Events) {
-    await raiseV2ErrorEvent(invoiceNumber, frn, settled)
-  }
-}
-
-const raiseV2CompletedReturnEvent = async (invoiceNumber, frn) => {
   const paymentRequest = await getPaymentRequestByInvoiceAndFrn(invoiceNumber, frn)
   const event = {
     source: SOURCE,
@@ -39,7 +27,7 @@ const raiseV2CompletedReturnEvent = async (invoiceNumber, frn) => {
   await eventPublisher.publishEvent(event)
 }
 
-const raiseV2ErrorEvent = async (invoiceNumber, frn, settled) => {
+const raiseErrorEvent = async (invoiceNumber, frn, settled) => {
   const event = {
     source: SOURCE,
     type: PAYMENT_SETTLEMENT_UNMATCHED,

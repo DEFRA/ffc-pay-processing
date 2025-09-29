@@ -13,7 +13,7 @@ jest.mock('ffc-pay-event-publisher', () => {
 })
 
 jest.mock('../../../app/config')
-const { processingConfig, messageConfig } = require('../../../app/config')
+const { messageConfig } = require('../../../app/config')
 
 const { SOURCE } = require('../../../app/constants/source')
 const { PAYMENT_INVALID_BANK } = require('../../../app/constants/events')
@@ -25,19 +25,7 @@ const paymentRequest = require('../../mocks/payment-requests/payment-request')
 describe('send acknowledgement invalid bank details error event', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    processingConfig.useV2Events = true
     messageConfig.eventsTopic = 'v2-events'
-  })
-
-  test('should send V2 event if V2 events enabled', async () => {
-    await sendAckInvalidBankDetailsErrorEvent(paymentRequest)
-    expect(mockPublishEvent).toHaveBeenCalled()
-  })
-
-  test('should not send V2 event if V2 events disabled', async () => {
-    processingConfig.useV2Events = false
-    await sendAckInvalidBankDetailsErrorEvent(paymentRequest)
-    expect(mockPublishEvent).not.toHaveBeenCalled()
   })
 
   test('should send event to V2 topic', async () => {

@@ -4,11 +4,9 @@ const { SOURCE } = require('../constants/source')
 const { PAYMENT_PROCESSED_NO_FURTHER_ACTION } = require('../constants/events')
 
 const sendZeroValueEvent = async (paymentRequest) => {
-  if (processingConfig.useV2Events) {
-    const event = createEvent(paymentRequest)
-    const eventPublisher = new EventPublisher(messageConfig.eventsTopic)
-    await eventPublisher.publishEvent(event)
-  }
+  const event = createEvent(paymentRequest)
+  const eventPublisher = new EventPublisher(messageConfig.eventsTopic)
+  await eventPublisher.publishEvent(event)
 }
 
 const createEvent = (paymentRequest) => {

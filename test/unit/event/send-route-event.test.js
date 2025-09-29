@@ -13,7 +13,7 @@ jest.mock('ffc-pay-event-publisher', () => {
 })
 
 jest.mock('../../../app/config')
-const { processingConfig, messageConfig } = require('../../../app/config')
+const { messageConfig } = require('../../../app/config')
 
 const { PAYMENT_PAUSED_PREFIX } = require('../../../app/constants/events')
 const { SOURCE } = require('../../../app/constants/source')
@@ -35,36 +35,11 @@ describe('V2 route event', () => {
     routeTypeRequest = 'request'
     routeTypeResponse = 'response'
 
-    processingConfig.useV2Events = true
     messageConfig.eventsTopic = 'v2-events'
   })
 
   afterEach(() => {
     jest.clearAllMocks()
-  })
-
-  test('should send V2 event for debt routing if V2 events enabled', async () => {
-    processingConfig.useV2Events = true
-    await sendProcessingRouteEvent(paymentRequest, routeLocationDebt, routeTypeRequest)
-    expect(mockPublishEvent).toHaveBeenCalled()
-  })
-
-  test('should send V2 event for ledger routing if V2 events enabled', async () => {
-    processingConfig.useV2Events = true
-    await sendProcessingRouteEvent(paymentRequest, routeLocationLedger, routeTypeRequest)
-    expect(mockPublishEvent).toHaveBeenCalled()
-  })
-
-  test('should not send V2 event for debt routing if V2 events disabled', async () => {
-    processingConfig.useV2Events = false
-    await sendProcessingRouteEvent(paymentRequest, routeLocationDebt, routeTypeRequest)
-    expect(mockPublishEvent).not.toHaveBeenCalled()
-  })
-
-  test('should not send V2 event for ledger routing if V2 events disabled', async () => {
-    processingConfig.useV2Events = false
-    await sendProcessingRouteEvent(paymentRequest, routeLocationLedger, routeTypeRequest)
-    expect(mockPublishEvent).not.toHaveBeenCalled()
   })
 
   test('should send debt routing event to V2 topic', async () => {

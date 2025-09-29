@@ -10,7 +10,6 @@ const schema = Joi.object({
     topUp: Joi.boolean().default(false),
     recovery: Joi.boolean().default(false)
   }),
-  useV2Events: Joi.boolean().default(true),
   handleSchemeClosures: Joi.boolean().default(true)
 })
 
@@ -24,7 +23,6 @@ const config = {
     topUp: process.env.AUTO_HOLD_TOP_UP,
     recovery: process.env.AUTO_HOLD_RECOVERY
   },
-  useV2Events: process.env.USE_V2_EVENTS,
   handleSchemeClosures: process.env.HANDLE_SCHEME_CLOSURES
 }
 
