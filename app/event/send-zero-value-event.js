@@ -1,4 +1,4 @@
-const { processingConfig, messageConfig } = require('../config')
+const { messageConfig } = require('../config')
 const { EventPublisher } = require('ffc-pay-event-publisher')
 const { SOURCE } = require('../constants/source')
 const { PAYMENT_PROCESSED_NO_FURTHER_ACTION } = require('../constants/events')
