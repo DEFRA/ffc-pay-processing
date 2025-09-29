@@ -35,6 +35,7 @@
     "@hapi/boom": "10.0.0",
     "@hapi/hapi": "20.2.2",
     "applicationinsights": "2.9.6",
+    "ffc-database": "^1.0.1",
     "ffc-messaging": "2.9.1",
     "ffc-pay-event-publisher": "1.2.0",
     "hapi-pino": "10.1.0",
