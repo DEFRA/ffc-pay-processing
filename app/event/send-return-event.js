@@ -9,10 +9,10 @@ const sendProcessingReturnEvent = async (message, isError = false) => {
   const invoiceNumber = message.invoiceNumber ?? UNKNOWN
   const frn = message.frn ?? UNKNOWN
 
-  if (!isError) {
-    await raiseCompletedReturnEvent(invoiceNumber, frn)
-  } else {
+  if (isError) {
     await raiseErrorEvent(invoiceNumber, frn, message.settled)
+  } else {
+    await raiseCompletedReturnEvent(invoiceNumber, frn)
   }
 }
 
