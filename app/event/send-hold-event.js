@@ -1,16 +1,10 @@
-const { processingConfig, messageConfig } = require('../config')
+const { messageConfig } = require('../config')
 const { EventPublisher } = require('ffc-pay-event-publisher')
 const { SOURCE } = require('../constants/source')
 const { HOLD_PREFIX } = require('../constants/events')
 const { getSchemeId } = require('../holds/get-scheme-id')
 
 const sendHoldEvent = async (hold, status) => {
-  if (processingConfig.useV2Events) {
-    await sendV2HoldEvent(hold, status)
-  }
-}
-
-const sendV2HoldEvent = async (hold, status) => {
   const { holdCategoryId, autoHoldCategoryId } = hold
   const schemeId = await getSchemeId(holdCategoryId, autoHoldCategoryId)
   if (autoHoldCategoryId) {

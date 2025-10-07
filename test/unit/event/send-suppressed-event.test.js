@@ -13,7 +13,7 @@ jest.mock('ffc-pay-event-publisher', () => {
 })
 
 jest.mock('../../../app/config')
-const { processingConfig, messageConfig } = require('../../../app/config')
+const { messageConfig } = require('../../../app/config')
 
 const { PAYMENT_SUPPRESSED } = require('../../../app/constants/events')
 const { SOURCE } = require('../../../app/constants/source')
@@ -29,24 +29,11 @@ describe('V2 route event', () => {
     deltaPaymentRequest = paymentRequest
     deltaPaymentRequest.value = -50
 
-    processingConfig.useV2Events = true
     messageConfig.eventsTopic = 'v2-events'
   })
 
   afterEach(() => {
     jest.clearAllMocks()
-  })
-
-  test('should send V2 event for suppressed AR if V2 events enabled', async () => {
-    processingConfig.useV2Events = true
-    await sendSuppressedEvent(paymentRequest, { deltaPaymentRequest, completedPaymentRequests: [paymentRequest] })
-    expect(mockPublishEvent).toHaveBeenCalled()
-  })
-
-  test('should not send V2 event for suppressed AR if V2 events disabled', async () => {
-    processingConfig.useV2Events = false
-    await sendSuppressedEvent(paymentRequest, { deltaPaymentRequest, completedPaymentRequests: [paymentRequest] })
-    expect(mockPublishEvent).not.toHaveBeenCalled()
   })
 
   test('should send suppressed AR event to V2 topic', async () => {

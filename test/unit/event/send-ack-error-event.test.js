@@ -16,7 +16,7 @@ jest.mock('../../../app/processing/get-payment-request-by-invoice-frn')
 const { getPaymentRequestByInvoiceAndFrn } = require('../../../app/processing/get-payment-request-by-invoice-frn')
 
 jest.mock('../../../app/config')
-const { processingConfig, messageConfig } = require('../../../app/config')
+const { messageConfig } = require('../../../app/config')
 
 const frn = require('../../mocks/values/frn')
 
@@ -39,36 +39,11 @@ describe('V2 acknowledgement error event', () => {
 
     getPaymentRequestByInvoiceAndFrn.mockResolvedValue(paymentRequest)
 
-    processingConfig.useV2Events = true
     messageConfig.eventsTopic = 'v2-events'
   })
 
   afterEach(() => {
     jest.clearAllMocks()
-  })
-
-  test('should send V2 event for DAX rejection if V2 events enabled', async () => {
-    processingConfig.useV2Events = true
-    await sendAcknowledgementErrorEvent(holdCategoryNameDR, acknowledgement, frn)
-    expect(mockPublishEvent).toHaveBeenCalled()
-  })
-
-  test('should send V2 event for bank account anomaly if V2 events enabled', async () => {
-    processingConfig.useV2Events = true
-    await sendAcknowledgementErrorEvent(holdCategoryNameBAA, acknowledgement, frn)
-    expect(mockPublishEvent).toHaveBeenCalled()
-  })
-
-  test('should not send V2 event for DAX rejection if V2 events disabled', async () => {
-    processingConfig.useV2Events = false
-    await sendAcknowledgementErrorEvent(holdCategoryNameDR, acknowledgement, frn)
-    expect(mockPublishEvent).not.toHaveBeenCalled()
-  })
-
-  test('should not send V2 event for bank account anomaly if V2 events disabled', async () => {
-    processingConfig.useV2Events = false
-    await sendAcknowledgementErrorEvent(holdCategoryNameBAA, acknowledgement, frn)
-    expect(mockPublishEvent).not.toHaveBeenCalled()
   })
 
   test('should send DAX rejection event to V2 topic', async () => {

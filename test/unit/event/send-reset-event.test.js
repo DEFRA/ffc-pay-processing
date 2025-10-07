@@ -13,7 +13,7 @@ jest.mock('ffc-pay-event-publisher', () => {
 })
 
 jest.mock('../../../app/config')
-const { processingConfig, messageConfig } = require('../../../app/config')
+const { messageConfig } = require('../../../app/config')
 
 const { PAYMENT_RESET } = require('../../../app/constants/events')
 const { SOURCE } = require('../../../app/constants/source')
@@ -25,7 +25,6 @@ let paymentRequest
 beforeEach(() => {
   paymentRequest = JSON.parse(JSON.stringify(require('../../mocks/payment-requests/payment-request')))
 
-  processingConfig.useV2Events = true
   messageConfig.eventsTopic = 'v2-events'
 })
 
@@ -34,18 +33,6 @@ afterEach(() => {
 })
 
 describe('V2 reset event', () => {
-  test('should send V2 event if V2 events enabled', async () => {
-    processingConfig.useV2Events = true
-    await sendResetEvent(paymentRequest)
-    expect(mockPublishEvent).toHaveBeenCalled()
-  })
-
-  test('should not send V2 event if V2 events disabled', async () => {
-    processingConfig.useV2Events = false
-    await sendResetEvent(paymentRequest)
-    expect(mockPublishEvent).not.toHaveBeenCalled()
-  })
-
   test('should send event to V2 topic', async () => {
     await sendResetEvent(paymentRequest)
     expect(MockEventPublisher.mock.calls[0][0]).toBe(messageConfig.eventsTopic)
