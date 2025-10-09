@@ -12,5 +12,7 @@ module.exports = {
   IMPS: 11,
   SFI23: 12,
   DELINKED: 13,
-  SFI_EXPANDED: 14
+  SFI_EXPANDED: 14,
+  COHT_REVENUE: 15,
+  COHT_CAPITAL: 16
 }
