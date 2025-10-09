@@ -16,7 +16,7 @@ jest.mock('../../../app/processing/get-payment-request-by-invoice-frn')
 const { getPaymentRequestByInvoiceAndFrn } = require('../../../app/processing/get-payment-request-by-invoice-frn')
 
 jest.mock('../../../app/config')
-const { processingConfig, messageConfig } = require('../../../app/config')
+const { messageConfig } = require('../../../app/config')
 
 const { PAYMENT_ACKNOWLEDGED } = require('../../../app/constants/events')
 const { SOURCE } = require('../../../app/constants/source')
@@ -33,24 +33,11 @@ describe('V2 ack event', () => {
 
     getPaymentRequestByInvoiceAndFrn.mockResolvedValue(paymentRequest)
 
-    processingConfig.useV2Events = true
     messageConfig.eventsTopic = 'v2-events'
   })
 
   afterEach(() => {
     jest.clearAllMocks()
-  })
-
-  test('should send V2 event if V2 events enabled', async () => {
-    processingConfig.useV2Events = true
-    await sendAckEvent(acknowledgement)
-    expect(mockPublishEvent).toHaveBeenCalled()
-  })
-
-  test('should not send V2 event if V2 events disabled', async () => {
-    processingConfig.useV2Events = false
-    await sendAckEvent(acknowledgement)
-    expect(mockPublishEvent).not.toHaveBeenCalled()
   })
 
   test('should send event to V2 topic', async () => {

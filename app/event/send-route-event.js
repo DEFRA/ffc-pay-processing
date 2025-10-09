@@ -1,15 +1,9 @@
-const { processingConfig, messageConfig } = require('../config')
+const { messageConfig } = require('../config')
 const { EventPublisher } = require('ffc-pay-event-publisher')
 const { SOURCE } = require('../constants/source')
 const { PAYMENT_PAUSED_PREFIX } = require('../constants/events')
 
 const sendProcessingRouteEvent = async (paymentRequest, routeLocation, routeType) => {
-  if (processingConfig.useV2Events) {
-    await sendV2ProcessingRouteEvent(paymentRequest, routeLocation, routeType)
-  }
-}
-
-const sendV2ProcessingRouteEvent = async (paymentRequest, routeLocation, routeType) => {
   if (routeType === 'request') {
     const event = {
       source: SOURCE,

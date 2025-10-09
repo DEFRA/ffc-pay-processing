@@ -16,7 +16,7 @@ jest.mock('../../../app/processing/get-payment-request-by-invoice-frn')
 const { getPaymentRequestByInvoiceAndFrn } = require('../../../app/processing/get-payment-request-by-invoice-frn')
 
 jest.mock('../../../app/config')
-const { processingConfig, messageConfig } = require('../../../app/config')
+const { messageConfig } = require('../../../app/config')
 
 const { PAYMENT_SETTLEMENT_UNMATCHED, PAYMENT_SETTLEMENT_UNSETTLED, PAYMENT_SETTLED } = require('../../../app/constants/events')
 const { SOURCE } = require('../../../app/constants/source')
@@ -33,53 +33,11 @@ describe('V2 acknowledgement error event', () => {
 
     getPaymentRequestByInvoiceAndFrn.mockResolvedValue(paymentRequest)
 
-    processingConfig.useV2Events = true
     messageConfig.eventsTopic = 'v2-events'
   })
 
   afterEach(() => {
     jest.clearAllMocks()
-  })
-
-  test('should send V2 event for unmatched settlement if V2 events enabled', async () => {
-    processingConfig.useV2Events = true
-    await sendProcessingReturnEvent(settlement, true)
-    expect(mockPublishEvent).toHaveBeenCalled()
-    expect(mockPublishEvent.mock.calls[0][0].type).toBe(PAYMENT_SETTLEMENT_UNMATCHED)
-  })
-
-  test('should send V2 event for matched settlement if V2 events enabled', async () => {
-    processingConfig.useV2Events = true
-    await sendProcessingReturnEvent(settlement)
-    expect(mockPublishEvent).toHaveBeenCalled()
-    expect(mockPublishEvent.mock.calls[0][0].type).toBe(PAYMENT_SETTLED)
-  })
-
-  test('should send V2 event for unsettled settlement if V2 events enabled and settlement unsuccessful by D365', async () => {
-    processingConfig.useV2Events = true
-    settlement.settled = false
-    await sendProcessingReturnEvent(settlement, true)
-    expect(mockPublishEvent).toHaveBeenCalled()
-    expect(mockPublishEvent.mock.calls[0][0].type).toBe(PAYMENT_SETTLEMENT_UNSETTLED)
-  })
-
-  test('should not send V2 event for unmatched settlement if V2 events disabled', async () => {
-    processingConfig.useV2Events = false
-    await sendProcessingReturnEvent(settlement, true)
-    expect(mockPublishEvent).not.toHaveBeenCalled()
-  })
-
-  test('should not send V2 event for matched settlement if V2 events disabled', async () => {
-    processingConfig.useV2Events = false
-    await sendProcessingReturnEvent(settlement)
-    expect(mockPublishEvent).not.toHaveBeenCalled()
-  })
-
-  test('should not send V2 event for unsettled settlement if V2 events disabled', async () => {
-    processingConfig.useV2Events = false
-    settlement.settled = false
-    await sendProcessingReturnEvent(settlement, true)
-    expect(mockPublishEvent).not.toHaveBeenCalled()
   })
 
   test('should send unmatched settlement event to V2 topic', async () => {

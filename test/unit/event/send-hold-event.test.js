@@ -13,7 +13,7 @@ jest.mock('ffc-pay-event-publisher', () => {
 })
 
 jest.mock('../../../app/config')
-const { processingConfig, messageConfig } = require('../../../app/config')
+const { messageConfig } = require('../../../app/config')
 
 jest.mock('../../../app/holds/get-scheme-id')
 const { getSchemeId } = require('../../../app/holds/get-scheme-id')
@@ -32,24 +32,11 @@ describe('V2 hold event', () => {
     getSchemeId.mockResolvedValue(1)
     hold = JSON.parse(JSON.stringify(require('../../mocks/holds/hold')))
     status = ADDED
-    processingConfig.useV2Events = true
     messageConfig.eventsTopic = 'v2-events'
   })
 
   afterEach(() => {
     jest.clearAllMocks()
-  })
-
-  test('should send V2 event if V2 events enabled', async () => {
-    processingConfig.useV2Events = true
-    await sendHoldEvent(hold, status)
-    expect(mockPublishEvent).toHaveBeenCalled()
-  })
-
-  test('should not send V2 event if V2 events disabled', async () => {
-    processingConfig.useV2Events = false
-    await sendHoldEvent(hold, status)
-    expect(mockPublishEvent).not.toHaveBeenCalled()
   })
 
   test('should send event to V2 topic', async () => {
