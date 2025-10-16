@@ -1,19 +1,50 @@
 <?xml version="1.1" encoding="UTF-8" standalone="no"?>
 <databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext" xmlns:pro="http://www.liquibase.org/xml/ns/pro" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-3.9.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.9.xsd">
   <changeSet author="Sam Plackett" id="1">
-    <tagDatabase tag="v1.86.0" />
+    <tagDatabase tag="v1.87.0" />
   </changeSet>
   <changeSet author="Sam Plackett" id="2">
+    <sql>
+      DELETE FROM "outbox"
+      WHERE "completedPaymentRequestId" IN (
+        SELECT "completedPaymentRequestId"
+        FROM "completedPaymentRequests"
+        WHERE "paymentRequestId" IN (4533492, 4533597)
+      );
+    </sql>
+  </changeSet>
+  <changeSet author="Sam Plackett" id="3">
+    <sql>
+      DELETE FROM "completedInvoiceLines"
+      WHERE "completedPaymentRequestId" IN (
+        SELECT "completedPaymentRequestId"
+        FROM "completedPaymentRequests"
+        WHERE "paymentRequestId" IN (4533492, 4533597)
+      );
+    </sql>
+  </changeSet>
+  <changeSet author="Sam Plackett" id="4">
     <sql>
       DELETE FROM "completedPaymentRequests"
       WHERE "paymentRequestId" IN (4533492, 4533597);
     </sql>
   </changeSet>
-  <changeSet author="Sam Plackett" id="2">
+  <changeSet author="Sam Plackett" id="5">
+    <sql>
+      DELETE FROM "schedule"
+      WHERE "paymentRequestId" IN (4533492, 4533597);
+    </sql>
+  </changeSet>
+  <changeSet author="Sam Plackett" id="6">
+    <sql>
+      DELETE FROM "invoiceLines"
+      WHERE "paymentRequestId" IN (4533492, 4533597);
+    </sql>
+  </changeSet>
+  <changeSet author="Sam Plackett" id="7">
     <sql>
       DELETE FROM "paymentRequests"
       WHERE "paymentRequestId" IN (4533492, 4533597);
     </sql>
   </changeSet>
-
 </databaseChangeLog>
