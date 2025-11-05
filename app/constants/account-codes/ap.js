@@ -43,5 +43,6 @@ module.exports = {
   SOS925: 'SOS925',
   SOS926: 'SOS926',
   SOS927: 'SOS927',
-  SOS928: 'SOS928'
+  SOS928: 'SOS928',
+  SOS929: 'SOS929'
 }

@@ -1,0 +1,110 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext" xmlns:pro="http://www.liquibase.org/xml/ns/pro" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-3.9.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.9.xsd">
+  <changeSet author="Leigh Godson" id="1">
+    <tagDatabase tag="v1.88.0" />
+  </changeSet>
+ <changeSet author="Leigh Godson" id="2">
+    <insert tableName="schemes">
+      <column name="schemeId" value="15" />
+      <column name="name" value="COHT Revenue" />
+      <column name="active" value="true" />
+    </insert>
+    <insert tableName="schemes">
+      <column name="schemeId" value="16" />
+      <column name="name" value="COHT Capital" />
+      <column name="active" value="true" />
+    </insert>
+  </changeSet>  
+  <changeSet author="Leigh Godson" id="3">
+    <insert tableName="autoHoldCategories">
+      <column name="autoHoldCategoryId" value="140" />
+      <column name="schemeId" value="15" />
+      <column name="name" value="Manual ledger hold" />
+    </insert>
+    <insert tableName="autoHoldCategories">
+      <column name="autoHoldCategoryId" value="141" />
+      <column name="schemeId" value="15" />
+      <column name="name" value="Awaiting debt enrichment" />
+    </insert> 
+    <insert tableName="autoHoldCategories">
+      <column name="autoHoldCategoryId" value="142" />
+      <column name="schemeId" value="16" />
+      <column name="name" value="Manual ledger hold" />
+    </insert>
+    <insert tableName="autoHoldCategories">
+      <column name="autoHoldCategoryId" value="143" />
+      <column name="schemeId" value="16" />
+      <column name="name" value="Awaiting debt enrichment" />
+    </insert>
+    <insert tableName="holdCategories">
+      <column name="holdCategoryId" value="159" />
+      <column name="schemeId" value="15" />
+      <column name="name" value="Bank account anomaly" />
+    </insert>
+    <insert tableName="holdCategories">
+      <column name="holdCategoryId" value="160" />
+      <column name="schemeId" value="15" />
+      <column name="name" value="Dax rejection" />
+    </insert>
+    <insert tableName="holdCategories">
+      <column name="holdCategoryId" value="161" />
+      <column name="schemeId" value="15" />
+      <column name="name" value="Non-Payable" />
+    </insert>
+    <insert tableName="holdCategories">
+      <column name="holdCategoryId" value="162" />
+      <column name="schemeId" value="15" />
+      <column name="name" value="Other Admin" />
+    </insert>
+    <insert tableName="holdCategories">
+      <column name="holdCategoryId" value="163" />
+      <column name="schemeId" value="15" />
+      <column name="name" value="Recovery" />
+    </insert>
+    <insert tableName="holdCategories">
+      <column name="holdCategoryId" value="164" />
+      <column name="schemeId" value="15" />
+      <column name="name" value="Withdrawal" />
+    </insert>
+    <insert tableName="holdCategories">
+      <column name="holdCategoryId" value="165" />
+      <column name="schemeId" value="15" />
+      <column name="name" value="Manual Payment" />
+    </insert>
+    <insert tableName="holdCategories">
+      <column name="holdCategoryId" value="166" />
+      <column name="schemeId" value="16" />
+      <column name="name" value="Bank account anomaly" />
+    </insert>
+    <insert tableName="holdCategories">
+      <column name="holdCategoryId" value="167" />
+      <column name="schemeId" value="16" />
+      <column name="name" value="Dax rejection" />
+    </insert>
+    <insert tableName="holdCategories">
+      <column name="holdCategoryId" value="168" />
+      <column name="schemeId" value="16" />
+      <column name="name" value="Non-Payable" />
+    </insert>
+    <insert tableName="holdCategories">
+      <column name="holdCategoryId" value="169" />
+      <column name="schemeId" value="16" />
+      <column name="name" value="Other Admin" />
+    </insert>
+    <insert tableName="holdCategories">
+      <column name="holdCategoryId" value="170" />
+      <column name="schemeId" value="16" />
+      <column name="name" value="Recovery" />
+    </insert>
+      <insert tableName="holdCategories">
+      <column name="holdCategoryId" value="171" />
+      <column name="schemeId" value="16" />
+      <column name="name" value="Withdrawal" />
+    </insert>
+    <insert tableName="holdCategories">
+      <column name="holdCategoryId" value="172" />
+      <column name="schemeId" value="16" />
+      <column name="name" value="Manual Payment" />
+    </insert>
+  </changeSet>
+</databaseChangeLog>
