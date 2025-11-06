@@ -12,6 +12,7 @@ const savePaymentRequest = async (paymentRequest) => {
       console.info(`Duplicate payment request received, skipping ${existingPaymentRequest.invoiceNumber}`)
     } else {
       delete paymentRequest.paymentRequestId
+      // todo something unique?
       const savedPaymentRequest = await db.paymentRequest.create({ ...paymentRequest, received: new Date(), referenceId: uuidv4(), sentToTracking: true }, { transaction })
       await saveInvoiceLines(paymentRequest.invoiceLines, savedPaymentRequest.paymentRequestId, transaction)
       await createSchedule(savedPaymentRequest.paymentRequestId, transaction)

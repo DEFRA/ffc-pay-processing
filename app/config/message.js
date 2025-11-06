@@ -1,4 +1,5 @@
 const Joi = require('joi')
+const { max } = require('moment')
 
 const schema = Joi.object({
   messageQueue: {
@@ -13,7 +14,8 @@ const schema = Joi.object({
     address: Joi.string().required(),
     topic: Joi.string().required(),
     type: Joi.string().default('subscription'),
-    numberOfReceivers: Joi.number().default(3)
+    numberOfReceivers: Joi.number().default(3),
+    maxConcurrentCalls: Joi.number().optional()
   },
   acknowledgementSubscription: {
     address: Joi.string().required(),
@@ -70,7 +72,8 @@ const config = {
   },
   processingSubscription: {
     address: process.env.PROCESSING_SUBSCRIPTION_ADDRESS,
-    topic: process.env.PROCESSING_TOPIC_ADDRESS
+    topic: process.env.PROCESSING_TOPIC_ADDRESS,
+    maxConcurrentCalls: process.env.PROCESSING_SUBSCRIPTION_MAX_CONCURRENT_CALLS ? parseInt(process.env.PROCESSING_SUBSCRIPTION_MAX_CONCURRENT_CALLS) : undefined
   },
   acknowledgementSubscription: {
     address: process.env.ACKNOWLEDGEMENT_SUBSCRIPTION_ADDRESS,
