@@ -44,9 +44,11 @@ describe('confirm payment request number', () => {
 
   test('should increment payment request number if previous payment request has higher number and multiple matches', async () => {
     await savePaymentRequest(paymentRequest, true)
+    paymentRequest.invoiceNumber = 'INV-001'
     paymentRequest.paymentRequestId = 2
     paymentRequest.paymentRequestNumber = 2
     await savePaymentRequest(paymentRequest, true)
+    paymentRequest.invoiceNumber = 'INV-002'
     paymentRequest.paymentRequestNumber = 1
     const paymentRequestNumber = await confirmPaymentRequestNumber(paymentRequest)
     expect(paymentRequestNumber).toBe(3)
