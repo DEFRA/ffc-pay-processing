@@ -1,5 +1,4 @@
 const Joi = require('joi')
-const { max } = require('moment')
 
 const schema = Joi.object({
   messageQueue: {
