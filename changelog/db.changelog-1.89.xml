@@ -6,7 +6,7 @@
  <changeSet author="John Barnard" id="2">
     <addUniqueConstraint
       tableName="paymentRequests"
-      columnNames="paymentRequestId, invoiceNumber"
+      columnNames="invoiceNumber"
       constraintName="uq_payment_request_unique" 
     />
   </changeSet>  
