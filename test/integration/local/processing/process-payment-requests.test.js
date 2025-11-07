@@ -99,6 +99,7 @@ describe('process payment requests', () => {
     await savePaymentRequest(paymentRequest, true)
 
     // second payment request
+    paymentRequest.invoiceNumber = 'INV-001'
     const topUpPaymentRequest = createAdjustmentPaymentRequest(
       paymentRequest,
       TOP_UP
@@ -130,10 +131,12 @@ describe('process payment requests', () => {
     await savePaymentRequest(paymentRequest, true)
 
     // second payment request
+    paymentRequest.invoiceNumber = 'INV-001'
     const topUpPaymentRequest = createAdjustmentPaymentRequest(
       paymentRequest,
       TOP_UP
     )
+
     await saveSchedule(inProgressSchedule, topUpPaymentRequest)
 
     await processPaymentRequests()
@@ -152,6 +155,7 @@ describe('process payment requests', () => {
     await savePaymentRequest(paymentRequest, true)
 
     // second payment request
+    paymentRequest.invoiceNumber = 'INV-001'
     const recoveryPaymentRequest = createAdjustmentPaymentRequest(
       paymentRequest,
       RECOVERY
@@ -180,6 +184,7 @@ describe('process payment requests', () => {
   test('should process reduction request and create completed lines', async () => {
     // first payment request
     await savePaymentRequest(paymentRequest, true)
+    paymentRequest.invoiceNumber = 'INV-001'
 
     // second payment request
     const recoveryPaymentRequest = createAdjustmentPaymentRequest(
@@ -203,6 +208,7 @@ describe('process payment requests', () => {
     // first payment request
     settlePaymentRequest(paymentRequest)
     await savePaymentRequest(paymentRequest, true)
+    paymentRequest.invoiceNumber = 'INV-001'
 
     // second payment request
     const recoveryPaymentRequest = createAdjustmentPaymentRequest(
@@ -224,6 +230,7 @@ describe('process payment requests', () => {
     // first payment request
     settlePaymentRequest(paymentRequest)
     await savePaymentRequest(paymentRequest, true)
+    paymentRequest.invoiceNumber = 'INV-001'
 
     // second payment request
     const recoveryPaymentRequest = createAdjustmentPaymentRequest(
@@ -242,6 +249,7 @@ describe('process payment requests', () => {
     // first payment request
     settlePaymentRequest(paymentRequest)
     await savePaymentRequest(paymentRequest, true)
+    paymentRequest.invoiceNumber = 'INV-001'
 
     // second payment request
     const recoveryPaymentRequest = createAdjustmentPaymentRequest(
@@ -268,6 +276,7 @@ describe('process payment requests', () => {
     // first payment request
     settlePaymentRequest(paymentRequest)
     await savePaymentRequest(paymentRequest, true)
+    paymentRequest.invoiceNumber = 'INV-001'
 
     // second payment request
     const recoveryPaymentRequest = createAdjustmentPaymentRequest(
@@ -292,6 +301,7 @@ describe('process payment requests', () => {
     // first payment request
     settlePaymentRequest(paymentRequest)
     await savePaymentRequest(paymentRequest, true)
+    paymentRequest.invoiceNumber = 'INV-001'
 
     // second payment request
     const recoveryPaymentRequest = createAdjustmentPaymentRequest(
@@ -319,6 +329,7 @@ describe('process payment requests', () => {
     // first payment request
     settlePaymentRequest(paymentRequest)
     await savePaymentRequest(paymentRequest, true)
+    paymentRequest.invoiceNumber = 'INV-001'
 
     // second payment request
     const topUpPaymentRequest = createAdjustmentPaymentRequest(
@@ -338,6 +349,7 @@ describe('process payment requests', () => {
     // first payment request
     settlePaymentRequest(paymentRequest)
     await savePaymentRequest(paymentRequest, true)
+    paymentRequest.invoiceNumber = 'INV-001'
 
     // second payment request
     const recoveryPaymentRequest = createAdjustmentPaymentRequest(
@@ -366,19 +378,28 @@ describe('process payment requests', () => {
     // first payment request
     settlePaymentRequest(paymentRequest)
     await savePaymentRequest(paymentRequest, true)
+    paymentRequest.invoiceNumber = 'INV-001'
 
     // second payment request
     const recoveryPaymentRequest = createAdjustmentPaymentRequest(
       paymentRequest,
       RECOVERY
     )
+
+    paymentRequest.invoiceNumber = 'INV-002'
+
     await savePaymentRequest(recoveryPaymentRequest, true)
+
+    paymentRequest.invoiceNumber = 'INV-003'
 
     // third payment request
     const topUpPaymentRequest = createAdjustmentPaymentRequest(
       recoveryPaymentRequest,
       TOP_UP
     )
+
+    topUpPaymentRequest.invoiceNumber = 'INV-004'
+
     await saveSchedule(inProgressSchedule, topUpPaymentRequest)
 
     await processPaymentRequests()
@@ -400,6 +421,7 @@ describe('process payment requests', () => {
     // first payment request
     settlePaymentRequest(paymentRequest)
     await savePaymentRequest(paymentRequest, true)
+    paymentRequest.invoiceNumber = 'INV-001'
 
     // second payment request
     const recoveryPaymentRequest = createAdjustmentPaymentRequest(
@@ -429,6 +451,7 @@ describe('process payment requests', () => {
     // first payment request
     settlePaymentRequest(paymentRequest)
     await savePaymentRequest(paymentRequest, true)
+    paymentRequest.invoiceNumber = 'INV-001'
 
     await db.frnAgreementClosed.create(closureDBEntry)
 
@@ -447,6 +470,7 @@ describe('process payment requests', () => {
     // first payment request
     settlePaymentRequest(paymentRequest)
     await savePaymentRequest(paymentRequest, true)
+    paymentRequest.invoiceNumber = 'INV-001'
 
     // set up closures DB (should be ignored)
     await db.frnAgreementClosed.create(closureDBEntry)
@@ -471,6 +495,7 @@ describe('process payment requests', () => {
     // first payment request
     settlePaymentRequest(paymentRequest)
     await savePaymentRequest(paymentRequest, true)
+    paymentRequest.invoiceNumber = 'INV-001'
 
     // set up closures DB - with future date
     closureDBEntry.closureDate = FUTURE_DATE
@@ -494,6 +519,7 @@ describe('process payment requests', () => {
 
     // first payment request
     await savePaymentRequest(paymentRequest, true)
+    paymentRequest.invoiceNumber = 'INV-001'
 
     // set up closures DB
     await db.frnAgreementClosed.create(closureDBEntry)
