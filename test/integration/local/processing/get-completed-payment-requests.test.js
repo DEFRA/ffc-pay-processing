@@ -64,6 +64,7 @@ describe('get completed payment requests', () => {
 
   test('should return all completed payment requests for agreement', async () => {
     await savePaymentRequest(paymentRequest, true)
+    paymentRequest.invoiceNumber = 'INV-001'
     await savePaymentRequest(paymentRequest, true)
     paymentRequest.paymentRequestNumber = 2
     const paymentRequests = await getCompletedPaymentRequests(paymentRequest)
@@ -73,6 +74,7 @@ describe('get completed payment requests', () => {
   test('should not include completed payment requests with later request numbers', async () => {
     await savePaymentRequest(paymentRequest, true)
     paymentRequest.paymentRequestNumber = 3
+    paymentRequest.invoiceNumber = 'INV-002'
     await savePaymentRequest(paymentRequest, true)
     paymentRequest.paymentRequestNumber = 2
     const paymentRequests = await getCompletedPaymentRequests(paymentRequest)
@@ -83,6 +85,7 @@ describe('get completed payment requests', () => {
   test('should not return invalid payment requests', async () => {
     await savePaymentRequest(paymentRequest, true)
     paymentRequest.invalid = true
+    paymentRequest.invoiceNumber = 'INV-003'
     await savePaymentRequest(paymentRequest, true)
     paymentRequest.paymentRequestNumber = 2
     const paymentRequests = await getCompletedPaymentRequests(paymentRequest)

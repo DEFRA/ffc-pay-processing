@@ -39,6 +39,7 @@ services:
       USE_MANUAL_LEDGER_CHECK: "true"
       POSTGRES_LOGGING: "false"
       PROCESSING_ACTIVE: ${PROCESSING_ACTIVE:-true}
+      PROCESSING_SUBSCRIPTION_MAX_CONCURRENT_CALLS: ${PROCESSING_SUBSCRIPTION_MAX_CONCURRENT_CALLS:-1}
   
   ffc-pay-processing-postgres:
     image: postgres:11.4-alpine
