@@ -114,6 +114,7 @@ describe('get payment requests', () => {
 
   test('should not return payment request if another for same agreement in process', async () => {
     await saveSchedule(newSchedule, paymentRequest)
+    paymentRequest.invoiceNumber = 'INV-001'
     const { scheduleId } = await saveSchedule(newSchedule, paymentRequest)
     await db.schedule.update({ started: moment().subtract(1, 'minute') }, { where: { scheduleId } })
     const paymentRequests = await getPaymentRequests()
@@ -122,6 +123,7 @@ describe('get payment requests', () => {
 
   test('should return payment request if another for same agreement in process but time expired', async () => {
     await saveSchedule(newSchedule, paymentRequest)
+    paymentRequest.invoiceNumber = 'INV-001'
     const { scheduleId } = await saveSchedule(newSchedule, paymentRequest)
     await db.schedule.update({ started: moment().subtract(10, 'minute') }, { where: { scheduleId } })
     const paymentRequests = await getPaymentRequests()
@@ -131,6 +133,7 @@ describe('get payment requests', () => {
   test('should not return payment request if another for same agreement in process but time expired if scheme inactive', async () => {
     await db.scheme.update({ active: false }, { where: { schemeId: SFI } })
     await saveSchedule(newSchedule, paymentRequest)
+    paymentRequest.invoiceNumber = 'INV-001'
     const { scheduleId } = await saveSchedule(newSchedule, paymentRequest)
     await db.schedule.update({ started: moment().subtract(10, 'minute') }, { where: { scheduleId } })
     const paymentRequests = await getPaymentRequests()
@@ -139,6 +142,7 @@ describe('get payment requests', () => {
 
   test('should return payment request if another for same agreement completed', async () => {
     await saveSchedule(newSchedule, paymentRequest)
+    paymentRequest.invoiceNumber = 'INV-001'
     await saveSchedule(completedSchedule, paymentRequest)
     await db.schedule.create(schedule)
     const paymentRequests = await getPaymentRequests()
@@ -148,6 +152,7 @@ describe('get payment requests', () => {
   test('should return payment request if another for same customer in process but different scheme', async () => {
     await saveSchedule(newSchedule, paymentRequest)
     paymentRequest.schemeId = SFI_PILOT
+    paymentRequest.invoiceNumber = 'INV-001'
     const { scheduleId } = await saveSchedule(newSchedule, paymentRequest)
     await db.schedule.update({ started: moment().subtract(1, 'minute') }, { where: { scheduleId } })
     await db.schedule.create(schedule)
@@ -158,6 +163,7 @@ describe('get payment requests', () => {
   test('should return payment request if another for same customer in process but different marketing year', async () => {
     await saveSchedule(newSchedule, paymentRequest)
     paymentRequest.marketingYear = 2021
+    paymentRequest.invoiceNumber = 'INV-001'
     const { scheduleId } = await saveSchedule(newSchedule, paymentRequest)
     await db.schedule.update({ started: moment().subtract(1, 'minute') }, { where: { scheduleId } })
     await db.schedule.create(schedule)
@@ -168,6 +174,7 @@ describe('get payment requests', () => {
   test('should return payment request if another for different customer in process', async () => {
     await saveSchedule(newSchedule, paymentRequest)
     paymentRequest.frn = 1234567891
+    paymentRequest.invoiceNumber = 'INV-001'
     const { scheduleId } = await saveSchedule(newSchedule, paymentRequest)
     await db.schedule.update({ started: moment().subtract(1, 'minute') }, { where: { scheduleId } })
     await db.schedule.create(schedule)
@@ -214,6 +221,7 @@ describe('get payment requests', () => {
 
   test('should remove duplicate payment request if another for same agreement pending', async () => {
     await saveSchedule(newSchedule, paymentRequest)
+    paymentRequest.invoiceNumber = 'INV-001'
     await saveSchedule(newSchedule, paymentRequest)
     const paymentRequests = await getPaymentRequests()
     expect(paymentRequests.length).toBe(1)
@@ -222,6 +230,7 @@ describe('get payment requests', () => {
   test('should return first request if payment request if another for same agreement pending even if scheduled earlier', async () => {
     await saveSchedule(newSchedule, paymentRequest)
     paymentRequest.paymentRequestNumber = 2
+    paymentRequest.invoiceNumber = 'INV-001'
     const { scheduleId } = await saveSchedule(newSchedule, paymentRequest)
     await db.schedule.update({ planned: moment().subtract(2, 'day') }, { where: { scheduleId } })
     const paymentRequests = await getPaymentRequests()
@@ -231,6 +240,7 @@ describe('get payment requests', () => {
   test('should not remove pending for same customer but different marketing year as duplicate', async () => {
     await saveSchedule(newSchedule, paymentRequest)
     paymentRequest.marketingYear = 2021
+    paymentRequest.invoiceNumber = 'INV-001'
     await saveSchedule(newSchedule, paymentRequest)
     const paymentRequests = await getPaymentRequests()
     expect(paymentRequests.length).toBe(2)
@@ -239,6 +249,7 @@ describe('get payment requests', () => {
   test('should not remove pending for different customer as duplicate', async () => {
     await saveSchedule(newSchedule, paymentRequest)
     paymentRequest.frn = 1234567891
+    paymentRequest.invoiceNumber = 'INV-001'
     await saveSchedule(newSchedule, paymentRequest)
     const paymentRequests = await getPaymentRequests()
     expect(paymentRequests.length).toBe(2)
@@ -247,6 +258,7 @@ describe('get payment requests', () => {
   test('should not remove pending for same customer but different scheme as duplicate', async () => {
     await saveSchedule(newSchedule, paymentRequest)
     paymentRequest.schemeId = SFI_PILOT
+    paymentRequest.invoiceNumber = 'INV-001'
     await saveSchedule(newSchedule, paymentRequest)
     const paymentRequests = await getPaymentRequests()
     expect(paymentRequests.length).toBe(2)
@@ -259,6 +271,7 @@ describe('get payment requests', () => {
 
     for (let i = 2; i < 13; i++) {
       paymentRequest.frn = 1234567890 + i
+      paymentRequest.invoiceNumber = 'INV-00' + i
       await saveSchedule(newSchedule, paymentRequest)
     }
 
@@ -273,6 +286,7 @@ describe('get payment requests', () => {
     const laterDate = moment().subtract(1, 'day')
 
     for (let i = 2; i < 14; i++) {
+      paymentRequest.invoiceNumber = 'INV-00' + i
       const { scheduleId } = await saveSchedule(newSchedule, paymentRequest)
       if (i % 2 === 0) {
         await db.schedule.update({ planned: earlierDate }, { where: { scheduleId } })
@@ -296,6 +310,7 @@ describe('get payment requests', () => {
 
   test('should update only valid if duplicate payment request if another for same agreement pending', async () => {
     await saveSchedule(newSchedule, paymentRequest)
+    paymentRequest.invoiceNumber = 'INV-001'
     await saveSchedule(newSchedule, paymentRequest)
     await getPaymentRequests()
     const updatedSchedules = await db.schedule.findAll({ where: { started: { [db.Sequelize.Op.ne]: null } } })

@@ -58,6 +58,7 @@ container:
   processingCap: 5000
   paymentPublishingInterval: 1000
   processingActive: true
+  processingSubscriptionMaxConcurrentCalls: 1
 
 postgresService:
   postgresDb: ffc_pay_processing
