@@ -18,6 +18,11 @@ const config = {
     ...mqConfig,
     address: process.env.PAYMENTSUBMIT_SUBSCRIPTION_ADDRESS,
     topic: process.env.PAYMENTSUBMIT_TOPIC_ADDRESS
+  },
+  eventsTopic: {
+    ...mqConfig,
+    address: process.env.EVENTS_SUBSCRIPTION_ADDRESS,
+    topic: process.env.EVENTS_TOPIC_ADDRESS
   }
 }
 
