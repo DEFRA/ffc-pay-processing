@@ -12,7 +12,6 @@ Before({ name: 'Clear topic to ensure clean test run' }, async () => {
   completedMessages = []
   await clearSubscription(config.processingSubscription)
   await clearSubscription(config.submitTopic)
-  await clearSubscription(config.eventsTopic)
 })
 
 Given('a payment request is received', async () => {
