@@ -6,7 +6,10 @@ const __ = require('hamjest')
 
 setDefaultTimeout(60 * 1000)
 
+let completedMessages = []
+
 Before({ name: 'Clear topic to ensure clean test run' }, async () => {
+  completedMessages = []
   await clearSubscription(config.processingSubscription)
   await clearSubscription(config.submitTopic)
 })
@@ -15,13 +18,24 @@ Given('a payment request is received', async () => {
   await sendMessage(paymentRequest)
 })
 
-When('the payment request is completed', () => {
-  // Syntactic sugar
+When('the payment request is completed', async () => {
+  const timeoutMs = 60 * 1000
+  const pollInterval = 500
+  const deadline = Date.now() + timeoutMs
+  let messages = []
+  do {
+    messages = await messageReceiver()
+    if (messages.length) {
+      completedMessages = messages
+      return
+    }
+    await new Promise(resolve => setTimeout(resolve, pollInterval))
+  } while (Date.now() < deadline)
 })
 
 Then('the completed payment request should contain:', async (dataTable) => {
   const values = dataTable.rowsHash()
-  const messages = await messageReceiver()
+  const messages = completedMessages
 
   const expectedFields = {
     sourceSystem: values.scheme,

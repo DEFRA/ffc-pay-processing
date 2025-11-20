@@ -7,12 +7,20 @@ const processSettlement = async (settlement) => {
     const filter = getSettlementFilter(settlement)
     const settledPaymentRequest = await updateSettlementStatus(settlement, filter)
     if (settledPaymentRequest) {
-      await sendProcessingReturnEvent({ ...settlement, ...settledPaymentRequest })
+      try {
+        await sendProcessingReturnEvent({ ...settlement, ...settledPaymentRequest })
+      } catch (error) {
+        console.error('Failed to send processing return event:', error)
+      }
       return true
     }
   }
 
-  await sendProcessingReturnEvent(settlement, true)
+  try {
+    await sendProcessingReturnEvent(settlement, true)
+  } catch (error) {
+    console.error('Failed to send processing return event for unsettled settlement:', error)
+  }
   return false
 }
 
