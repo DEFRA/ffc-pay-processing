@@ -41,7 +41,7 @@ describe('get completed payment requests filter', () => {
     ({ scheme, manual, expectedNumber }) => {
       const paymentRequest = structuredClone(basePaymentRequest)
       paymentRequest.schemeId = scheme
-      if (manual) paymentRequest.paymentRequestNumber = 0
+      if (manual) { paymentRequest.paymentRequestNumber = 0 }
 
       const filter = getCompletedPaymentRequestsFilter(paymentRequest)
 

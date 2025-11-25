@@ -71,12 +71,11 @@ describe('applyBPSDualAccounting', () => {
 
       if (!firstPayment) {
         previousPaymentRequests[0].marketingYear = year
-        if (prevFundCode) previousPaymentRequests[0].invoiceLines[0].fundCode = prevFundCode
+        if (prevFundCode) { previousPaymentRequests[0].invoiceLines[0].fundCode = prevFundCode }
       } else {
         previousPaymentRequests = []
       }
 
-      // Add extra invoice line for multi-line tests
       paymentRequest.invoiceLines[1] = createInvoiceLine(2, 0)
 
       await applyBPSDualAccounting(paymentRequest, previousPaymentRequests)
