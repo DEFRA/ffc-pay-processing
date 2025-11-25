@@ -7,7 +7,7 @@ describe('get original invoice number', () => {
   beforeEach(() => {
     jest.clearAllMocks()
 
-    paymentRequest = JSON.parse(JSON.stringify(require('../../../mocks/payment-requests/payment-request')))
+    paymentRequest = structuredClone(require('../../../mocks/payment-requests/payment-request'))
     paymentRequests = [paymentRequest]
   })
 
@@ -20,14 +20,14 @@ describe('get original invoice number', () => {
   })
 
   test('should return invoice number of payment request one if multiple payment requests', () => {
-    paymentRequests.push(JSON.parse(JSON.stringify(paymentRequest)))
+    paymentRequests.push(structuredClone(paymentRequest))
     paymentRequests[1].paymentRequestNumber = 2
     paymentRequests[1].invoiceNumber = '1234'
     expect(getOriginalInvoiceNumber(paymentRequests)).toEqual(paymentRequest.invoiceNumber)
   })
 
   test('should return invoice number of first payment request if no first payment', () => {
-    paymentRequests.push(JSON.parse(JSON.stringify(paymentRequest)))
+    paymentRequests.push(structuredClone(paymentRequest))
     paymentRequests[0].paymentRequestNumber = 2
     paymentRequests[1].paymentRequestNumber = 3
     paymentRequests[1].invoiceNumber = '1234'

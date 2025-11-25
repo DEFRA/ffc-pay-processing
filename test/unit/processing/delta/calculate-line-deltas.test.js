@@ -1,326 +1,97 @@
-const { DRD10 } = require('../../../../app/constants/domestic-fund-codes')
-const { G00 } = require('../../../../app/constants/line-codes')
-
 const { AGREEMENT_NUMBER } = require('../../../mocks/values/agreement-number')
 const { SCHEME_CODE } = require('../../../mocks/values/scheme-code')
 
+const { createInvoiceLine } = require('../../../helpers/create-invoice-line')
 const { calculateLineDeltas } = require('../../../../app/processing/delta/calculate-line-deltas')
 
-describe('calculate line deltas', () => {
-  test('should calculate delta values by group when one group', () => {
-    const invoiceLines = [{
-      schemeCode: SCHEME_CODE,
-      fundCode: DRD10,
-      agreementNumber: AGREEMENT_NUMBER,
-      description: G00,
-      value: 10
-    }, {
-      schemeCode: SCHEME_CODE,
-      fundCode: DRD10,
-      agreementNumber: AGREEMENT_NUMBER,
-      description: G00,
-      value: -8
-    }]
+describe('calculateLineDeltas', () => {
+  describe('Delta calculation by scheme', () => {
+    test('calculates delta for single group', () => {
+      const invoiceLines = [10, -8].map(value => createInvoiceLine({ value }))
+      const deltas = calculateLineDeltas(invoiceLines, AGREEMENT_NUMBER)
+      expect(deltas.find(x => x.schemeCode === SCHEME_CODE).value).toBe(2)
+    })
 
-    const lineDeltas = calculateLineDeltas(invoiceLines, AGREEMENT_NUMBER)
-    expect(lineDeltas.find(x => x.schemeCode === SCHEME_CODE).value).toBe(2)
+    test('calculates delta for multiple groups', () => {
+      const invoiceLines = [
+        createInvoiceLine({ value: 10 }),
+        createInvoiceLine({ value: -8 }),
+        createInvoiceLine({ schemeCode: '80002', value: 11 }),
+        createInvoiceLine({ schemeCode: '80002', value: -7 })
+      ]
+      const deltas = calculateLineDeltas(invoiceLines, AGREEMENT_NUMBER)
+      expect(deltas.find(x => x.schemeCode === SCHEME_CODE).value).toBe(2)
+      expect(deltas.find(x => x.schemeCode === '80002').value).toBe(4)
+    })
   })
 
-  test('should calculate delta values by group when multiple groups', () => {
-    const invoiceLines = [{
-      schemeCode: SCHEME_CODE,
-      fundCode: DRD10,
-      agreementNumber: AGREEMENT_NUMBER,
-      description: G00,
-      value: 10
-    }, {
-      schemeCode: SCHEME_CODE,
-      fundCode: DRD10,
-      agreementNumber: AGREEMENT_NUMBER,
-      description: G00,
-      value: -8
-    }, {
-      schemeCode: '80002',
-      fundCode: DRD10,
-      agreementNumber: AGREEMENT_NUMBER,
-      description: G00,
-      value: 11
-    }, {
-      schemeCode: '80002',
-      fundCode: DRD10,
-      agreementNumber: AGREEMENT_NUMBER,
-      description: G00,
-      value: -7
-    }]
+  describe('Agreement number handling', () => {
+    test('uses default agreement number for undefined or null values', () => {
+      const invoiceLines = [
+        createInvoiceLine({ value: 10 }),
+        createInvoiceLine({ value: -8, agreementNumber: undefined }),
+        createInvoiceLine({ value: 11, agreementNumber: 'AgreementNumber2' }),
+        createInvoiceLine({ value: -7, agreementNumber: 'AgreementNumber2' }),
+        createInvoiceLine({ value: -5, agreementNumber: undefined })
+      ]
+      const deltas = calculateLineDeltas(invoiceLines, AGREEMENT_NUMBER)
+      expect(deltas.find(x => x.agreementNumber === AGREEMENT_NUMBER).value).toBe(-3)
+      expect(deltas.find(x => x.agreementNumber === 'AgreementNumber2').value).toBe(4)
+    })
 
-    const lineDeltas = calculateLineDeltas(invoiceLines, AGREEMENT_NUMBER)
-    expect(lineDeltas.find(x => x.schemeCode === SCHEME_CODE).value).toBe(2)
-    expect(lineDeltas.find(x => x.schemeCode === '80002').value).toBe(4)
+    test('groups by agreement number', () => {
+      const invoiceLines = [
+        createInvoiceLine({ value: 10 }),
+        createInvoiceLine({ value: -8 }),
+        createInvoiceLine({ value: 11, agreementNumber: 'AgreementNumber2' }),
+        createInvoiceLine({ value: -7, agreementNumber: 'AgreementNumber2' })
+      ]
+      const deltas = calculateLineDeltas(invoiceLines, AGREEMENT_NUMBER)
+      expect(deltas.find(x => x.agreementNumber === AGREEMENT_NUMBER).value).toBe(2)
+      expect(deltas.find(x => x.agreementNumber === 'AgreementNumber2').value).toBe(4)
+    })
   })
 
-  test('should calculate delta values by group when agreementNumber is undefined', () => {
-    const invoiceLines = [{
-      schemeCode: SCHEME_CODE,
-      fundCode: DRD10,
-      agreementNumber: undefined,
-      description: G00,
-      value: 10
-    }, {
-      schemeCode: SCHEME_CODE,
-      fundCode: DRD10,
-      agreementNumber: undefined,
-      description: G00,
-      value: -8
-    }]
+  describe('Convergence handling', () => {
+    test.each([
+      { input: true, expected: true },
+      { input: false, expected: false },
+      { input: undefined, expected: false },
+      { input: null, expected: false }
+    ])('calculates convergence correctly when input is %p', ({ input, expected }) => {
+      const invoiceLines = [
+        createInvoiceLine({ value: 10 }),
+        createInvoiceLine({ value: -5, convergence: input }),
+        createInvoiceLine({ value: -8 })
+      ]
+      const deltas = calculateLineDeltas(invoiceLines, AGREEMENT_NUMBER)
+      expect(deltas[0].convergence).toBe(expected)
+      expect(deltas[0].value).toBe(-3)
+    })
 
-    const lineDeltas = calculateLineDeltas(invoiceLines, AGREEMENT_NUMBER)
-    expect(lineDeltas.find(x => x.schemeCode === SCHEME_CODE).value).toBe(2)
+    test('merges convergence correctly when mixed', () => {
+      const invoiceLines = [
+        createInvoiceLine({ value: 10, convergence: false }),
+        createInvoiceLine({ value: -5, convergence: false }),
+        createInvoiceLine({ value: -8, convergence: true })
+      ]
+      const deltas = calculateLineDeltas(invoiceLines, AGREEMENT_NUMBER)
+      expect(deltas.length).toBe(1)
+      expect(deltas[0].value).toBe(-3)
+      expect(deltas[0].convergence).toBe(true)
+    })
   })
 
-  test('should calculate delta values by group when multiple groups and agreementNumber is undefined', () => {
-    const invoiceLines = [{
-      schemeCode: SCHEME_CODE,
-      fundCode: DRD10,
-      agreementNumber: undefined,
-      description: G00,
-      value: 10
-    }, {
-      schemeCode: SCHEME_CODE,
-      fundCode: DRD10,
-      agreementNumber: undefined,
-      description: G00,
-      value: -8
-    }, {
-      schemeCode: '80002',
-      fundCode: DRD10,
-      agreementNumber: undefined,
-      description: G00,
-      value: 11
-    }, {
-      schemeCode: '80002',
-      fundCode: DRD10,
-      agreementNumber: undefined,
-      description: G00,
-      value: -7
-    }]
-
-    const lineDeltas = calculateLineDeltas(invoiceLines, AGREEMENT_NUMBER)
-    expect(lineDeltas.find(x => x.schemeCode === SCHEME_CODE).value).toBe(2)
-    expect(lineDeltas.find(x => x.schemeCode === '80002').value).toBe(4)
-  })
-
-  test('should group calculations by agreement numbers', () => {
-    const invoiceLines = [{
-      schemeCode: SCHEME_CODE,
-      fundCode: DRD10,
-      agreementNumber: AGREEMENT_NUMBER,
-      description: G00,
-      value: 10
-    }, {
-      schemeCode: SCHEME_CODE,
-      fundCode: DRD10,
-      agreementNumber: AGREEMENT_NUMBER,
-      description: G00,
-      value: -8
-    }, {
-      schemeCode: SCHEME_CODE,
-      fundCode: DRD10,
-      agreementNumber: 'AgreementNumber2',
-      description: G00,
-      value: 11
-    }, {
-      schemeCode: SCHEME_CODE,
-      fundCode: DRD10,
-      agreementNumber: 'AgreementNumber2',
-      description: G00,
-      value: -7
-    }]
-
-    const lineDeltas = calculateLineDeltas(invoiceLines, AGREEMENT_NUMBER)
-    expect(lineDeltas.find(x => x.agreementNumber === AGREEMENT_NUMBER).value).toBe(2)
-    expect(lineDeltas.find(x => x.agreementNumber === 'AgreementNumber2').value).toBe(4)
-  })
-
-  test('should use default agreement number for undefined agreement numbers', () => {
-    const invoiceLines = [{
-      schemeCode: SCHEME_CODE,
-      fundCode: DRD10,
-      agreementNumber: AGREEMENT_NUMBER,
-      description: G00,
-      value: 10
-    }, {
-      schemeCode: SCHEME_CODE,
-      fundCode: DRD10,
-      agreementNumber: undefined,
-      description: G00,
-      value: -8
-    }, {
-      schemeCode: SCHEME_CODE,
-      fundCode: DRD10,
-      agreementNumber: 'AgreementNumber2',
-      description: G00,
-      value: 11
-    }, {
-      schemeCode: SCHEME_CODE,
-      fundCode: DRD10,
-      agreementNumber: 'AgreementNumber2',
-      description: G00,
-      value: -7
-    }]
-
-    const lineDeltas = calculateLineDeltas(invoiceLines, AGREEMENT_NUMBER)
-    expect(lineDeltas.find(x => x.agreementNumber === AGREEMENT_NUMBER).value).toBe(2)
-    expect(lineDeltas.find(x => x.agreementNumber === 'AgreementNumber2').value).toBe(4)
-  })
-
-  test('should use default agreement number for null agreement numbers', () => {
-    const invoiceLines = [{
-      schemeCode: SCHEME_CODE,
-      fundCode: DRD10,
-      agreementNumber: AGREEMENT_NUMBER,
-      description: G00,
-      value: 10
-    }, {
-      schemeCode: SCHEME_CODE,
-      fundCode: DRD10,
-      agreementNumber: null,
-      description: G00,
-      value: -8
-    }, {
-      schemeCode: SCHEME_CODE,
-      fundCode: DRD10,
-      agreementNumber: 'AgreementNumber2',
-      description: G00,
-      value: 11
-    }, {
-      schemeCode: SCHEME_CODE,
-      fundCode: DRD10,
-      agreementNumber: 'AgreementNumber2',
-      description: G00,
-      value: -7
-    }]
-
-    const lineDeltas = calculateLineDeltas(invoiceLines, AGREEMENT_NUMBER)
-    expect(lineDeltas.find(x => x.agreementNumber === AGREEMENT_NUMBER).value).toBe(2)
-    expect(lineDeltas.find(x => x.agreementNumber === 'AgreementNumber2').value).toBe(4)
-  })
-
-  test('should calculate delta values by merging convergence when convergence is mixed', () => {
-    const invoiceLines = [{
-      schemeCode: SCHEME_CODE,
-      fundCode: DRD10,
-      agreementNumber: AGREEMENT_NUMBER,
-      description: G00,
-      convergence: false,
-      value: 10
-    }, {
-      schemeCode: SCHEME_CODE,
-      fundCode: DRD10,
-      agreementNumber: AGREEMENT_NUMBER,
-      description: G00,
-      convergence: false,
-      value: -5
-    }, {
-      schemeCode: SCHEME_CODE,
-      fundCode: DRD10,
-      agreementNumber: AGREEMENT_NUMBER,
-      description: G00,
-      convergence: true,
-      value: -8
-    }]
-
-    const lineDeltas = calculateLineDeltas(invoiceLines, AGREEMENT_NUMBER)
-    expect(lineDeltas.length).toBe(1)
-    expect(lineDeltas[0].value).toBe(-3)
-    expect(lineDeltas[0].convergence).toBe(true)
-  })
-
-  test('should calculate delta values by group treating convergence as false when convergence is undefined', () => {
-    const invoiceLines = [{
-      schemeCode: SCHEME_CODE,
-      fundCode: DRD10,
-      agreementNumber: AGREEMENT_NUMBER,
-      description: G00,
-      convergence: false,
-      value: 10
-    }, {
-      schemeCode: SCHEME_CODE,
-      fundCode: DRD10,
-      agreementNumber: AGREEMENT_NUMBER,
-      description: G00,
-      convergence: undefined,
-      value: -5
-    }, {
-      schemeCode: SCHEME_CODE,
-      fundCode: DRD10,
-      agreementNumber: AGREEMENT_NUMBER,
-      description: G00,
-      convergence: false,
-      value: -8
-    }]
-
-    const lineDeltas = calculateLineDeltas(invoiceLines, AGREEMENT_NUMBER)
-    expect(lineDeltas.length).toBe(1)
-    expect(lineDeltas[0].value).toBe(-3)
-    expect(lineDeltas[0].convergence).toBe(false)
-  })
-
-  test('should calculate delta values by group treating convergence as false when convergence is null', () => {
-    const invoiceLines = [{
-      schemeCode: SCHEME_CODE,
-      fundCode: DRD10,
-      agreementNumber: AGREEMENT_NUMBER,
-      description: G00,
-      convergence: false,
-      value: 10
-    }, {
-      schemeCode: SCHEME_CODE,
-      fundCode: DRD10,
-      agreementNumber: AGREEMENT_NUMBER,
-      description: G00,
-      convergence: null,
-      value: -5
-    }, {
-      schemeCode: SCHEME_CODE,
-      fundCode: DRD10,
-      agreementNumber: AGREEMENT_NUMBER,
-      description: G00,
-      convergence: false,
-      value: -8
-    }]
-
-    const lineDeltas = calculateLineDeltas(invoiceLines, AGREEMENT_NUMBER)
-    expect(lineDeltas.length).toBe(1)
-    expect(lineDeltas[0].value).toBe(-3)
-    expect(lineDeltas[0].convergence).toBe(false)
-  })
-
-  test('should group calculations by marketing year', () => {
-    const invoiceLines = [{
-      schemeCode: SCHEME_CODE,
-      fundCode: DRD10,
-      agreementNumber: AGREEMENT_NUMBER,
-      marketingYear: 2018,
-      description: G00,
-      value: 10
-    }, {
-      schemeCode: SCHEME_CODE,
-      fundCode: DRD10,
-      agreementNumber: AGREEMENT_NUMBER,
-      marketingYear: 2018,
-      description: G00,
-      value: -5
-    }, {
-      schemeCode: SCHEME_CODE,
-      fundCode: DRD10,
-      agreementNumber: AGREEMENT_NUMBER,
-      marketingYear: 2019,
-      description: G00,
-      value: -8
-    }]
-
-    const lineDeltas = calculateLineDeltas(invoiceLines, AGREEMENT_NUMBER)
-    expect(lineDeltas.find(x => x.marketingYear === 2018).value).toBe(5)
-    expect(lineDeltas.find(x => x.marketingYear === 2019).value).toBe(-8)
+  describe('Marketing year handling', () => {
+    test('groups calculations by marketing year', () => {
+      const invoiceLines = [
+        createInvoiceLine({ value: 10, marketingYear: 2018 }),
+        createInvoiceLine({ value: -5, marketingYear: 2018 }),
+        createInvoiceLine({ value: -8, marketingYear: 2019 })
+      ]
+      const deltas = calculateLineDeltas(invoiceLines, AGREEMENT_NUMBER)
+      expect(deltas.find(x => x.marketingYear === 2018).value).toBe(5)
+      expect(deltas.find(x => x.marketingYear === 2019).value).toBe(-8)
+    })
   })
 })

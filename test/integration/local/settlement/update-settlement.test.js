@@ -16,8 +16,8 @@ describe('update settlement status', () => {
     jest.clearAllMocks()
     await resetDatabase()
 
-    settlement = JSON.parse(JSON.stringify(require('../../../mocks/settlements/settlement')))
-    paymentRequest = JSON.parse(JSON.stringify(require('../../../mocks/payment-requests/payment-request')))
+    settlement = structuredClone(require('../../../mocks/settlements/settlement'))
+    paymentRequest = structuredClone(require('../../../mocks/payment-requests/payment-request'))
   })
 
   test('should return undefined if matching payment request not found', async () => {

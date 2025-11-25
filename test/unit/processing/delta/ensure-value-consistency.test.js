@@ -1,91 +1,45 @@
 const { ensureValueConsistency } = require('../../../../app/processing/delta/assign-ledger/ensure-value-consistency')
+const { createSimpleInvoiceLine } = require('../../../helpers/create-invoice-line')
 
-describe('ensure value consistency', () => {
-  test('should not change lines if value consistent', () => {
+describe('ensureValueConsistency', () => {
+  test('does not change lines if total matches request value', () => {
     const paymentRequest = {
       value: 100,
-      invoiceLines: [{
-        schemeCode: '80001',
-        fundCode: 'DRD10',
-        description: 'G00',
-        value: 99
-      }, {
-        schemeCode: '80001',
-        fundCode: 'DRD10',
-        description: 'G00',
-        value: 1
-      }]
+      invoiceLines: [createSimpleInvoiceLine({ value: 99 }), createSimpleInvoiceLine({ value: 1 })]
     }
 
     ensureValueConsistency(paymentRequest)
+
     expect(paymentRequest.invoiceLines[0].value).toBe(99)
     expect(paymentRequest.invoiceLines[1].value).toBe(1)
   })
 
-  test('should update first gross lines if value not consistent', () => {
+  test.each([
+    {
+      name: 'adjusts first gross line if value inconsistent',
+      invoiceLines: [createSimpleInvoiceLine({ value: 98 }), createSimpleInvoiceLine({ value: 1 })],
+      expected: [99, 1]
+    },
+    {
+      name: 'adjusts first gross line if value inconsistent with penalties',
+      invoiceLines: [createSimpleInvoiceLine({ value: 97 }), createSimpleInvoiceLine({ description: 'P02', value: -1 }), createSimpleInvoiceLine({ value: 1 })],
+      expected: [100, -1, 1]
+    },
+    {
+      name: 'adjusts first line if value inconsistent and no gross lines',
+      invoiceLines: [createSimpleInvoiceLine({ description: 'P25', value: 98 }), createSimpleInvoiceLine({ description: 'P25', value: 1 })],
+      expected: [99, 1]
+    }
+  ])('$name', ({ invoiceLines, expected }) => {
     const paymentRequest = {
       value: 100,
-      invoiceLines: [{
-        schemeCode: '80001',
-        fundCode: 'DRD10',
-        description: 'G00',
-        value: 98
-      }, {
-        schemeCode: '80001',
-        fundCode: 'DRD10',
-        description: 'G00',
-        value: 1
-      }]
+      invoiceLines
     }
 
     ensureValueConsistency(paymentRequest)
-    expect(paymentRequest.invoiceLines[0].value).toBe(99)
-    expect(paymentRequest.invoiceLines[1].value).toBe(1)
-  })
 
-  test('should update first gross lines if value not consistent when penalties', () => {
-    const paymentRequest = {
-      value: 100,
-      invoiceLines: [{
-        schemeCode: '80001',
-        fundCode: 'DRD10',
-        description: 'G00',
-        value: 97
-      }, {
-        schemeCode: '80001',
-        fundCode: 'DRD10',
-        description: 'P02',
-        value: -1
-      }, {
-        schemeCode: '80001',
-        fundCode: 'DRD10',
-        description: 'G00',
-        value: 1
-      }]
-    }
-
-    ensureValueConsistency(paymentRequest)
-    expect(paymentRequest.invoiceLines[0].value).toBe(100)
-  })
-
-  test('should update first lines if value not consistent and no gross', () => {
-    const paymentRequest = {
-      value: 100,
-      invoiceLines: [{
-        schemeCode: '80001',
-        fundCode: 'DRD10',
-        description: 'P25',
-        value: 98
-      }, {
-        schemeCode: '80001',
-        fundCode: 'DRD10',
-        description: 'P25',
-        value: 1
-      }]
-    }
-
-    ensureValueConsistency(paymentRequest)
-    expect(paymentRequest.invoiceLines[0].value).toBe(99)
-    expect(paymentRequest.invoiceLines[1].value).toBe(1)
+    invoiceLines.forEach((line, i) => {
+      expect(line.value).toBe(expected[i])
+    })
   })
 })

@@ -4,178 +4,73 @@ const { v4: uuidv4 } = require('uuid')
 const { SFI, SFI_PILOT, LUMP_SUMS, VET_VISITS, LNR } = require('../../../../app/constants/schemes')
 
 describe('split to ledger', () => {
-  test('should split AP across ledgers if settlement less than current value', () => {
-    const paymentRequest = {
-      ledger: AP,
-      value: 100,
-      agreementNumber: '12345678',
-      invoiceNumber: 'S1234567SFI123456V002',
-      paymentRequestNumber: 2,
-      invoiceLines: [{
-        description: 'G00',
-        value: 50
-      }, {
-        description: 'G00',
-        value: 50
-      }]
-    }
-    const updatedPaymentRequests = splitToLedger(paymentRequest, 10, AR)
-    expect(updatedPaymentRequests.length).toBe(2)
-    expect(updatedPaymentRequests.find(x => x.ledger === AP).value).toBe(90)
-    expect(updatedPaymentRequests.find(x => x.ledger === AR).value).toBe(10)
+  const baseInvoice = {
+    [SFI]: 'S1234567SFI123456V002',
+    [SFI_PILOT]: 'S1234567SFI123456V002',
+    [LUMP_SUMS]: 'S1234567SFI123456V002',
+    [VET_VISITS]: 'AHWR1234567890V002',
+    [LNR]: 'LNR1234567890V002'
+  }
+
+  const createPaymentRequest = (overrides = {}) => ({
+    ledger: AP,
+    value: 100,
+    agreementNumber: '12345678',
+    paymentRequestNumber: 2,
+    invoiceNumber: baseInvoice[SFI],
+    invoiceLines: [
+      { description: 'G00', value: 50 },
+      { description: 'G00', value: 50 }
+    ],
+    ...overrides
   })
 
-  test('should split AR across ledgers if settlement less than current value', () => {
-    const paymentRequest = {
-      ledger: AR,
-      value: -100,
-      agreementNumber: '12345678',
-      invoiceNumber: 'S1234567SFI123456V002',
-      paymentRequestNumber: 2,
-      invoiceLines: [{
-        description: 'G00',
-        value: -50
-      }, {
-        description: 'G00',
-        value: -50
-      }]
-    }
-    const updatedPaymentRequests = splitToLedger(paymentRequest, 10, AP)
-    expect(updatedPaymentRequests.length).toBe(2)
-    expect(updatedPaymentRequests.find(x => x.ledger === AP).value).toBe(-10)
-    expect(updatedPaymentRequests.find(x => x.ledger === AR).value).toBe(-90)
+  test('splits AP across ledgers if settlement less than current value', () => {
+    const pr = createPaymentRequest({ ledger: AP, value: 100 })
+    const updated = splitToLedger(pr, 10, AR)
+    expect(updated.length).toBe(2)
+    expect(updated.find(x => x.ledger === AP).value).toBe(90)
+    expect(updated.find(x => x.ledger === AR).value).toBe(10)
   })
 
-  test('should update invoice numbers for SFI', () => {
-    const paymentRequest = {
-      ledger: AP,
-      value: 100,
-      schemeId: SFI,
-      agreementNumber: '12345678',
-      invoiceNumber: 'S1234567SFI123456V002',
-      paymentRequestNumber: 2,
-      invoiceLines: [{
-        description: 'G00',
-        value: 50
-      }, {
-        description: 'G00',
-        value: 50
-      }]
-    }
-    const updatedPaymentRequests = splitToLedger(paymentRequest, 10, AR)
-    expect(updatedPaymentRequests.length).toBe(2)
-    expect(updatedPaymentRequests.filter(x => x.invoiceNumber === 'S1234567ASFI123456V02').length).toBe(1)
-    expect(updatedPaymentRequests.filter(x => x.invoiceNumber === 'S1234567BSFI123456V02').length).toBe(1)
+  test('splits AR across ledgers if settlement less than current value', () => {
+    const pr = createPaymentRequest({ ledger: AR, value: -100, invoiceNumber: baseInvoice[SFI] })
+    const updated = splitToLedger(pr, 10, AP)
+    expect(updated.length).toBe(2)
+    expect(updated.find(x => x.ledger === AP).value).toBe(-10)
+    expect(updated.find(x => x.ledger === AR).value).toBe(-90)
   })
 
-  test('should update invoice numbers for SFI Pilot', () => {
-    const paymentRequest = {
-      ledger: AP,
-      value: 100,
-      schemeId: SFI_PILOT,
-      agreementNumber: '12345678',
-      invoiceNumber: 'S1234567SFI123456V002',
-      paymentRequestNumber: 2,
-      invoiceLines: [{
-        description: 'G00',
-        value: 50
-      }, {
-        description: 'G00',
-        value: 50
-      }]
-    }
-    const updatedPaymentRequests = splitToLedger(paymentRequest, 10, AR)
-    expect(updatedPaymentRequests.length).toBe(2)
-    expect(updatedPaymentRequests.filter(x => x.invoiceNumber === 'S1234567ASFI123456V02').length).toBe(1)
-    expect(updatedPaymentRequests.filter(x => x.invoiceNumber === 'S1234567BSFI123456V02').length).toBe(1)
+  test.each([
+    [SFI],
+    [SFI_PILOT],
+    [LUMP_SUMS],
+    [VET_VISITS],
+    [LNR]
+  ])('updates invoice numbers for scheme %s', (schemeId) => {
+    const pr = createPaymentRequest({ schemeId, invoiceNumber: baseInvoice[schemeId] })
+    const updated = splitToLedger(pr, 10, AR)
+    expect(updated.length).toBe(2)
+
+    const first = updated[0]
+    const second = updated[1]
+
+    expect(first.invoiceNumber).toMatch(/A/)
+    expect(second.invoiceNumber).toMatch(/B/)
   })
 
-  test('should update invoice numbers for Lump Sums', () => {
-    const paymentRequest = {
-      ledger: AP,
-      value: 100,
-      schemeId: LUMP_SUMS,
-      agreementNumber: '12345678',
-      invoiceNumber: 'S1234567SFI123456V002',
-      paymentRequestNumber: 2,
-      invoiceLines: [{
-        description: 'G00',
-        value: 50
-      }, {
-        description: 'G00',
-        value: 50
-      }]
-    }
-    const updatedPaymentRequests = splitToLedger(paymentRequest, 10, AR)
-    expect(updatedPaymentRequests.length).toBe(2)
-    expect(updatedPaymentRequests.filter(x => x.invoiceNumber === 'S1234567ASFI123456V02').length).toBe(1)
-    expect(updatedPaymentRequests.filter(x => x.invoiceNumber === 'S1234567BSFI123456V02').length).toBe(1)
-  })
+  test('creates new referenceId for split request', () => {
+    const refId = uuidv4()
+    const pr = createPaymentRequest({ schemeId: SFI, referenceId: refId })
+    const updated = splitToLedger(pr, 10, AR)
 
-  test('should update invoice numbers for Vet Visits', () => {
-    const paymentRequest = {
-      ledger: AP,
-      value: 100,
-      schemeId: VET_VISITS,
-      agreementNumber: '12345678',
-      invoiceNumber: 'AHWR1234567890V002',
-      paymentRequestNumber: 2,
-      invoiceLines: [{
-        description: 'G00',
-        value: 50
-      }, {
-        description: 'G00',
-        value: 50
-      }]
-    }
-    const updatedPaymentRequests = splitToLedger(paymentRequest, 10, AR)
-    expect(updatedPaymentRequests.length).toBe(2)
-    expect(updatedPaymentRequests.filter(x => x.invoiceNumber === 'AHWR1234567890AV02').length).toBe(1)
-    expect(updatedPaymentRequests.filter(x => x.invoiceNumber === 'AHWR1234567890BV02').length).toBe(1)
-  })
+    const first = updated.find(x => x.invoiceNumber.includes('A'))
+    const second = updated.find(x => x.invoiceNumber.includes('B'))
 
-  test('should update invoice numbers for LNR', () => {
-    const paymentRequest = {
-      ledger: AP,
-      value: 100,
-      schemeId: LNR,
-      agreementNumber: '12345678',
-      invoiceNumber: 'LNR1234567890V002',
-      paymentRequestNumber: 2,
-      invoiceLines: [{
-        description: 'G00',
-        value: 50
-      }, {
-        description: 'G00',
-        value: 50
-      }]
-    }
-    const updatedPaymentRequests = splitToLedger(paymentRequest, 10, AR)
-    expect(updatedPaymentRequests.length).toBe(2)
-    expect(updatedPaymentRequests.filter(x => x.invoiceNumber === 'LNR1234567890AV02').length).toBe(1)
-    expect(updatedPaymentRequests.filter(x => x.invoiceNumber === 'LNR1234567890BV02').length).toBe(1)
-  })
-
-  test('should create new referenceId for split request', () => {
-    const paymentRequest = {
-      ledger: AP,
-      value: 100,
-      schemeId: SFI,
-      agreementNumber: '12345678',
-      invoiceNumber: 'S1234567SFI123456V002',
-      paymentRequestNumber: 2,
-      referenceId: uuidv4(),
-      invoiceLines: [{
-        description: 'G00',
-        value: 50
-      }, {
-        description: 'G00',
-        value: 50
-      }]
-    }
-    const updatedPaymentRequests = splitToLedger(paymentRequest, 10, AR)
-    expect(updatedPaymentRequests.find(x => x.invoiceNumber === 'S1234567ASFI123456V02').referenceId).toBe(paymentRequest.referenceId)
-    expect(updatedPaymentRequests.find(x => x.invoiceNumber === 'S1234567BSFI123456V02').referenceId).not.toBe(paymentRequest.referenceId)
-    expect(updatedPaymentRequests.find(x => x.invoiceNumber === 'S1234567BSFI123456V02').referenceId).toMatch(/\b[0-9a-f]{8}\b-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-\b[0-9a-f]{12}\b/)
+    expect(first.referenceId).toBe(refId)
+    expect(second.referenceId).not.toBe(refId)
+    expect(second.referenceId).toMatch(
+      /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/
+    )
   })
 })

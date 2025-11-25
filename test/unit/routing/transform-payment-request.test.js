@@ -8,30 +8,22 @@ jest.mock('../../../app/processing/enrichment')
 const { enrichPaymentRequests: mockEnrichPaymentRequests } = require('../../../app/processing/enrichment')
 
 const paymentRequest = require('../../mocks/payment-requests/payment-request')
-
 const { transformPaymentRequest } = require('../../../app/routing/transform-payment-request')
 
-describe('transform payment request', () => {
+describe('transformPaymentRequest', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-
     mockGetCompletedPaymentRequests.mockResolvedValue([paymentRequest])
     mockConfirmDueDates.mockReturnValue([paymentRequest])
     mockEnrichPaymentRequests.mockReturnValue([paymentRequest])
   })
 
-  test('should get all previous completed payment requests', async () => {
+  test.each([
+    { desc: 'get all previous completed payment requests', fn: () => mockGetCompletedPaymentRequests, args: [paymentRequest] },
+    { desc: 'confirm due dates of payment requests', fn: () => mockConfirmDueDates, args: [[paymentRequest], [paymentRequest]] },
+    { desc: 'enrich payment requests received from ledger check', fn: () => mockEnrichPaymentRequests, args: [[paymentRequest], [paymentRequest]] }
+  ])('should $desc', async ({ fn, args }) => {
     await transformPaymentRequest(paymentRequest, [paymentRequest])
-    expect(mockGetCompletedPaymentRequests).toHaveBeenCalledWith(paymentRequest)
-  })
-
-  test('should confirm due dates of payment requests received from ledger check', async () => {
-    await transformPaymentRequest(paymentRequest, [paymentRequest])
-    expect(mockConfirmDueDates).toHaveBeenCalledWith([paymentRequest], [paymentRequest])
-  })
-
-  test('should enrich payment requests received from ledger check', async () => {
-    await transformPaymentRequest(paymentRequest, [paymentRequest])
-    expect(mockEnrichPaymentRequests).toHaveBeenCalledWith([paymentRequest], [paymentRequest])
+    expect(fn()).toHaveBeenCalledWith(...args)
   })
 })

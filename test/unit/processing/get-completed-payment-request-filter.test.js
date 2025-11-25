@@ -2,14 +2,13 @@ jest.mock('../../../app/data')
 const db = require('../../../app/data')
 
 const { SFI, BPS, CS, FDMR } = require('../../../app/constants/schemes')
-
 const { getCompletedPaymentRequestsFilter } = require('../../../app/processing/get-completed-payment-requests-filter')
 
-let paymentRequest
+let basePaymentRequest
 
 describe('get completed payment requests filter', () => {
   beforeEach(() => {
-    paymentRequest = {
+    basePaymentRequest = {
       schemeId: SFI,
       frn: 1234567890,
       marketingYear: 2022,
@@ -19,103 +18,47 @@ describe('get completed payment requests filter', () => {
     }
   })
 
-  test('should return default filter if not BPS, FDMR or CS', () => {
-    const filter = getCompletedPaymentRequestsFilter(paymentRequest)
+  const expectFilter = (filter, paymentRequest, overrides = {}) => {
     expect(filter).toMatchObject({
-      paymentRequestNumber: { [db.Sequelize.Op.lt]: paymentRequest.paymentRequestNumber },
       invalid: false,
       schemeId: paymentRequest.schemeId,
       frn: paymentRequest.frn,
-      marketingYear: paymentRequest.marketingYear,
-      agreementNumber: paymentRequest.agreementNumber
+      ...overrides
     })
-  })
+  }
 
-  test('should return default filter with all existing payment requests if manually injected payment and not BPS, FDMR or CS', () => {
-    paymentRequest.paymentRequestNumber = 0
-    const filter = getCompletedPaymentRequestsFilter(paymentRequest)
-    expect(filter).toMatchObject({
-      paymentRequestNumber: { [db.Sequelize.Op.not]: null },
-      invalid: false,
-      schemeId: paymentRequest.schemeId,
-      frn: paymentRequest.frn,
-      marketingYear: paymentRequest.marketingYear,
-      agreementNumber: paymentRequest.agreementNumber
-    })
-  })
+  test.each([
+    { scheme: SFI, manual: false, expectedNumber: { [db.Sequelize.Op.lt]: 1 } },
+    { scheme: SFI, manual: true, expectedNumber: { [db.Sequelize.Op.not]: null } },
+    { scheme: BPS, manual: false, expectedNumber: { [db.Sequelize.Op.lt]: 1 } },
+    { scheme: BPS, manual: true, expectedNumber: { [db.Sequelize.Op.not]: null } },
+    { scheme: FDMR, manual: false, expectedNumber: { [db.Sequelize.Op.lt]: 1 } },
+    { scheme: FDMR, manual: true, expectedNumber: { [db.Sequelize.Op.not]: null } },
+    { scheme: CS, manual: false, expectedNumber: { [db.Sequelize.Op.lt]: 1 } },
+    { scheme: CS, manual: true, expectedNumber: { [db.Sequelize.Op.not]: null } }
+  ])(
+    'should return correct filter for scheme $scheme (manual: $manual)',
+    ({ scheme, manual, expectedNumber }) => {
+      const paymentRequest = structuredClone(basePaymentRequest)
+      paymentRequest.schemeId = scheme
+      if (manual) paymentRequest.paymentRequestNumber = 0
 
-  test('should return BPS filter if BPS', () => {
-    paymentRequest.schemeId = BPS
-    const filter = getCompletedPaymentRequestsFilter(paymentRequest)
-    expect(filter).toMatchObject({
-      paymentRequestNumber: { [db.Sequelize.Op.lt]: paymentRequest.paymentRequestNumber },
-      invalid: false,
-      schemeId: paymentRequest.schemeId,
-      frn: paymentRequest.frn,
-      marketingYear: paymentRequest.marketingYear
-    })
-  })
+      const filter = getCompletedPaymentRequestsFilter(paymentRequest)
 
-  test('should return BPS filter with all existing payment requests if manually injected payment and BPS', () => {
-    paymentRequest.schemeId = BPS
-    paymentRequest.paymentRequestNumber = 0
-    const filter = getCompletedPaymentRequestsFilter(paymentRequest)
-    expect(filter).toMatchObject({
-      paymentRequestNumber: { [db.Sequelize.Op.not]: null },
-      invalid: false,
-      schemeId: paymentRequest.schemeId,
-      frn: paymentRequest.frn,
-      marketingYear: paymentRequest.marketingYear
-    })
-  })
-
-  test('should return FDMR filter if FDMR', () => {
-    paymentRequest.schemeId = FDMR
-    const filter = getCompletedPaymentRequestsFilter(paymentRequest)
-    expect(filter).toMatchObject({
-      paymentRequestNumber: { [db.Sequelize.Op.lt]: paymentRequest.paymentRequestNumber },
-      invalid: false,
-      schemeId: paymentRequest.schemeId,
-      frn: paymentRequest.frn
-    })
-  })
-
-  test('should return FDMR filter with all existing payment requests if manually injected payment and FDMR', () => {
-    paymentRequest.schemeId = FDMR
-    paymentRequest.paymentRequestNumber = 0
-    const filter = getCompletedPaymentRequestsFilter(paymentRequest)
-    expect(filter).toMatchObject({
-      paymentRequestNumber: { [db.Sequelize.Op.not]: null },
-      invalid: false,
-      schemeId: paymentRequest.schemeId,
-      frn: paymentRequest.frn
-    })
-  })
-
-  test('should return CS filter if CS', () => {
-    paymentRequest.schemeId = CS
-    const filter = getCompletedPaymentRequestsFilter(paymentRequest)
-    expect(filter).toMatchObject({
-      paymentRequestNumber: { [db.Sequelize.Op.lt]: paymentRequest.paymentRequestNumber },
-      invalid: false,
-      schemeId: paymentRequest.schemeId,
-      frn: paymentRequest.frn
-    })
-  })
-
-  test('should return CS filter with all existing payment requests if manually injected payment and CS', () => {
-    paymentRequest.schemeId = CS
-    paymentRequest.paymentRequestNumber = 0
-    const filter = getCompletedPaymentRequestsFilter(paymentRequest)
-    expect(filter).toMatchObject({
-      paymentRequestNumber: { [db.Sequelize.Op.not]: null },
-      invalid: false,
-      schemeId: paymentRequest.schemeId,
-      frn: paymentRequest.frn,
-      [db.Sequelize.Op.or]: [
-        { contractNumber: paymentRequest.contractNumber },
-        db.Sequelize.where(db.Sequelize.fn('replace', db.Sequelize.col('contractNumber'), 'A0', 'A'), paymentRequest.contractNumber?.replace('A0', 'A'))
-      ]
-    })
-  })
+      if (scheme === CS && manual) {
+        expect(filter).toMatchObject({
+          paymentRequestNumber: expectedNumber,
+          [db.Sequelize.Op.or]: [
+            { contractNumber: paymentRequest.contractNumber },
+            db.Sequelize.where(
+              db.Sequelize.fn('replace', db.Sequelize.col('contractNumber'), 'A0', 'A'),
+              paymentRequest.contractNumber?.replace('A0', 'A')
+            )
+          ]
+        })
+      } else {
+        expectFilter(filter, paymentRequest, { paymentRequestNumber: expectedNumber })
+      }
+    }
+  )
 })

@@ -1,9 +1,10 @@
 jest.mock('../../app/messaging')
+jest.mock('../../app/processing')
+jest.mock('../../app/server')
+
 const { processingConfig } = require('../../app/config')
 const { start: mockStartMessaging } = require('../../app/messaging')
-jest.mock('../../app/processing')
 const { start: mockStartProcessing } = require('../../app/processing')
-jest.mock('../../app/server')
 const { start: mockStartServer } = require('../../app/server')
 
 const startApp = require('../../app')
@@ -13,48 +14,32 @@ describe('app start', () => {
     jest.clearAllMocks()
   })
 
-  test('starts processing when active is true', async () => {
-    processingConfig.active = true
-    await startApp()
-    expect(mockStartProcessing).toHaveBeenCalledTimes(1)
+  describe.each([
+    ['processing', mockStartProcessing],
+    ['messaging', mockStartMessaging]
+  ])('starts %s based on active flag', (name, startMock) => {
+    test(`starts ${name} when active is true`, async () => {
+      processingConfig.active = true
+      await startApp()
+      expect(startMock).toHaveBeenCalledTimes(1)
+    })
+
+    test(`does not start ${name} when active is false`, async () => {
+      processingConfig.active = false
+      await startApp()
+      expect(startMock).not.toHaveBeenCalled()
+    })
   })
 
-  test('does not start processing if active is false', async () => {
-    processingConfig.active = false
-    await startApp()
-    expect(mockStartProcessing).toHaveBeenCalledTimes(0)
-  })
-
-  test('starts messaging when active is true', async () => {
-    processingConfig.active = true
-    await startApp()
-    expect(mockStartMessaging).toHaveBeenCalledTimes(1)
-  })
-
-  test('does not start messaging when active is false', async () => {
-    processingConfig.active = false
-    await startApp()
-    expect(mockStartMessaging).toHaveBeenCalledTimes(0)
-  })
-
-  test('starts server when active is true', async () => {
+  test('always starts server regardless of active flag', async () => {
     processingConfig.active = true
     await startApp()
     expect(mockStartServer).toHaveBeenCalledTimes(1)
-  })
 
-  test('starts server when active is false', async () => {
+    jest.clearAllMocks()
     processingConfig.active = false
     await startApp()
     expect(mockStartServer).toHaveBeenCalledTimes(1)
-  })
-
-  test('does not log console.info when active is true', async () => {
-    processingConfig.active = true
-    const consoleInfoSpy = jest.spyOn(console, 'info').mockImplementation(() => {})
-    await startApp()
-    expect(consoleInfoSpy).not.toHaveBeenCalled()
-    consoleInfoSpy.mockRestore()
   })
 
   test('logs console.info when active is false', async () => {
@@ -64,6 +49,14 @@ describe('app start', () => {
     expect(consoleInfoSpy).toHaveBeenCalledWith(
       expect.stringContaining('Processing capabilities are currently not enabled in this environment')
     )
+    consoleInfoSpy.mockRestore()
+  })
+
+  test('does not log console.info when active is true', async () => {
+    processingConfig.active = true
+    const consoleInfoSpy = jest.spyOn(console, 'info').mockImplementation(() => {})
+    await startApp()
+    expect(consoleInfoSpy).not.toHaveBeenCalled()
     consoleInfoSpy.mockRestore()
   })
 })

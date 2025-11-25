@@ -25,7 +25,7 @@ let deltaPaymentRequest
 
 describe('V2 route event', () => {
   beforeEach(() => {
-    paymentRequest = JSON.parse(JSON.stringify(require('../../mocks/payment-requests/payment-request')))
+    paymentRequest = structuredClone(require('../../mocks/payment-requests/payment-request'))
     deltaPaymentRequest = paymentRequest
     deltaPaymentRequest.value = -50
 

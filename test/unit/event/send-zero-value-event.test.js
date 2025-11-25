@@ -1,16 +1,12 @@
 const mockPublishEvent = jest.fn()
 
-const MockEventPublisher = jest.fn().mockImplementation(() => {
-  return {
-    publishEvent: mockPublishEvent
-  }
-})
+const MockEventPublisher = jest.fn().mockImplementation(() => ({
+  publishEvent: mockPublishEvent
+}))
 
-jest.mock('ffc-pay-event-publisher', () => {
-  return {
-    EventPublisher: MockEventPublisher
-  }
-})
+jest.mock('ffc-pay-event-publisher', () => ({
+  EventPublisher: MockEventPublisher
+}))
 
 jest.mock('../../../app/config')
 const { messageConfig } = require('../../../app/config')
@@ -21,33 +17,23 @@ const { sendZeroValueEvent } = require('../../../app/event')
 
 let paymentRequest
 
+beforeEach(() => {
+  jest.clearAllMocks()
+  paymentRequest = structuredClone(require('../../mocks/payment-requests/payment-request'))
+  messageConfig.eventsTopic = 'v2-events'
+})
+
 describe('send events for zero value payment requests', () => {
-  beforeEach(() => {
-    paymentRequest = JSON.parse(JSON.stringify(require('../../mocks/payment-requests/payment-request')))
-    messageConfig.eventsTopic = 'v2-events'
-  })
+  const expectations = [
+    ['V2 topic', (event) => expect(MockEventPublisher.mock.calls[0][0]).toBe(messageConfig.eventsTopic)],
+    ['processing source', (event) => expect(event.source).toBe(SOURCE)],
+    ['event type', (event) => expect(event.type).toBe(PAYMENT_PROCESSED_NO_FURTHER_ACTION)],
+    ['payment request data', (event) => expect(event.data).toMatchObject(paymentRequest)]
+  ]
 
-  afterEach(() => {
-    jest.clearAllMocks()
-  })
-
-  test('should send event to V2 topic', async () => {
+  test.each(expectations)('should validate %s', async (_desc, assertion) => {
     await sendZeroValueEvent(paymentRequest)
-    expect(MockEventPublisher.mock.calls[0][0]).toBe(messageConfig.eventsTopic)
-  })
-
-  test('should raise event with processing source', async () => {
-    await sendZeroValueEvent(paymentRequest)
-    expect(mockPublishEvent.mock.calls[0][0].source).toBe(SOURCE)
-  })
-
-  test('should raise event with type PAYMENT_PROCESSED_NO_FURTHER_ACTION', async () => {
-    await sendZeroValueEvent(paymentRequest)
-    expect(mockPublishEvent.mock.calls[0][0].type).toBe(PAYMENT_PROCESSED_NO_FURTHER_ACTION)
-  })
-
-  test('should raise event with payment request data', async () => {
-    await sendZeroValueEvent(paymentRequest)
-    expect(mockPublishEvent.mock.calls[0][0].data).toMatchObject(paymentRequest)
+    const event = mockPublishEvent.mock.calls[0][0]
+    assertion(event)
   })
 })

@@ -15,7 +15,7 @@ describe('get first payment request', () => {
   beforeEach(() => {
     jest.clearAllMocks()
 
-    previousPaymentRequest = JSON.parse(JSON.stringify(require('../../../mocks/payment-requests/payment-request')))
+    previousPaymentRequest = structuredClone(require('../../../mocks/payment-requests/payment-request'))
     previousPaymentRequests = [previousPaymentRequest]
     paymentRequest = createAdjustmentPaymentRequest(previousPaymentRequest, RECOVERY)
     paymentRequests = [paymentRequest]
@@ -50,7 +50,7 @@ describe('get first payment request', () => {
     previousPaymentRequest.dueDate = '01/10/2023'
     previousPaymentRequest.schemeId = SFI23
     paymentRequest.schemeId = SFI23
-    const advancePaymentRequest = JSON.parse(JSON.stringify(previousPaymentRequest))
+    const advancePaymentRequest = structuredClone(previousPaymentRequest)
     advancePaymentRequest.paymentRequestNumber = 0
     paymentRequest.paymentRequestNumber = 2
 
@@ -64,7 +64,7 @@ describe('get first payment request', () => {
     previousPaymentRequest.dueDate = '01/10/2024'
     previousPaymentRequest.schemeId = SFI23
     paymentRequest.schemeId = SFI23
-    const advancePaymentRequest = JSON.parse(JSON.stringify(previousPaymentRequest))
+    const advancePaymentRequest = structuredClone(previousPaymentRequest)
     advancePaymentRequest.paymentRequestNumber = 0
     paymentRequest.paymentRequestNumber = 2
 

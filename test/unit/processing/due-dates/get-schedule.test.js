@@ -4,21 +4,19 @@ jest.mock('../../../../app/processing/due-dates/get-expected-value')
 const { getExpectedValue: mockGetExpectedValue } = require('../../../../app/processing/due-dates/get-expected-value')
 
 const { DUE_DATE } = require('../../../mocks/values/due-date')
-
 const { MONTH } = require('../../../../app/constants/time-periods')
 const { DATE_FORMAT } = require('../../../../app/constants/date-formats')
-
 const { getSchedule } = require('../../../../app/processing/due-dates/get-schedule')
 
-let scheduleDate
-let totalPayments
-let settledValue
-let totalValue
-let increment
-let unit
-let currentDate
+describe('getSchedule', () => {
+  let scheduleDate
+  let totalPayments
+  let settledValue
+  let totalValue
+  let increment
+  let unit
+  let currentDate
 
-describe('get schedule', () => {
   beforeEach(() => {
     jest.clearAllMocks()
 
@@ -36,60 +34,46 @@ describe('get schedule', () => {
     currentDate = new Date(2025, 0, 1)
   })
 
-  test('should return empty array if total payments is 0', () => {
-    totalPayments = 0
-    expect(getSchedule(scheduleDate, totalPayments, settledValue, totalValue, increment, unit, currentDate)).toEqual([])
-  })
-
-  test('should return empty array if total payments is less than 0', () => {
-    totalPayments = -1
-    expect(getSchedule(scheduleDate, totalPayments, settledValue, totalValue, increment, unit, currentDate)).toEqual([])
+  test.each([
+    { payments: 0, expected: [] },
+    { payments: -1, expected: [] }
+  ])('should return empty array if total payments is $payments', ({ payments, expected }) => {
+    totalPayments = payments
+    expect(getSchedule(scheduleDate, totalPayments, settledValue, totalValue, increment, unit, currentDate)).toEqual(expected)
   })
 
   test('should calculate expected value for each payment', () => {
     getSchedule(scheduleDate, totalPayments, settledValue, totalValue, increment, unit, currentDate)
-    expect(mockGetExpectedValue).toHaveBeenCalledTimes(4)
+    expect(mockGetExpectedValue).toHaveBeenCalledTimes(totalPayments)
   })
 
-  test('should return schedule for each payment', () => {
+  test('should return schedule with correct number of payments', () => {
     const result = getSchedule(scheduleDate, totalPayments, settledValue, totalValue, increment, unit, currentDate)
-    expect(result.length).toEqual(4)
+    expect(result).toHaveLength(totalPayments)
   })
 
-  test('should return first schedule due date as due date', () => {
+  test('should calculate correct due dates for each payment', () => {
     const result = getSchedule(scheduleDate, totalPayments, settledValue, totalValue, increment, unit, currentDate)
-    expect(result[0].dueDate).toEqual('01/04/2023')
+    const expectedDates = ['01/04/2023', '01/07/2023', '01/10/2023', '01/01/2024']
+    result.forEach((payment, idx) => {
+      expect(payment.dueDate).toEqual(expectedDates[idx])
+    })
   })
 
-  test('should return second schedule due date as due date plus increment', () => {
+  test('should mark all payments as not outstanding if fully settled', () => {
+    settledValue = totalValue
     const result = getSchedule(scheduleDate, totalPayments, settledValue, totalValue, increment, unit, currentDate)
-    expect(result[1].dueDate).toEqual('01/07/2023')
+    expect(result.every(p => !p.outstanding)).toBeTruthy()
   })
 
-  test('should return third schedule due date as second date plus increment', () => {
-    const result = getSchedule(scheduleDate, totalPayments, settledValue, totalValue, increment, unit, currentDate)
-    expect(result[2].dueDate).toEqual('01/10/2023')
-  })
-
-  test('should return fourth schedule due date as third date plus increment', () => {
-    const result = getSchedule(scheduleDate, totalPayments, settledValue, totalValue, increment, unit, currentDate)
-    expect(result[3].dueDate).toEqual('01/01/2024')
-  })
-
-  test('should return no payments as outstanding if current date is after final due date and all payments made', () => {
-    settledValue = 100
-    const result = getSchedule(scheduleDate, totalPayments, settledValue, totalValue, increment, unit, currentDate)
-    expect(result.every(x => !x.outstanding)).toBeTruthy()
-  })
-
-  test('should return all payments as outstanding if current date is before first due date and no payments made', () => {
+  test('should mark all payments as outstanding if no payments made and current date before first due date', () => {
     settledValue = 0
     currentDate = new Date(2022, 0, 1)
     const result = getSchedule(scheduleDate, totalPayments, settledValue, totalValue, increment, unit, currentDate)
-    expect(result.every(x => x.outstanding)).toBeTruthy()
+    expect(result.every(p => p.outstanding)).toBeTruthy()
   })
 
-  test('should return first payment as not outstanding if current date is after first due date and first payment made', () => {
+  test('should mark first payment as not outstanding if partially settled', () => {
     settledValue = 25
     const result = getSchedule(scheduleDate, totalPayments, settledValue, totalValue, increment, unit, currentDate)
     expect(result[0].outstanding).toBeFalsy()

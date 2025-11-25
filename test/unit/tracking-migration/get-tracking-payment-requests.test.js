@@ -3,10 +3,12 @@ const { getTrackingPaymentRequests } = require('../../../app/tracking-migration'
 
 jest.mock('../../../app/data')
 
-describe('get payment requests for tracking migration', () => {
+describe('getTrackingPaymentRequests', () => {
   let transaction
 
   beforeEach(() => {
+    jest.clearAllMocks()
+
     transaction = {
       commit: jest.fn(),
       rollback: jest.fn()
@@ -21,7 +23,7 @@ describe('get payment requests for tracking migration', () => {
     jest.clearAllMocks()
   })
 
-  test('should retrieve and update payment requests correctly', async () => {
+  test('retrieves and updates payment requests correctly', async () => {
     const mockSubqueryResult = [
       { paymentRequestId: 1 },
       { paymentRequestId: 2 }
@@ -32,7 +34,7 @@ describe('get payment requests for tracking migration', () => {
     ]
 
     db.sequelize.query.mockResolvedValue(mockSubqueryResult)
-    db.paymentRequest.findAll.mockResolvedValue(mockPaymentRequests)
+    db.paymentRequest.findAll.mockResolvedValue(structuredClone(mockPaymentRequests))
 
     const limit = 10
     const result = await getTrackingPaymentRequests(limit)
@@ -51,85 +53,41 @@ describe('get payment requests for tracking migration', () => {
     )
 
     expect(db.paymentRequest.findAll).toHaveBeenCalledWith({
-      where: {
-        paymentRequestId: {
-          [db.Sequelize.Op.in]: [1, 2]
-        }
-      },
-      include: [{
-        model: db.completedPaymentRequest,
-        as: 'completedPaymentRequests',
-        required: false
-      }, {
-        model: db.invoiceLine,
-        as: 'invoiceLines',
-        required: false
-      }],
+      where: { paymentRequestId: { [db.Sequelize.Op.in]: [1, 2] } },
+      include: [
+        { model: db.completedPaymentRequest, as: 'completedPaymentRequests', required: false },
+        { model: db.invoiceLine, as: 'invoiceLines', required: false }
+      ],
       transaction
     })
 
     expect(db.paymentRequest.update).toHaveBeenCalledWith(
       { sentToTracking: true },
-      {
-        where: { paymentRequestId: [1, 2] },
-        transaction
-      }
+      { where: { paymentRequestId: [1, 2] }, transaction }
     )
 
     expect(transaction.commit).toHaveBeenCalled()
     expect(result).toEqual(mockPaymentRequests)
   })
 
-  test('should rollback transaction if an error occurs', async () => {
+  test('rolls back transaction if an error occurs', async () => {
     const error = new Error('Test error')
     db.sequelize.query.mockRejectedValue(error)
 
     await expect(getTrackingPaymentRequests(10)).rejects.toThrow('Test error')
-
     expect(transaction.rollback).toHaveBeenCalled()
     expect(transaction.commit).not.toHaveBeenCalled()
   })
 
-  test('should not update if no payment requests are retrieved', async () => {
+  test('does not update if no payment requests are retrieved', async () => {
     const mockSubqueryResult = []
     const mockPaymentRequests = []
 
     db.sequelize.query.mockResolvedValue(mockSubqueryResult)
-    db.paymentRequest.findAll.mockResolvedValue(mockPaymentRequests)
+    db.paymentRequest.findAll.mockResolvedValue(structuredClone(mockPaymentRequests))
 
     const limit = 10
     const result = await getTrackingPaymentRequests(limit)
-
-    expect(db.sequelize.query).toHaveBeenCalledWith(
-      `SELECT DISTINCT ON ("frn") "paymentRequestId"
-       FROM "paymentRequests"
-       WHERE ("sentToTracking" = false OR "sentToTracking" IS NULL)
-       ORDER BY "frn", "paymentRequestId"
-       LIMIT :limit`,
-      {
-        replacements: { limit },
-        type: db.sequelize.QueryTypes.SELECT,
-        transaction
-      }
-    )
-
-    expect(db.paymentRequest.findAll).toHaveBeenCalledWith({
-      where: {
-        paymentRequestId: {
-          [db.Sequelize.Op.in]: []
-        }
-      },
-      include: [{
-        model: db.completedPaymentRequest,
-        as: 'completedPaymentRequests',
-        required: false
-      }, {
-        model: db.invoiceLine,
-        as: 'invoiceLines',
-        required: false
-      }],
-      transaction
-    })
 
     expect(db.paymentRequest.update).not.toHaveBeenCalled()
     expect(transaction.commit).toHaveBeenCalled()

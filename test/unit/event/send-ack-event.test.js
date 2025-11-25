@@ -28,8 +28,8 @@ let acknowledgement
 
 describe('V2 ack event', () => {
   beforeEach(() => {
-    paymentRequest = JSON.parse(JSON.stringify(require('../../mocks/payment-requests/payment-request')))
-    acknowledgement = JSON.parse(JSON.stringify(require('../../mocks/acknowledgement')))
+    paymentRequest = structuredClone(require('../../mocks/payment-requests/payment-request'))
+    acknowledgement = structuredClone(require('../../mocks/acknowledgement'))
 
     getPaymentRequestByInvoiceAndFrn.mockResolvedValue(paymentRequest)
 

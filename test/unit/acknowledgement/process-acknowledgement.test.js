@@ -18,8 +18,8 @@ let paymentRequest
 describe('process acknowledgement', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    acknowledgement = JSON.parse(JSON.stringify(require('../../mocks/acknowledgement')))
-    paymentRequest = JSON.parse(JSON.stringify(require('../../mocks/payment-requests/payment-request')))
+    acknowledgement = structuredClone(require('../../mocks/acknowledgement'))
+    paymentRequest = structuredClone(require('../../mocks/payment-requests/payment-request'))
     mockGetPaymentRequest.mockResolvedValue(paymentRequest)
   })
 

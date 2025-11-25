@@ -16,7 +16,7 @@ describe('update requests awaiting cross border', () => {
     jest.clearAllMocks()
     await resetDatabase()
 
-    paymentRequest = JSON.parse(JSON.stringify(require('../../../mocks/payment-requests/payment-request')))
+    paymentRequest = structuredClone(require('../../../mocks/payment-requests/payment-request'))
   })
 
   test('should update delivery body and value from cross border payment request', async () => {
