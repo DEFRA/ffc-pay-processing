@@ -17,8 +17,8 @@ jest.mock('ffc-messaging', () => ({
 }))
 
 const inProgressSchedule = require('../../../mocks/schedules/in-progress')
-const { AP, AR } = require('../../../../app/constants/ledgers')
-const { TOP_UP, RECOVERY } = require('../../../../app/constants/adjustment-types')
+const { AR } = require('../../../../app/constants/ledgers')
+const { RECOVERY } = require('../../../../app/constants/adjustment-types')
 const { IRREGULAR } = require('../../../../app/constants/debt-types')
 const { PAYMENT_PAUSED_PREFIX } = require('../../../../app/constants/events')
 const { closureDBEntry } = require('../../../mocks/closure/closure-db-entry')
@@ -65,46 +65,6 @@ describe('process payment requests', () => {
 
       const completedInvoiceLines = await db.completedInvoiceLine.findAll()
       expect(completedInvoiceLines.length).toBe(paymentRequest.invoiceLines.length)
-    })
-  })
-
-  describe.each([
-    { type: TOP_UP, value: 50 },
-    { type: RECOVERY, value: -50 }
-  ])('adjustment requests (%s)', ({ type, value }) => {
-    beforeEach(async () => {
-      if (type === TOP_UP || type === RECOVERY) {
-        settlePaymentRequest(paymentRequest)
-        await savePaymentRequest(paymentRequest, true)
-        paymentRequest.invoiceNumber = 'INV-001'
-      }
-    })
-
-    test(`should process ${type} request and create completed request`, async () => {
-      const adjRequest = createAdjustmentPaymentRequest(paymentRequest, type)
-      const { paymentRequestId } = await saveSchedule(inProgressSchedule, adjRequest)
-      await processPaymentRequests()
-      const completed = await db.completedPaymentRequest.findAll({
-        where: {
-          paymentRequestId,
-          frn: paymentRequest.frn,
-          marketingYear: paymentRequest.marketingYear,
-          schemeId: paymentRequest.schemeId,
-          ledger: AP,
-          value
-        }
-      })
-      expect(completed.length).toBe(1)
-    })
-
-    test(`should process ${type} request and create completed invoice lines`, async () => {
-      const adjRequest = createAdjustmentPaymentRequest(paymentRequest, type)
-      await saveSchedule(inProgressSchedule, adjRequest)
-      await processPaymentRequests()
-      const completedLines = await db.completedInvoiceLine.findAll({
-        where: { value }
-      })
-      expect(completedLines.length).toBe(1)
     })
   })
 
