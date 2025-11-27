@@ -1,286 +1,104 @@
 const { FDMR, BPS } = require('../../../../app/constants/schemes')
 const { DOM00, DOM01, DOM10 } = require('../../../../app/constants/domestic-fund-codes')
-
 const { applyBPSDualAccounting } = require('../../../../app/processing/dual-accounting/bps')
 
 let paymentRequest
 let previousPaymentRequests
 
-describe('apply dual accounting', () => {
-  beforeEach(() => {
-    jest.clearAllMocks()
+const createInvoiceLine = (invoiceNumber = 1, value = 25000, fundCode = 'EGF00') => ({
+  invoiceNumber,
+  schemeCode: '10570',
+  fundCode,
+  description: 'G01 - Gross value of claim',
+  value,
+  deliveryBody: 'RP00',
+  convergence: false
+})
 
-    paymentRequest = {
-      sourceSystem: 'FDMR',
-      deliveryBody: 'RP00',
-      invoiceNumber: 'F0000002C0000002V001',
-      frn: 1000000002,
-      marketingYear: 2020,
-      paymentRequestNumber: 1,
-      contractNumber: 'C0000002',
-      currency: 'GBP',
-      dueDate: '01/12/2020',
-      value: 25000,
-      invoiceLines: [{
-        invoiceNumber: 1,
-        schemeCode: '10570',
-        fundCode: 'EGF00',
-        description: 'G01 - Gross value of claim',
-        value: 25000,
-        deliveryBody: 'RP00',
-        convergence: false
-      }],
-      schemeId: FDMR,
-      agreementNumber: 'C0000002',
-      ledger: 'AP'
-    }
+beforeEach(() => {
+  jest.clearAllMocks()
+  paymentRequest = {
+    sourceSystem: 'FDMR',
+    deliveryBody: 'RP00',
+    invoiceNumber: 'F0000002C0000002V001',
+    frn: 1000000002,
+    marketingYear: 2020,
+    paymentRequestNumber: 1,
+    contractNumber: 'C0000002',
+    currency: 'GBP',
+    dueDate: '01/12/2020',
+    value: 25000,
+    invoiceLines: [createInvoiceLine()],
+    schemeId: FDMR,
+    agreementNumber: 'C0000002',
+    ledger: 'AP'
+  }
 
-    previousPaymentRequests = [{
-      sourceSystem: 'FDMR',
-      deliveryBody: 'RP00',
-      invoiceNumber: 'F0000001C0000001V001',
-      frn: 1000000001,
-      marketingYear: 2020,
-      paymentRequestNumber: 1,
-      contractNumber: 'C0000001',
-      currency: 'GBP',
-      dueDate: '01/12/2020',
-      value: 25000,
-      invoiceLines: [{
-        invoiceNumber: 1,
-        schemeCode: '10570',
-        fundCode: 'DOM00',
-        description: 'G01 - Gross value of claim',
-        value: 25000,
-        deliveryBody: 'RP00',
-        convergence: false
-      }],
-      schemeId: FDMR,
-      agreementNumber: 'C0000001',
-      ledger: 'AP'
-    }]
+  previousPaymentRequests = [{
+    sourceSystem: 'FDMR',
+    deliveryBody: 'RP00',
+    invoiceNumber: 'F0000001C0000001V001',
+    frn: 1000000001,
+    marketingYear: 2020,
+    paymentRequestNumber: 1,
+    contractNumber: 'C0000001',
+    currency: 'GBP',
+    dueDate: '01/12/2020',
+    value: 25000,
+    invoiceLines: [createInvoiceLine(1, 25000, DOM00)],
+    schemeId: FDMR,
+    agreementNumber: 'C0000001',
+    ledger: 'AP'
+  }]
+})
+
+describe('applyBPSDualAccounting', () => {
+  const testCases = [
+    { scheme: FDMR, year: 2020, expected: DOM10, desc: 'FDMR >= 2020' },
+    { scheme: BPS, year: 2020, expected: DOM10, desc: 'BPS >= 2020' },
+    { scheme: FDMR, year: 2019, prevFundCode: DOM00, expected: DOM00, firstPayment: true, desc: 'FDMR < 2020 first payment' },
+    { scheme: BPS, year: 2019, prevFundCode: DOM00, expected: DOM00, firstPayment: true, desc: 'BPS < 2020 first payment' },
+    { scheme: FDMR, year: 2019, prevFundCode: DOM00, expected: DOM00, firstPayment: false, desc: 'FDMR < 2020 not first payment' },
+    { scheme: BPS, year: 2019, prevFundCode: DOM00, expected: DOM00, firstPayment: false, desc: 'BPS < 2020 not first payment' },
+    { scheme: FDMR, year: 2019, prevFundCode: 'EGF00', expected: DOM01, firstPayment: false, desc: 'FDMR < 2020 prev has no domestic fund code' },
+    { scheme: BPS, year: 2019, prevFundCode: 'EGF00', expected: DOM01, firstPayment: false, desc: 'BPS < 2020 prev has no domestic fund code' }
+  ]
+
+  testCases.forEach(({ scheme, year, expected, prevFundCode, firstPayment }) => {
+    test(`should apply fund code correctly for ${scheme} (${year}) - ${firstPayment ? 'first payment' : 'not first'}`, async () => {
+      paymentRequest.schemeId = scheme
+      paymentRequest.marketingYear = year
+
+      if (!firstPayment) {
+        previousPaymentRequests[0].marketingYear = year
+        if (prevFundCode) { previousPaymentRequests[0].invoiceLines[0].fundCode = prevFundCode }
+      } else {
+        previousPaymentRequests = []
+      }
+
+      paymentRequest.invoiceLines[1] = createInvoiceLine(2, 0)
+
+      await applyBPSDualAccounting(paymentRequest, previousPaymentRequests)
+
+      for (const line of paymentRequest.invoiceLines) {
+        if (!firstPayment && prevFundCode && prevFundCode !== DOM00 && year < 2020) {
+          expect(line.fundCode).toBe(DOM01)
+        } else if (!firstPayment && prevFundCode && prevFundCode === DOM00 && year < 2020) {
+          expect(line.fundCode).toBe(prevFundCode)
+        } else {
+          expect(line.fundCode).toBe(expected)
+        }
+      }
+    })
   })
 
-  test('should switch fund code to DOM10 if FDMR and marketing year is greater than or equal to 2020', async () => {
-    await applyBPSDualAccounting(paymentRequest, previousPaymentRequests)
-    expect(paymentRequest.invoiceLines[0].fundCode).toBe(DOM10)
-  })
-
-  test('should switch fund code of each invoice line to DOM10 if FDMR and marketing year is greater than or equal to 2020', async () => {
-    paymentRequest.invoiceLines[1] = {
-      invoiceNumber: 2,
-      schemeCode: '10570',
-      fundCode: 'EGF00',
-      description: 'G01 - Gross value of claim',
-      value: 0,
-      deliveryBody: 'RP00',
-      convergence: false
-    }
-    await applyBPSDualAccounting(paymentRequest, previousPaymentRequests)
-    for (const line of paymentRequest.invoiceLines) {
-      expect(line.fundCode).toBe(DOM10)
-    }
-  })
-
-  test('should switch fund code to previous payment requests domestic fund code if FDMR, marketing year is less than 2020 and not first payment', async () => {
-    paymentRequest.marketingYear = 2019
-    previousPaymentRequests[0].marketingYear = 2019
-    await applyBPSDualAccounting(paymentRequest, previousPaymentRequests)
-    expect(paymentRequest.invoiceLines[0].fundCode).toBe(previousPaymentRequests[previousPaymentRequests.length - 1].invoiceLines[0].fundCode)
-  })
-
-  test('should switch fund code of each invoice line to previous payment requests domestic fund code if FDMR, marketing year is less than 2020 and not first payment', async () => {
-    paymentRequest.marketingYear = 2019
-    paymentRequest.invoiceLines[1] = {
-      invoiceNumber: 2,
-      schemeCode: '10570',
-      fundCode: 'EGF00',
-      description: 'G01 - Gross value of claim',
-      value: 0,
-      deliveryBody: 'RP00',
-      convergence: false
-    }
-    previousPaymentRequests[0].marketingYear = 2019
-    await applyBPSDualAccounting(paymentRequest, previousPaymentRequests)
-    for (const line of paymentRequest.invoiceLines) {
-      expect(line.fundCode).toBe(previousPaymentRequests[previousPaymentRequests.length - 1].invoiceLines[0].fundCode)
-    }
-  })
-
-  test('should switch fund code to DOM01 if FDMR, marketing year is less than 2020 and has previous payment requests with no domestic fund code set', async () => {
-    paymentRequest.marketingYear = 2019
-    previousPaymentRequests[0].marketingYear = 2019
-    previousPaymentRequests[0].invoiceLines[0].fundCode = 'EGF00'
-    await applyBPSDualAccounting(paymentRequest, previousPaymentRequests)
-    expect(paymentRequest.invoiceLines[0].fundCode).toBe(DOM01)
-  })
-
-  test('should switch fund code to DOM01 for each invoice line if FDMR, marketing year is less than 2020 and has previous payment requests with no domestic fund code set', async () => {
-    paymentRequest.marketingYear = 2019
-    paymentRequest.invoiceLines[1] = {
-      invoiceNumber: 2,
-      schemeCode: '10570',
-      fundCode: 'EGF00',
-      description: 'G01 - Gross value of claim',
-      value: 0,
-      deliveryBody: 'RP00',
-      convergence: false
-    }
-    previousPaymentRequests[0].marketingYear = 2019
-    previousPaymentRequests[0].invoiceLines[0].fundCode = 'EGF00'
-    await applyBPSDualAccounting(paymentRequest, previousPaymentRequests)
-    for (const line of paymentRequest.invoiceLines) {
-      expect(line.fundCode).toBe(DOM01)
-    }
-  })
-
-  test('should switch fund code to DOM00 if FDMR, marketing year is less than 2020 and first payment', async () => {
-    paymentRequest.marketingYear = 2019
-    previousPaymentRequests = []
-    await applyBPSDualAccounting(paymentRequest, previousPaymentRequests)
-    expect(paymentRequest.invoiceLines[0].fundCode).toBe(DOM00)
-  })
-
-  test('should switch fund code to DOM00 for each invoice line if FDMR, marketing year is less than 2020 and first payment', async () => {
-    paymentRequest.marketingYear = 2019
-    paymentRequest.invoiceLines[1] = {
-      invoiceNumber: 2,
-      schemeCode: '10570',
-      fundCode: 'EGF00',
-      description: 'G01 - Gross value of claim',
-      value: 0,
-      deliveryBody: 'RP00',
-      convergence: false
-    }
-    previousPaymentRequests = []
-    await applyBPSDualAccounting(paymentRequest, previousPaymentRequests)
-    for (const line of paymentRequest.invoiceLines) {
-      expect(line.fundCode).toBe(DOM00)
-    }
-  })
-
-  test('should switch fund code to DOM10 if BPS and marketing year is greater than or equal to 2020', async () => {
-    paymentRequest.schemeId = BPS
-    await applyBPSDualAccounting(paymentRequest, previousPaymentRequests)
-    expect(paymentRequest.invoiceLines[0].fundCode).toBe(DOM10)
-  })
-
-  test('should switch fund code of each invoice line to DOM10 if BPS and marketing year is greater than or equal to 2020', async () => {
-    paymentRequest.schemeId = BPS
-    paymentRequest.invoiceLines[1] = {
-      invoiceNumber: 2,
-      schemeCode: '10570',
-      fundCode: 'EGF00',
-      description: 'G01 - Gross value of claim',
-      value: 0,
-      deliveryBody: 'RP00',
-      convergence: false
-    }
-    await applyBPSDualAccounting(paymentRequest, previousPaymentRequests)
-    for (const line of paymentRequest.invoiceLines) {
-      expect(line.fundCode).toBe(DOM10)
-    }
-  })
-
-  test('should switch fund code to previous payment requests domestic fund code if BPS, marketing year is less than 2020 and not first payment', async () => {
-    paymentRequest.schemeId = BPS
-    paymentRequest.marketingYear = 2019
-    previousPaymentRequests[0].marketingYear = 2019
-    await applyBPSDualAccounting(paymentRequest, previousPaymentRequests)
-    expect(paymentRequest.invoiceLines[0].fundCode).toBe(previousPaymentRequests[previousPaymentRequests.length - 1].invoiceLines[0].fundCode)
-  })
-
-  test('should switch fund code of each invoice line to previous payment requests domestic fund code if BPS, marketing year is less than 2020 and not first payment', async () => {
-    paymentRequest.schemeId = BPS
-    paymentRequest.marketingYear = 2019
-    paymentRequest.invoiceLines[1] = {
-      invoiceNumber: 2,
-      schemeCode: '10570',
-      fundCode: 'EGF00',
-      description: 'G01 - Gross value of claim',
-      value: 0,
-      deliveryBody: 'RP00',
-      convergence: false
-    }
-    previousPaymentRequests[0].marketingYear = 2019
-    await applyBPSDualAccounting(paymentRequest, previousPaymentRequests)
-    for (const line of paymentRequest.invoiceLines) {
-      expect(line.fundCode).toBe(previousPaymentRequests[previousPaymentRequests.length - 1].invoiceLines[0].fundCode)
-    }
-  })
-
-  test('should switch fund code to DOM01 if BPS, marketing year is less than 2020 and has previous payment requests with no domestic fund code set', async () => {
-    paymentRequest.schemeId = BPS
-    paymentRequest.marketingYear = 2019
-    previousPaymentRequests[0].marketingYear = 2019
-    previousPaymentRequests[0].invoiceLines[0].fundCode = 'EGF00'
-    await applyBPSDualAccounting(paymentRequest, previousPaymentRequests)
-    expect(paymentRequest.invoiceLines[0].fundCode).toBe(DOM01)
-  })
-
-  test('should switch fund code to DOM01 for each invoice line if BPS, marketing year is less than 2020 and has previous payment requests with no domestic fund code set', async () => {
-    paymentRequest.schemeId = BPS
-    paymentRequest.marketingYear = 2019
-    paymentRequest.invoiceLines[1] = {
-      invoiceNumber: 2,
-      schemeCode: '10570',
-      fundCode: 'EGF00',
-      description: 'G01 - Gross value of claim',
-      value: 0,
-      deliveryBody: 'RP00',
-      convergence: false
-    }
-    previousPaymentRequests[0].marketingYear = 2019
-    previousPaymentRequests[0].invoiceLines[0].fundCode = 'EGF00'
-    await applyBPSDualAccounting(paymentRequest, previousPaymentRequests)
-    for (const line of paymentRequest.invoiceLines) {
-      expect(line.fundCode).toBe(DOM01)
-    }
-  })
-
-  test('should switch fund code to DOM00 if BPS, marketing year is less than 2020 and first payment', async () => {
-    paymentRequest.schemeId = BPS
-    paymentRequest.marketingYear = 2019
-    previousPaymentRequests = []
-    await applyBPSDualAccounting(paymentRequest, previousPaymentRequests)
-    expect(paymentRequest.invoiceLines[0].fundCode).toBe(DOM00)
-  })
-
-  test('should switch fund code to DOM00 for each invoice line if BPS, marketing year is less than 2020 and first payment', async () => {
-    paymentRequest.schemeId = BPS
-    paymentRequest.marketingYear = 2019
-    paymentRequest.invoiceLines[1] = {
-      invoiceNumber: 2,
-      schemeCode: '10570',
-      fundCode: 'EGF00',
-      description: 'G01 - Gross value of claim',
-      value: 0,
-      deliveryBody: 'RP00',
-      convergence: false
-    }
-    previousPaymentRequests = []
-    await applyBPSDualAccounting(paymentRequest, previousPaymentRequests)
-    for (const line of paymentRequest.invoiceLines) {
-      expect(line.fundCode).toBe(DOM00)
-    }
-  })
-
-  test('should iterate over any previous payment requests with no invoice lines', async () => {
+  test('should handle previous payment requests with no invoice lines', async () => {
     paymentRequest.marketingYear = 2019
     previousPaymentRequests[0].marketingYear = 2019
     previousPaymentRequests[0].invoiceLines = []
-    previousPaymentRequests[1] = {
-      invoiceLines: [{
-        invoiceNumber: 1,
-        schemeCode: '10570',
-        fundCode: 'DOM00',
-        description: 'G01 - Gross value of claim',
-        value: 25000,
-        deliveryBody: 'RP00',
-        convergence: false
-      }]
-    }
+    previousPaymentRequests[1] = { invoiceLines: [createInvoiceLine(1, 25000, DOM00)] }
+
     await applyBPSDualAccounting(paymentRequest, previousPaymentRequests)
-    expect(paymentRequest.invoiceLines[0].fundCode).toBe('DOM00')
+    expect(paymentRequest.invoiceLines[0].fundCode).toBe(DOM00)
   })
 })

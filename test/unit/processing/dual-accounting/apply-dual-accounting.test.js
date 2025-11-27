@@ -11,59 +11,40 @@ const sfiPaymentRequest = require('../../../mocks/payment-requests/sfi')
 
 const { applyDualAccounting } = require('../../../../app/processing/dual-accounting')
 
-let paymentRequest
-let previousPaymentRequests
-
-describe('apply dual accounting', () => {
+describe('applyDualAccounting', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-
-    paymentRequest = bpsPaymentRequest
-
-    previousPaymentRequests = [bpsPaymentRequest]
   })
 
-  test('should apply BPS dual accounting when scheme is BPS', () => {
-    applyDualAccounting(paymentRequest, previousPaymentRequests)
-    expect(mockApplyBPSDualAccounting).toHaveBeenCalledTimes(1)
+  const testCases = [
+    { name: 'BPS', request: bpsPaymentRequest, mockFn: mockApplyBPSDualAccounting },
+    { name: 'FDMR', request: fdmrPaymentRequest, mockFn: mockApplyBPSDualAccounting },
+    { name: 'CS', request: csPaymentRequest, mockFn: mockApplyCSDualAccounting }
+  ]
+
+  testCases.forEach(({ name, request, mockFn }) => {
+    describe(`${name} scheme`, () => {
+      let paymentRequest, previousPaymentRequests
+
+      beforeEach(() => {
+        paymentRequest = request
+        previousPaymentRequests = [request]
+        applyDualAccounting(paymentRequest, previousPaymentRequests)
+      })
+
+      test(`should call ${name} dual accounting`, () => {
+        expect(mockFn).toHaveBeenCalledTimes(1)
+      })
+
+      test(`should call ${name} dual accounting with current and previous payment requests`, () => {
+        expect(mockFn).toHaveBeenCalledWith(paymentRequest, previousPaymentRequests)
+      })
+    })
   })
 
-  test('should apply BPS dual accounting with current and previous payment requests when scheme is BPS', () => {
-    applyDualAccounting(paymentRequest, previousPaymentRequests)
-    expect(mockApplyBPSDualAccounting).toHaveBeenCalledWith(paymentRequest, previousPaymentRequests)
-  })
-
-  test('should apply BPS dual accounting when scheme is FDMR', () => {
-    paymentRequest = fdmrPaymentRequest
-    previousPaymentRequests = [fdmrPaymentRequest]
-    applyDualAccounting(paymentRequest, previousPaymentRequests)
-    expect(mockApplyBPSDualAccounting).toHaveBeenCalledTimes(1)
-  })
-
-  test('should apply BPS dual accounting with current and previous payment requests when scheme is FDMR', () => {
-    paymentRequest = fdmrPaymentRequest
-    previousPaymentRequests = [fdmrPaymentRequest]
-    applyDualAccounting(paymentRequest, previousPaymentRequests)
-    expect(mockApplyBPSDualAccounting).toHaveBeenCalledWith(paymentRequest, previousPaymentRequests)
-  })
-
-  test('should apply CS dual accounting when scheme is CS', () => {
-    paymentRequest = csPaymentRequest
-    previousPaymentRequests = [csPaymentRequest]
-    applyDualAccounting(paymentRequest, previousPaymentRequests)
-    expect(mockApplyCSDualAccounting).toHaveBeenCalledTimes(1)
-  })
-
-  test('should apply CS dual accounting with current and previous payment requests when scheme is CS', () => {
-    paymentRequest = csPaymentRequest
-    previousPaymentRequests = [csPaymentRequest]
-    applyDualAccounting(paymentRequest, previousPaymentRequests)
-    expect(mockApplyCSDualAccounting).toHaveBeenCalledWith(paymentRequest, previousPaymentRequests)
-  })
-
-  test('should not apply dual accounting when scheme is not BPS, FDMR or CS', () => {
-    paymentRequest = sfiPaymentRequest
-    previousPaymentRequests = [sfiPaymentRequest]
+  test('should not apply dual accounting for other schemes', () => {
+    const paymentRequest = sfiPaymentRequest
+    const previousPaymentRequests = [sfiPaymentRequest]
     applyDualAccounting(paymentRequest, previousPaymentRequests)
     expect(mockApplyBPSDualAccounting).not.toHaveBeenCalled()
     expect(mockApplyCSDualAccounting).not.toHaveBeenCalled()

@@ -7,37 +7,27 @@ const paymentRequestMock = require('../../mocks/payment-requests/payment-request
 jest.mock('../../../app/processing/get-completed-payment-requests')
 jest.mock('../../../app/processing/ignore-zero-value-splits')
 
-describe('check if requires manual ledger check', () => {
+describe('requiresManualLedgerCheck', () => {
   let paymentRequest
 
   beforeEach(() => {
     jest.clearAllMocks()
-    paymentRequest = JSON.parse(JSON.stringify(paymentRequestMock))
-  })
-
-  test('returns false when useManualLedgerCheck is false', async () => {
-    processingConfig.useManualLedgerCheck = false
-    paymentRequest.value = 100
-    const result = await requiresManualLedgerCheck(paymentRequest)
-    expect(result).toBe(false)
-  })
-
-  test('returns false when paymentRequest value is 0', async () => {
+    paymentRequest = structuredClone(paymentRequestMock)
     processingConfig.useManualLedgerCheck = true
-    paymentRequest.value = 0
-    const result = await requiresManualLedgerCheck(paymentRequest)
-    expect(result).toBe(false)
   })
 
-  test('returns true when paymentRequest value is less than 0', async () => {
-    processingConfig.useManualLedgerCheck = true
-    paymentRequest.value = -100
+  test.each([
+    { desc: 'manual ledger check disabled', config: false, value: 100, expected: false },
+    { desc: 'payment request value is 0', config: true, value: 0, expected: false },
+    { desc: 'payment request value is negative', config: true, value: -100, expected: true }
+  ])('returns $expected when $desc', async ({ config, value, expected }) => {
+    processingConfig.useManualLedgerCheck = config
+    paymentRequest.value = value
     const result = await requiresManualLedgerCheck(paymentRequest)
-    expect(result).toBe(true)
+    expect(result).toBe(expected)
   })
 
   test('returns false when there are no previous payment requests', async () => {
-    processingConfig.useManualLedgerCheck = true
     getCompletedPaymentRequests.mockResolvedValue([])
     ignoreZeroValueSplits.mockReturnValue([])
     paymentRequest.value = 100
@@ -46,14 +36,10 @@ describe('check if requires manual ledger check', () => {
   })
 
   test('returns false when there are no previous negative payment requests', async () => {
-    processingConfig.useManualLedgerCheck = true
     const previousPaymentRequests = [
-      JSON.parse(JSON.stringify(paymentRequestMock)),
-      JSON.parse(JSON.stringify(paymentRequestMock))
+      { ...structuredClone(paymentRequestMock), value: 100 },
+      { ...structuredClone(paymentRequestMock), value: 200 }
     ]
-    previousPaymentRequests[0].value = 100
-    previousPaymentRequests[1].value = 200
-
     getCompletedPaymentRequests.mockResolvedValue(previousPaymentRequests)
     ignoreZeroValueSplits.mockReturnValue(previousPaymentRequests)
     paymentRequest.value = 100
@@ -62,14 +48,10 @@ describe('check if requires manual ledger check', () => {
   })
 
   test('returns true when there are previous negative payment requests', async () => {
-    processingConfig.useManualLedgerCheck = true
     const previousPaymentRequests = [
-      JSON.parse(JSON.stringify(paymentRequestMock)),
-      JSON.parse(JSON.stringify(paymentRequestMock))
+      { ...structuredClone(paymentRequestMock), value: 100 },
+      { ...structuredClone(paymentRequestMock), value: -50 }
     ]
-    previousPaymentRequests[0].value = 100
-    previousPaymentRequests[1].value = -50
-
     getCompletedPaymentRequests.mockResolvedValue(previousPaymentRequests)
     ignoreZeroValueSplits.mockReturnValue(previousPaymentRequests)
     paymentRequest.value = 100
@@ -78,16 +60,11 @@ describe('check if requires manual ledger check', () => {
   })
 
   test('ignores zero value splits when checking previous payment requests', async () => {
-    processingConfig.useManualLedgerCheck = true
     const previousPaymentRequests = [
-      JSON.parse(JSON.stringify(paymentRequestMock)),
-      JSON.parse(JSON.stringify(paymentRequestMock)),
-      JSON.parse(JSON.stringify(paymentRequestMock))
+      { ...structuredClone(paymentRequestMock), value: 100 },
+      { ...structuredClone(paymentRequestMock), value: 50 },
+      { ...structuredClone(paymentRequestMock), value: -50 }
     ]
-    previousPaymentRequests[0].value = 100
-    previousPaymentRequests[1].value = 50
-    previousPaymentRequests[2].value = -50
-
     getCompletedPaymentRequests.mockResolvedValue(previousPaymentRequests)
     ignoreZeroValueSplits.mockReturnValue([previousPaymentRequests[0], previousPaymentRequests[1]])
     paymentRequest.value = 100

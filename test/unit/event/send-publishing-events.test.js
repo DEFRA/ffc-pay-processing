@@ -1,16 +1,12 @@
 const mockPublishEvents = jest.fn()
 
-const MockEventPublisher = jest.fn().mockImplementation(() => {
-  return {
-    publishEvents: mockPublishEvents
-  }
-})
+const MockEventPublisher = jest.fn().mockImplementation(() => ({
+  publishEvents: mockPublishEvents
+}))
 
-jest.mock('ffc-pay-event-publisher', () => {
-  return {
-    EventPublisher: MockEventPublisher
-  }
-})
+jest.mock('ffc-pay-event-publisher', () => ({
+  EventPublisher: MockEventPublisher
+}))
 
 jest.mock('../../../app/config')
 const { messageConfig } = require('../../../app/config')
@@ -25,38 +21,33 @@ let paymentRequests
 
 describe('V2 publishing events', () => {
   beforeEach(() => {
-    paymentRequest = JSON.parse(JSON.stringify(require('../../mocks/payment-requests/payment-request')))
+    jest.clearAllMocks()
+    paymentRequest = structuredClone(require('../../mocks/payment-requests/payment-request'))
     paymentRequests = [paymentRequest, paymentRequest]
 
     messageConfig.eventsTopic = 'v2-events'
   })
 
-  afterEach(() => {
-    jest.clearAllMocks()
+  test('should send events to V2 topic', async () => {
+    await sendPublishingEvents(paymentRequests)
+    expect(MockEventPublisher).toHaveBeenCalledWith(messageConfig.eventsTopic)
   })
 
-  test('should send event to V2 topic', async () => {
+  test('should include an event for each payment request', async () => {
     await sendPublishingEvents(paymentRequests)
-    expect(MockEventPublisher.mock.calls[0][0]).toBe(messageConfig.eventsTopic)
+    const events = mockPublishEvents.mock.calls[0][0]
+    expect(events).toHaveLength(paymentRequests.length)
   })
 
-  test('should raise an event with processing source', async () => {
-    await sendPublishingEvents(paymentRequests)
-    expect(mockPublishEvents.mock.calls[0][0][0].source).toBe(SOURCE)
-  })
+  test.each([0, 1])(
+    'event %i should have correct source, type and data',
+    async (index) => {
+      await sendPublishingEvents(paymentRequests)
+      const event = mockPublishEvents.mock.calls[0][0][index]
 
-  test('should raise acknowledged payment event type', async () => {
-    await sendPublishingEvents(paymentRequests)
-    expect(mockPublishEvents.mock.calls[0][0][0].type).toBe(PAYMENT_PROCESSED)
-  })
-
-  test('should include payment request in event data', async () => {
-    await sendPublishingEvents(paymentRequests)
-    expect(mockPublishEvents.mock.calls[0][0][0].data).toEqual(paymentRequest)
-  })
-
-  test('should include event for each payment request', async () => {
-    await sendPublishingEvents(paymentRequests)
-    expect(mockPublishEvents.mock.calls[0][0].length).toBe(2)
-  })
+      expect(event.source).toBe(SOURCE)
+      expect(event.type).toBe(PAYMENT_PROCESSED)
+      expect(event.data).toEqual(paymentRequest)
+    }
+  )
 })

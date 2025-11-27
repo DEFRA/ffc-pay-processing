@@ -2,18 +2,12 @@ const { AP, AR } = require('../../../../app/constants/ledgers')
 const { getDefaultLedger } = require('../../../../app/processing/delta/get-default-ledger')
 
 describe('get default ledger', () => {
-  test('should return AP if top up', () => {
-    const defaultLedger = getDefaultLedger(100)
-    expect(defaultLedger).toBe(AP)
-  })
-
-  test('should return AR if recovery', () => {
-    const defaultLedger = getDefaultLedger(-100)
-    expect(defaultLedger).toBe(AR)
-  })
-
-  test('should return AP if zero value', () => {
-    const defaultLedger = getDefaultLedger(0)
-    expect(defaultLedger).toBe(AP)
+  test.each([
+    { value: 100, expected: AP, description: 'top up' },
+    { value: -100, expected: AR, description: 'recovery' },
+    { value: 0, expected: AP, description: 'zero value' }
+  ])('should return $expected for $description', ({ value, expected }) => {
+    const defaultLedger = getDefaultLedger(value)
+    expect(defaultLedger).toBe(expected)
   })
 })

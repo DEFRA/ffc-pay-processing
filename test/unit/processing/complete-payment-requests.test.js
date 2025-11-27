@@ -1,23 +1,24 @@
 const db = require('../../../app/data')
-const {
-  completePaymentRequests
-} = require('../../../app/processing/complete-payment-requests')
+const { completePaymentRequests } = require('../../../app/processing/complete-payment-requests')
 const { sendZeroValueEvent } = require('../../../app/event')
 
 jest.mock('../../../app/data')
 jest.mock('../../../app/event')
 
-describe('complete payment requests', () => {
+describe('completePaymentRequests', () => {
   let mockTransaction
 
   beforeEach(() => {
+    jest.clearAllMocks()
+
+    // Mock transaction
     mockTransaction = {
       commit: jest.fn(),
       rollback: jest.fn()
     }
-
     db.sequelize.transaction.mockResolvedValue(mockTransaction)
 
+    // Mock database models
     db.schedule = {
       findByPk: jest.fn().mockResolvedValue({
         scheduleId: 1,
@@ -29,10 +30,7 @@ describe('complete payment requests', () => {
 
     db.completedPaymentRequest = {
       create: jest.fn().mockImplementation(data =>
-        Promise.resolve({
-          completedPaymentRequestId: 1,
-          ...data
-        })
+        Promise.resolve({ completedPaymentRequestId: 1, ...data })
       )
     }
 
@@ -47,28 +45,24 @@ describe('complete payment requests', () => {
     sendZeroValueEvent.mockResolvedValue()
   })
 
-  afterEach(() => {
-    jest.clearAllMocks()
-  })
-
   test('should process single request with offsetting values', async () => {
     const paymentRequest = {
+      invoiceNumber: 'SITI1234',
+      paymentRequestNumber: 1,
+      value: 100,
+      invoiceLines: [
+        { value: 100, dataValues: { value: 100 } },
+        { value: -100, dataValues: { value: -100 } }
+      ],
       dataValues: {
         invoiceNumber: 'SITI1234',
         value: 100,
         paymentRequestNumber: 1,
         invoiceLines: [
-          { dataValues: { value: 100 } },
-          { dataValues: { value: -100 } }
+          { value: 100, dataValues: { value: 100 } },
+          { value: -100, dataValues: { value: -100 } }
         ]
-      },
-      invoiceNumber: 'SITI1234',
-      value: 100,
-      paymentRequestNumber: 1,
-      invoiceLines: [
-        { dataValues: { value: 100 }, value: 100 },
-        { dataValues: { value: -100 }, value: -100 }
-      ]
+      }
     }
 
     await completePaymentRequests(1, [paymentRequest])
@@ -81,24 +75,16 @@ describe('complete payment requests', () => {
   test('should process multiple requests without offset', async () => {
     const requests = [
       {
-        dataValues: {
-          invoiceNumber: 'SITI1234',
-          value: 100,
-          invoiceLines: [{ dataValues: { value: 100 } }]
-        },
         invoiceNumber: 'SITI1234',
         value: 100,
-        invoiceLines: [{ dataValues: { value: 100 }, value: 100 }]
+        invoiceLines: [{ value: 100, dataValues: { value: 100 } }],
+        dataValues: { invoiceNumber: 'SITI1234', value: 100, invoiceLines: [{ value: 100 }] }
       },
       {
-        dataValues: {
-          invoiceNumber: 'SITI5678',
-          value: 200,
-          invoiceLines: [{ dataValues: { value: 200 } }]
-        },
         invoiceNumber: 'SITI5678',
         value: 200,
-        invoiceLines: [{ dataValues: { value: 200 }, value: 200 }]
+        invoiceLines: [{ value: 200, dataValues: { value: 200 } }],
+        dataValues: { invoiceNumber: 'SITI5678', value: 200, invoiceLines: [{ value: 200 }] }
       }
     ]
 
@@ -112,32 +98,22 @@ describe('complete payment requests', () => {
     db.completedPaymentRequest.create.mockRejectedValue(new Error('Test error'))
 
     const paymentRequest = {
-      dataValues: {
-        invoiceNumber: 'SITI1234',
-        value: 100,
-        invoiceLines: [{ dataValues: { value: 100 } }]
-      },
       invoiceNumber: 'SITI1234',
       value: 100,
-      invoiceLines: [{ dataValues: { value: 100 }, value: 100 }]
+      invoiceLines: [{ value: 100, dataValues: { value: 100 } }],
+      dataValues: { invoiceNumber: 'SITI1234', value: 100, invoiceLines: [{ value: 100 }] }
     }
 
-    await expect(completePaymentRequests(1, [paymentRequest])).rejects.toThrow(
-      'Test error'
-    )
+    await expect(completePaymentRequests(1, [paymentRequest])).rejects.toThrow('Test error')
     expect(mockTransaction.rollback).toHaveBeenCalled()
   })
 
   test('should create zero value event for zero value payment', async () => {
     const paymentRequest = {
-      dataValues: {
-        invoiceNumber: 'SITI1234',
-        value: 0,
-        invoiceLines: [{ dataValues: { value: 0 } }]
-      },
       invoiceNumber: 'SITI1234',
       value: 0,
-      invoiceLines: [{ dataValues: { value: 0 }, value: 0 }]
+      invoiceLines: [{ value: 0, dataValues: { value: 0 } }],
+      dataValues: { invoiceNumber: 'SITI1234', value: 0, invoiceLines: [{ value: 0 }] }
     }
 
     await completePaymentRequests(1, [paymentRequest])

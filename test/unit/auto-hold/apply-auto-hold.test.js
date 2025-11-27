@@ -8,9 +8,7 @@ jest.mock('../../../app/auto-hold/apply-hold')
 const { applyHold: mockApplyHold } = require('../../../app/auto-hold/apply-hold')
 
 const paymentRequest = require('../../mocks/payment-requests/payment-request')
-
 const { TOP_UP, RECOVERY } = require('../../../app/constants/adjustment-types')
-
 const { applyAutoHold } = require('../../../app/auto-hold/apply-auto-hold')
 
 const paymentRequests = [paymentRequest]
@@ -18,86 +16,85 @@ const paymentRequests = [paymentRequest]
 describe('apply auto hold', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-
     mockAutoHoldConfig.topUp = true
     mockAutoHoldConfig.recovery = true
   })
 
-  test('should not apply auto hold when payment request number is 1', async () => {
+  test('does not apply auto hold when request number is 1', async () => {
     const result = await applyAutoHold(paymentRequests)
     expect(result).toBe(false)
   })
 
-  test('should calculate total value of all payment requests to determine if top up or recovery', async () => {
+  test('calculates total value for determining hold type', async () => {
     paymentRequest.paymentRequestNumber = 2
     await applyAutoHold(paymentRequests)
     expect(mockGetTotalValue).toHaveBeenCalledWith(paymentRequests)
   })
 
-  test('should apply top up hold if total value is greater than 0 and auto hold top ups enabled', async () => {
-    mockGetTotalValue.mockReturnValue(1)
-    paymentRequest.paymentRequestNumber = 2
-    await applyAutoHold(paymentRequests)
-    expect(mockApplyHold).toHaveBeenCalledWith(paymentRequest, TOP_UP)
+  describe('top up logic', () => {
+    beforeEach(() => {
+      paymentRequest.paymentRequestNumber = 2
+    })
+
+    test.each([
+      { value: 1, name: 'positive total value' },
+      { value: 0, name: 'zero total value' }
+    ])('applies top up hold for $name', async ({ value }) => {
+      mockGetTotalValue.mockReturnValue(value)
+      await applyAutoHold(paymentRequests)
+      expect(mockApplyHold).toHaveBeenCalledWith(paymentRequest, TOP_UP)
+    })
+
+    test('returns true when top up hold applied', async () => {
+      mockGetTotalValue.mockReturnValue(1)
+      const result = await applyAutoHold(paymentRequests)
+      expect(result).toBe(true)
+    })
+
+    test('does not apply top up hold when disabled', async () => {
+      mockGetTotalValue.mockReturnValue(1)
+      mockAutoHoldConfig.topUp = false
+      await applyAutoHold(paymentRequests)
+      expect(mockApplyHold).not.toHaveBeenCalled()
+    })
+
+    test('returns false when not applied', async () => {
+      mockGetTotalValue.mockReturnValue(1)
+      mockAutoHoldConfig.topUp = false
+      const result = await applyAutoHold(paymentRequests)
+      expect(result).toBe(false)
+    })
   })
 
-  test('should return true if top up hold applied', async () => {
-    mockGetTotalValue.mockReturnValue(1)
-    paymentRequest.paymentRequestNumber = 2
-    const result = await applyAutoHold(paymentRequests)
-    expect(result).toBe(true)
-  })
+  describe('recovery logic', () => {
+    beforeEach(() => {
+      paymentRequest.paymentRequestNumber = 2
+    })
 
-  test('should apply top up hold if total value is 0 and auto hold tup ups enabled', async () => {
-    mockGetTotalValue.mockReturnValue(0)
-    paymentRequest.paymentRequestNumber = 2
-    await applyAutoHold(paymentRequests)
-    expect(mockApplyHold).toHaveBeenCalledWith(paymentRequest, TOP_UP)
-  })
+    test('applies recovery hold when total < 0', async () => {
+      mockGetTotalValue.mockReturnValue(-1)
+      await applyAutoHold(paymentRequests)
+      expect(mockApplyHold).toHaveBeenCalledWith(paymentRequest, RECOVERY)
+    })
 
-  test('should not apply top up hold if top up but auto hold top ups disabled', async () => {
-    mockGetTotalValue.mockReturnValue(1)
-    mockAutoHoldConfig.topUp = false
-    paymentRequest.paymentRequestNumber = 2
-    await applyAutoHold(paymentRequests)
-    expect(mockApplyHold).not.toHaveBeenCalled()
-  })
+    test('returns true when recovery hold applied', async () => {
+      mockGetTotalValue.mockReturnValue(-1)
+      const result = await applyAutoHold(paymentRequests)
+      expect(result).toBe(true)
+    })
 
-  test('should return false if top up hold not applied', async () => {
-    mockGetTotalValue.mockReturnValue(1)
-    mockAutoHoldConfig.topUp = false
-    paymentRequest.paymentRequestNumber = 2
-    const result = await applyAutoHold(paymentRequests)
-    expect(result).toBe(false)
-  })
+    test('does not apply recovery hold when disabled', async () => {
+      mockGetTotalValue.mockReturnValue(-1)
+      mockAutoHoldConfig.recovery = false
+      await applyAutoHold(paymentRequests)
+      expect(mockApplyHold).not.toHaveBeenCalled()
+    })
 
-  test('should apply recovery hold if total value is less than 0 and auto hold recoveries enabled', async () => {
-    mockGetTotalValue.mockReturnValue(-1)
-    paymentRequest.paymentRequestNumber = 2
-    await applyAutoHold(paymentRequests)
-    expect(mockApplyHold).toHaveBeenCalledWith(paymentRequest, RECOVERY)
-  })
-
-  test('should return true if recovery hold applied', async () => {
-    mockGetTotalValue.mockReturnValue(-1)
-    paymentRequest.paymentRequestNumber = 2
-    const result = await applyAutoHold(paymentRequests)
-    expect(result).toBe(true)
-  })
-
-  test('should not apply recovery hold if recovery but auto hold recoveries disabled', async () => {
-    mockGetTotalValue.mockReturnValue(-1)
-    mockAutoHoldConfig.recovery = false
-    paymentRequest.paymentRequestNumber = 2
-    await applyAutoHold(paymentRequests)
-    expect(mockApplyHold).not.toHaveBeenCalled()
-  })
-
-  test('should return false if recovery hold not applied', async () => {
-    mockGetTotalValue.mockReturnValue(-1)
-    mockAutoHoldConfig.recovery = false
-    paymentRequest.paymentRequestNumber = 2
-    const result = await applyAutoHold(paymentRequests)
-    expect(result).toBe(false)
+    test('returns false when not applied', async () => {
+      mockGetTotalValue.mockReturnValue(-1)
+      mockAutoHoldConfig.recovery = false
+      const result = await applyAutoHold(paymentRequests)
+      expect(result).toBe(false)
+    })
   })
 })

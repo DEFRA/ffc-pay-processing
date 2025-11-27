@@ -23,7 +23,7 @@ const { sendResetEvent } = require('../../../app/event/send-reset-event')
 let paymentRequest
 
 beforeEach(() => {
-  paymentRequest = JSON.parse(JSON.stringify(require('../../mocks/payment-requests/payment-request')))
+  paymentRequest = structuredClone(require('../../mocks/payment-requests/payment-request'))
 
   messageConfig.eventsTopic = 'v2-events'
 })

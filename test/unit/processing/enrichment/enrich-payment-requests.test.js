@@ -26,7 +26,7 @@ describe('enrich payment requests', () => {
     mockGetInvoiceCorrectionReference.mockReturnValue(INVOICE_NUMBER)
     mockGetOriginalInvoiceNumber.mockReturnValue(INVOICE_NUMBER)
 
-    paymentRequest = JSON.parse(JSON.stringify(require('../../../mocks/payment-requests/payment-request')))
+    paymentRequest = structuredClone(require('../../../mocks/payment-requests/payment-request'))
     paymentRequests = [paymentRequest]
     previousPaymentRequests = [paymentRequest]
   })

@@ -22,62 +22,35 @@ describe('Messaging', () => {
   })
 
   describe('start', () => {
-    test('creates correct number of payment receivers', async () => {
+    let mockInstance
+
+    beforeEach(async () => {
       await start()
+      mockInstance = MessageReceiver.mock.results[0].value
+    })
+
+    test('creates correct number of payment receivers', () => {
       expect(MessageReceiver).toHaveBeenCalledTimes(
         messageConfig.processingSubscription.numberOfReceivers + 5
       )
     })
 
-    test('subscribes all receivers', async () => {
-      await start()
-      const mockInstance = MessageReceiver.mock.results[0].value
+    test('subscribes all receivers', () => {
       expect(mockInstance.subscribe).toHaveBeenCalled()
     })
 
-    test('starts outbox', async () => {
-      await start()
+    test('starts outbox', () => {
       expect(startOutbox).toHaveBeenCalled()
     })
 
-    test('creates acknowledgement receiver', async () => {
-      await start()
-      expect(MessageReceiver).toHaveBeenCalledWith(
-        messageConfig.acknowledgementSubscription,
-        expect.any(Function)
-      )
-    })
-
-    test('creates return receiver', async () => {
-      await start()
-      expect(MessageReceiver).toHaveBeenCalledWith(
-        messageConfig.returnSubscription,
-        expect.any(Function)
-      )
-    })
-
-    test('creates quality check receiver', async () => {
-      await start()
-      expect(MessageReceiver).toHaveBeenCalledWith(
-        messageConfig.qcSubscription,
-        expect.any(Function)
-      )
-    })
-
-    test('creates manual ledger check receiver', async () => {
-      await start()
-      expect(MessageReceiver).toHaveBeenCalledWith(
-        messageConfig.qcManualSubscription,
-        expect.any(Function)
-      )
-    })
-
-    test('creates xb response receiver', async () => {
-      await start()
-      expect(MessageReceiver).toHaveBeenCalledWith(
-        messageConfig.xbResponseSubscription,
-        expect.any(Function)
-      )
+    test.each([
+      ['acknowledgement', messageConfig.acknowledgementSubscription],
+      ['return', messageConfig.returnSubscription],
+      ['quality check', messageConfig.qcSubscription],
+      ['manual ledger check', messageConfig.qcManualSubscription],
+      ['xb response', messageConfig.xbResponseSubscription]
+    ])('creates %s receiver', (_, subscription) => {
+      expect(MessageReceiver).toHaveBeenCalledWith(subscription, expect.any(Function))
     })
 
     test('handles subscription error', async () => {

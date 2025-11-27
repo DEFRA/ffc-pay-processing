@@ -16,7 +16,7 @@ describe('update requests awaiting debt data', () => {
     jest.clearAllMocks()
     await resetDatabase()
 
-    paymentRequest = JSON.parse(JSON.stringify(require('../../../mocks/payment-requests/payment-request')))
+    paymentRequest = structuredClone(require('../../../mocks/payment-requests/payment-request'))
   })
 
   test('should prepare payment request for reprocessing if payment request has debt type and can be matched by invoice number', async () => {

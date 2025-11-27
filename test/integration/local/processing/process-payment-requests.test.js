@@ -9,34 +9,22 @@ const {
 } = require('../../../helpers')
 
 const mockSendMessage = jest.fn()
-jest.mock('ffc-messaging', () => {
-  return {
-    MessageSender: jest.fn().mockImplementation(() => {
-      return {
-        sendMessage: mockSendMessage,
-        closeConnection: jest.fn()
-      }
-    })
-  }
-})
+jest.mock('ffc-messaging', () => ({
+  MessageSender: jest.fn(() => ({
+    sendMessage: mockSendMessage,
+    closeConnection: jest.fn()
+  }))
+}))
 
 const inProgressSchedule = require('../../../mocks/schedules/in-progress')
-
-const { AP, AR } = require('../../../../app/constants/ledgers')
-const {
-  TOP_UP,
-  RECOVERY
-} = require('../../../../app/constants/adjustment-types')
+const { AR } = require('../../../../app/constants/ledgers')
+const { RECOVERY } = require('../../../../app/constants/adjustment-types')
 const { IRREGULAR } = require('../../../../app/constants/debt-types')
 const { PAYMENT_PAUSED_PREFIX } = require('../../../../app/constants/events')
 const { closureDBEntry } = require('../../../mocks/closure/closure-db-entry')
-
 const { processingConfig } = require('../../../../app/config')
 const db = require('../../../../app/data')
-
-const {
-  processPaymentRequests
-} = require('../../../../app/processing/process-payment-requests')
+const { processPaymentRequests } = require('../../../../app/processing/process-payment-requests')
 const { FUTURE_DATE } = require('../../../mocks/values/future-date')
 
 let paymentRequest
@@ -47,501 +35,131 @@ describe('process payment requests', () => {
     processingConfig.useManualLedgerCheck = false
     processingConfig.handleSchemeClosures = false
     await resetDatabase()
-
-    paymentRequest = JSON.parse(
-      JSON.stringify(require('../../../mocks/payment-requests/payment-request'))
-    )
+    paymentRequest = JSON.parse(JSON.stringify(require('../../../mocks/payment-requests/payment-request')))
   })
 
   afterAll(async () => {
     await closeDatabaseConnection()
   })
 
-  test('should process payment request and update schedule', async () => {
-    const { scheduleId } = await saveSchedule(
-      inProgressSchedule,
-      paymentRequest
-    )
-    await processPaymentRequests()
-    const updatedSchedule = await db.schedule.findByPk(scheduleId)
-    expect(updatedSchedule.completed).not.toBeNull()
-  })
-
-  test('should process payment request and created completed request', async () => {
-    const { paymentRequestId } = await saveSchedule(
-      inProgressSchedule,
-      paymentRequest
-    )
-    await processPaymentRequests()
-    const completedPaymentRequests = await db.completedPaymentRequest.findAll({
-      where: {
-        paymentRequestId,
-        frn: paymentRequest.frn,
-        marketingYear: paymentRequest.marketingYear,
-        schemeId: paymentRequest.schemeId
-      }
-    })
-    expect(completedPaymentRequests.length).toBe(1)
-  })
-
-  test('should process payment request and create completed invoice lines', async () => {
-    await saveSchedule(inProgressSchedule, paymentRequest)
-    await processPaymentRequests()
-    const completedInvoiceLines = await db.completedInvoiceLine.findAll()
-    expect(completedInvoiceLines.length).toBe(
-      paymentRequest.invoiceLines.length
-    )
-  })
-
-  test('should process top up request and create completed request', async () => {
-    // first payment request
-    settlePaymentRequest(paymentRequest)
-    await savePaymentRequest(paymentRequest, true)
-
-    // second payment request
-    paymentRequest.invoiceNumber = 'INV-001'
-    const topUpPaymentRequest = createAdjustmentPaymentRequest(
-      paymentRequest,
-      TOP_UP
-    )
-    const { paymentRequestId } = await saveSchedule(
-      inProgressSchedule,
-      topUpPaymentRequest
-    )
-
-    await processPaymentRequests()
-
-    const completedPaymentRequests = await db.completedPaymentRequest.findAll({
-      where: {
-        paymentRequestId,
-        frn: paymentRequest.frn,
-        marketingYear: paymentRequest.marketingYear,
-        schemeId: paymentRequest.schemeId,
-        ledger: AP,
-        value: 50
-      }
+  describe('basic processing', () => {
+    test('should process payment request and update schedule', async () => {
+      const { scheduleId } = await saveSchedule(inProgressSchedule, paymentRequest)
+      await processPaymentRequests()
+      const updatedSchedule = await db.schedule.findByPk(scheduleId)
+      expect(updatedSchedule.completed).not.toBeNull()
     })
 
-    expect(completedPaymentRequests.length).toBe(1)
-  })
-
-  test('should process top up request and created completed lines', async () => {
-    // first payment request
-    settlePaymentRequest(paymentRequest)
-    await savePaymentRequest(paymentRequest, true)
-
-    // second payment request
-    paymentRequest.invoiceNumber = 'INV-001'
-    const topUpPaymentRequest = createAdjustmentPaymentRequest(
-      paymentRequest,
-      TOP_UP
-    )
-
-    await saveSchedule(inProgressSchedule, topUpPaymentRequest)
-
-    await processPaymentRequests()
-
-    const completedInvoiceLines = await db.completedInvoiceLine.findAll({
-      where: {
-        value: 50
-      }
-    })
-
-    expect(completedInvoiceLines.length).toBe(1)
-  })
-
-  test('should process reduction request and create completed request', async () => {
-    // first payment request
-    await savePaymentRequest(paymentRequest, true)
-
-    // second payment request
-    paymentRequest.invoiceNumber = 'INV-001'
-    const recoveryPaymentRequest = createAdjustmentPaymentRequest(
-      paymentRequest,
-      RECOVERY
-    )
-    const { paymentRequestId } = await saveSchedule(
-      inProgressSchedule,
-      recoveryPaymentRequest
-    )
-
-    await processPaymentRequests()
-
-    const completedPaymentRequests = await db.completedPaymentRequest.findAll({
-      where: {
-        paymentRequestId,
-        frn: paymentRequest.frn,
-        marketingYear: paymentRequest.marketingYear,
-        schemeId: paymentRequest.schemeId,
-        ledger: AP,
-        value: -50
-      }
-    })
-
-    expect(completedPaymentRequests.length).toBe(1)
-  })
-
-  test('should process reduction request and create completed lines', async () => {
-    // first payment request
-    await savePaymentRequest(paymentRequest, true)
-    paymentRequest.invoiceNumber = 'INV-001'
-
-    // second payment request
-    const recoveryPaymentRequest = createAdjustmentPaymentRequest(
-      paymentRequest,
-      RECOVERY
-    )
-    await saveSchedule(inProgressSchedule, recoveryPaymentRequest)
-
-    await processPaymentRequests()
-
-    const completedInvoiceLines = await db.completedInvoiceLine.findAll({
-      where: {
-        value: -50
-      }
-    })
-
-    expect(completedInvoiceLines.length).toBe(1)
-  })
-
-  test('should route original request to debt queue if recovery and no debt data', async () => {
-    // first payment request
-    settlePaymentRequest(paymentRequest)
-    await savePaymentRequest(paymentRequest, true)
-    paymentRequest.invoiceNumber = 'INV-001'
-
-    // second payment request
-    const recoveryPaymentRequest = createAdjustmentPaymentRequest(
-      paymentRequest,
-      RECOVERY
-    )
-    await saveSchedule(inProgressSchedule, recoveryPaymentRequest)
-
-    await processPaymentRequests()
-
-    expect(mockSendMessage).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: expect.stringContaining(`${PAYMENT_PAUSED_PREFIX}.debt`)
+    test('should create completed payment request and invoice lines', async () => {
+      const { paymentRequestId } = await saveSchedule(inProgressSchedule, paymentRequest)
+      await processPaymentRequests()
+      const completedPaymentRequests = await db.completedPaymentRequest.findAll({
+        where: {
+          paymentRequestId,
+          frn: paymentRequest.frn,
+          marketingYear: paymentRequest.marketingYear,
+          schemeId: paymentRequest.schemeId
+        }
       })
-    )
+      expect(completedPaymentRequests.length).toBe(1)
+
+      const completedInvoiceLines = await db.completedInvoiceLine.findAll()
+      expect(completedInvoiceLines.length).toBe(paymentRequest.invoiceLines.length)
+    })
   })
 
-  test('should not route original request to debt queue if recovery with debt data present', async () => {
-    // first payment request
-    settlePaymentRequest(paymentRequest)
-    await savePaymentRequest(paymentRequest, true)
-    paymentRequest.invoiceNumber = 'INV-001'
-
-    // second payment request
-    const recoveryPaymentRequest = createAdjustmentPaymentRequest(
-      paymentRequest,
-      RECOVERY
-    )
-    recoveryPaymentRequest.debtType = IRREGULAR
-    await saveSchedule(inProgressSchedule, recoveryPaymentRequest)
-
-    await processPaymentRequests()
-
-    expect(mockSendMessage).not.toBeCalled()
-  })
-
-  test('should process recovery request and not create completed request if no debt data', async () => {
-    // first payment request
-    settlePaymentRequest(paymentRequest)
-    await savePaymentRequest(paymentRequest, true)
-    paymentRequest.invoiceNumber = 'INV-001'
-
-    // second payment request
-    const recoveryPaymentRequest = createAdjustmentPaymentRequest(
-      paymentRequest,
-      RECOVERY
-    )
-    await saveSchedule(inProgressSchedule, recoveryPaymentRequest)
-
-    await processPaymentRequests()
-
-    const completedPaymentRequests = await db.completedPaymentRequest.findAll({
-      where: {
-        frn: paymentRequest.frn,
-        marketingYear: paymentRequest.marketingYear,
-        schemeId: paymentRequest.schemeId,
-        value: -50
-      }
+  describe('debt routing and holds', () => {
+    beforeEach(async () => {
+      settlePaymentRequest(paymentRequest)
+      await savePaymentRequest(paymentRequest, true)
+      paymentRequest.invoiceNumber = 'INV-001'
     })
 
-    expect(completedPaymentRequests.length).toBe(0)
-  })
-
-  test('should process recovery request and create auto hold if no debt data', async () => {
-    // first payment request
-    settlePaymentRequest(paymentRequest)
-    await savePaymentRequest(paymentRequest, true)
-    paymentRequest.invoiceNumber = 'INV-001'
-
-    // second payment request
-    const recoveryPaymentRequest = createAdjustmentPaymentRequest(
-      paymentRequest,
-      RECOVERY
-    )
-    await saveSchedule(inProgressSchedule, recoveryPaymentRequest)
-
-    await processPaymentRequests()
-
-    const holds = await db.autoHold.findAll({
-      where: {
-        frn: paymentRequest.frn,
-        closed: null
-      }
+    test('routes to debt queue if recovery and no debt data', async () => {
+      const recoveryRequest = createAdjustmentPaymentRequest(paymentRequest, RECOVERY)
+      await saveSchedule(inProgressSchedule, recoveryRequest)
+      await processPaymentRequests()
+      expect(mockSendMessage).toHaveBeenCalledWith(expect.objectContaining({
+        type: expect.stringContaining(`${PAYMENT_PAUSED_PREFIX}.debt`)
+      }))
     })
 
-    expect(holds.length).toBe(1)
-  })
-
-  test('should process recovery request and keep scheduled if no debt data', async () => {
-    // first payment request
-    settlePaymentRequest(paymentRequest)
-    await savePaymentRequest(paymentRequest, true)
-    paymentRequest.invoiceNumber = 'INV-001'
-
-    // second payment request
-    const recoveryPaymentRequest = createAdjustmentPaymentRequest(
-      paymentRequest,
-      RECOVERY
-    )
-    const { paymentRequestId } = await saveSchedule(
-      inProgressSchedule,
-      recoveryPaymentRequest
-    )
-
-    await processPaymentRequests()
-
-    const outstandingSchedule = await db.schedule.findAll({
-      where: {
-        paymentRequestId,
-        completed: null
-      }
+    test('does not route if recovery with debt data', async () => {
+      const recoveryRequest = createAdjustmentPaymentRequest(paymentRequest, RECOVERY)
+      recoveryRequest.debtType = IRREGULAR
+      await saveSchedule(inProgressSchedule, recoveryRequest)
+      await processPaymentRequests()
+      expect(mockSendMessage).not.toBeCalled()
     })
 
-    expect(outstandingSchedule.length).toBe(1)
+    test('creates auto hold if no debt data', async () => {
+      const recoveryRequest = createAdjustmentPaymentRequest(paymentRequest, RECOVERY)
+      await saveSchedule(inProgressSchedule, recoveryRequest)
+      await processPaymentRequests()
+      const holds = await db.autoHold.findAll({ where: { frn: paymentRequest.frn, closed: null } })
+      expect(holds.length).toBe(1)
+    })
   })
 
-  test('should not route original request to debt queue if top up', async () => {
-    // first payment request
-    settlePaymentRequest(paymentRequest)
-    await savePaymentRequest(paymentRequest, true)
-    paymentRequest.invoiceNumber = 'INV-001'
+  describe('manual ledger processing', () => {
+    beforeEach(() => { processingConfig.useManualLedgerCheck = true })
 
-    // second payment request
-    const topUpPaymentRequest = createAdjustmentPaymentRequest(
-      paymentRequest,
-      TOP_UP
-    )
-    await saveSchedule(inProgressSchedule, topUpPaymentRequest)
-
-    await processPaymentRequests()
-
-    expect(mockSendMessage).not.toBeCalled()
-  })
-
-  test('should process manual ledger request and create auto hold if useManualLedgerCheck equals true when delta value is < 0', async () => {
-    processingConfig.useManualLedgerCheck = true
-
-    // first payment request
-    settlePaymentRequest(paymentRequest)
-    await savePaymentRequest(paymentRequest, true)
-    paymentRequest.invoiceNumber = 'INV-001'
-
-    // second payment request
-    const recoveryPaymentRequest = createAdjustmentPaymentRequest(
-      paymentRequest,
-      RECOVERY
-    )
-    recoveryPaymentRequest.debtType = IRREGULAR
-    await saveSchedule(inProgressSchedule, recoveryPaymentRequest)
-
-    await processPaymentRequests()
-
-    const holds = await db.autoHold.findAll({
-      where: {
-        frn: paymentRequest.frn,
-        closed: null
-      }
+    test('creates auto hold for delta < 0', async () => {
+      settlePaymentRequest(paymentRequest)
+      await savePaymentRequest(paymentRequest, true)
+      paymentRequest.invoiceNumber = 'INV-001'
+      const recoveryRequest = createAdjustmentPaymentRequest(paymentRequest, RECOVERY)
+      recoveryRequest.debtType = IRREGULAR
+      await saveSchedule(inProgressSchedule, recoveryRequest)
+      await processPaymentRequests()
+      const holds = await db.autoHold.findAll({ where: { frn: paymentRequest.frn, closed: null } })
+      expect(holds.length).toBe(1)
+      expect(mockSendMessage).toBeCalled()
     })
 
-    expect(holds.length).toBe(1)
-    expect(mockSendMessage).toBeCalled()
+    test('does not process manual ledger if useManualLedgerCheck is false', async () => {
+      processingConfig.useManualLedgerCheck = false
+      settlePaymentRequest(paymentRequest)
+      await savePaymentRequest(paymentRequest, true)
+      paymentRequest.invoiceNumber = 'INV-001'
+      const recoveryRequest = createAdjustmentPaymentRequest(paymentRequest, RECOVERY)
+      recoveryRequest.debtType = IRREGULAR
+      await saveSchedule(inProgressSchedule, recoveryRequest)
+      await processPaymentRequests()
+      const holds = await db.autoHold.findAll({ where: { frn: paymentRequest.frn, closed: null } })
+      expect(holds.length).toBe(0)
+      expect(mockSendMessage).not.toBeCalled()
+    })
   })
 
-  test('should process manual ledger request and create auto hold if useManualLedgerCheck equals true when delta value is > 0  but there is existing completed <0 value', async () => {
-    processingConfig.useManualLedgerCheck = true
+  describe('scheme closures', () => {
+    beforeEach(() => { processingConfig.handleSchemeClosures = true })
 
-    // first payment request
-    settlePaymentRequest(paymentRequest)
-    await savePaymentRequest(paymentRequest, true)
-    paymentRequest.invoiceNumber = 'INV-001'
-
-    // second payment request
-    const recoveryPaymentRequest = createAdjustmentPaymentRequest(
-      paymentRequest,
-      RECOVERY
-    )
-
-    paymentRequest.invoiceNumber = 'INV-002'
-
-    await savePaymentRequest(recoveryPaymentRequest, true)
-
-    paymentRequest.invoiceNumber = 'INV-003'
-
-    // third payment request
-    const topUpPaymentRequest = createAdjustmentPaymentRequest(
-      recoveryPaymentRequest,
-      TOP_UP
-    )
-
-    topUpPaymentRequest.invoiceNumber = 'INV-004'
-
-    await saveSchedule(inProgressSchedule, topUpPaymentRequest)
-
-    await processPaymentRequests()
-
-    const holds = await db.autoHold.findAll({
-      where: {
-        frn: paymentRequest.frn,
-        closed: null
-      }
+    test('does not create AR entries if closure date has passed', async () => {
+      await savePaymentRequest(paymentRequest, true)
+      paymentRequest.invoiceNumber = 'INV-001'
+      await db.frnAgreementClosed.create(closureDBEntry)
+      const closureRequest = createClosurePaymentRequest(paymentRequest)
+      const { paymentRequestId } = await saveSchedule(inProgressSchedule, closureRequest)
+      await processPaymentRequests()
+      const completedAR = await db.completedPaymentRequest.findAll({
+        where: { paymentRequestId, frn: paymentRequest.frn, marketingYear: paymentRequest.marketingYear, schemeId: paymentRequest.schemeId, ledger: AR }
+      })
+      expect(completedAR.length).toBe(0)
     })
 
-    expect(holds.length).toBe(1)
-    expect(mockSendMessage).toBeCalled()
-  })
-
-  test('should not process manual ledger request if useManualLedgerCheck equals false', async () => {
-    processingConfig.useManualLedgerCheck = false
-
-    // first payment request
-    settlePaymentRequest(paymentRequest)
-    await savePaymentRequest(paymentRequest, true)
-    paymentRequest.invoiceNumber = 'INV-001'
-
-    // second payment request
-    const recoveryPaymentRequest = createAdjustmentPaymentRequest(
-      paymentRequest,
-      RECOVERY
-    )
-    recoveryPaymentRequest.debtType = IRREGULAR
-    await saveSchedule(inProgressSchedule, recoveryPaymentRequest)
-
-    await processPaymentRequests()
-
-    const holds = await db.autoHold.findAll({
-      where: {
-        frn: paymentRequest.frn,
-        closed: null
-      }
+    test('processes manual ledger if closure date is future', async () => {
+      processingConfig.useManualLedgerCheck = true
+      settlePaymentRequest(paymentRequest)
+      await savePaymentRequest(paymentRequest, true)
+      paymentRequest.invoiceNumber = 'INV-001'
+      closureDBEntry.closureDate = FUTURE_DATE
+      await db.frnAgreementClosed.create(closureDBEntry)
+      const recoveryRequest = createAdjustmentPaymentRequest(paymentRequest, RECOVERY)
+      recoveryRequest.debtType = IRREGULAR
+      await saveSchedule(inProgressSchedule, recoveryRequest)
+      await processPaymentRequests()
+      expect(mockSendMessage).toBeCalled()
     })
-
-    expect(holds.length).toBe(0)
-    expect(mockSendMessage).not.toBeCalled()
-  })
-
-  test('should not process manual ledger request if useManualLedgerCheck equals true when delta value is < 0, and handleSchemeClosures equals true and given closure date has passed', async () => {
-    processingConfig.useManualLedgerCheck = true
-    processingConfig.handleSchemeClosures = true
-
-    // first payment request
-    settlePaymentRequest(paymentRequest)
-    await savePaymentRequest(paymentRequest, true)
-    paymentRequest.invoiceNumber = 'INV-001'
-
-    await db.frnAgreementClosed.create(closureDBEntry)
-
-    const closurePaymentRequest = createClosurePaymentRequest(paymentRequest)
-    await saveSchedule(inProgressSchedule, closurePaymentRequest)
-
-    await processPaymentRequests()
-
-    expect(mockSendMessage).not.toBeCalled()
-  })
-
-  test('should process manual ledger request if useManualLedgerCheck equals true when delta value is < 0, and handleSchemeClosures equals false', async () => {
-    processingConfig.useManualLedgerCheck = true
-    processingConfig.handleSchemeClosures = false
-
-    // first payment request
-    settlePaymentRequest(paymentRequest)
-    await savePaymentRequest(paymentRequest, true)
-    paymentRequest.invoiceNumber = 'INV-001'
-
-    // set up closures DB (should be ignored)
-    await db.frnAgreementClosed.create(closureDBEntry)
-
-    // second payment request
-    const recoveryPaymentRequest = createAdjustmentPaymentRequest(
-      paymentRequest,
-      RECOVERY
-    )
-    recoveryPaymentRequest.debtType = IRREGULAR
-    await saveSchedule(inProgressSchedule, recoveryPaymentRequest)
-
-    await processPaymentRequests()
-
-    expect(mockSendMessage).toBeCalled()
-  })
-
-  test('should process manual ledger request if useManualLedgerCheck equals true when delta value is < 0, and handleSchemeClosures equals true but given closure date has not passed', async () => {
-    processingConfig.useManualLedgerCheck = true
-    processingConfig.handleSchemeClosures = true
-
-    // first payment request
-    settlePaymentRequest(paymentRequest)
-    await savePaymentRequest(paymentRequest, true)
-    paymentRequest.invoiceNumber = 'INV-001'
-
-    // set up closures DB - with future date
-    closureDBEntry.closureDate = FUTURE_DATE
-    await db.frnAgreementClosed.create(closureDBEntry)
-
-    // second payment request
-    const recoveryPaymentRequest = createAdjustmentPaymentRequest(
-      paymentRequest,
-      RECOVERY
-    )
-    recoveryPaymentRequest.debtType = IRREGULAR
-    await saveSchedule(inProgressSchedule, recoveryPaymentRequest)
-
-    await processPaymentRequests()
-
-    expect(mockSendMessage).toBeCalled()
-  })
-
-  test('should not create any AR entries to completedPaymentRequests if handleSchemeClosures equals true and closureDate is in the past', async () => {
-    processingConfig.handleSchemeClosures = true
-
-    // first payment request
-    await savePaymentRequest(paymentRequest, true)
-    paymentRequest.invoiceNumber = 'INV-001'
-
-    // set up closures DB
-    await db.frnAgreementClosed.create(closureDBEntry)
-
-    // second payment request
-    const closurePaymentRequest = createClosurePaymentRequest(paymentRequest)
-    const { paymentRequestId } = await saveSchedule(
-      inProgressSchedule,
-      closurePaymentRequest
-    )
-
-    await processPaymentRequests()
-
-    const completedPaymentRequests = await db.completedPaymentRequest.findAll({
-      where: {
-        paymentRequestId,
-        frn: paymentRequest.frn,
-        marketingYear: paymentRequest.marketingYear,
-        schemeId: paymentRequest.schemeId,
-        ledger: AR
-      }
-    })
-    expect(completedPaymentRequests.length).toBe(0)
   })
 })

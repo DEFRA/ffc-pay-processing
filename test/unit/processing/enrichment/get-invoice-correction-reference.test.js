@@ -9,7 +9,7 @@ describe('get invoice correction reference', () => {
   beforeEach(() => {
     jest.clearAllMocks()
 
-    paymentRequest = JSON.parse(JSON.stringify(require('../../../mocks/payment-requests/payment-request')))
+    paymentRequest = structuredClone(require('../../../mocks/payment-requests/payment-request'))
     paymentRequests = [paymentRequest]
   })
 
@@ -28,7 +28,7 @@ describe('get invoice correction reference', () => {
 
   test('should return invoice number of last AR payment request', () => {
     paymentRequest.ledger = AR
-    paymentRequests.push(JSON.parse(JSON.stringify(paymentRequest)))
+    paymentRequests.push(structuredClone(paymentRequest))
     paymentRequests[0].invoiceNumber = '1234'
     expect(getInvoiceCorrectionReference(paymentRequests)).toEqual(paymentRequest.invoiceNumber)
   })

@@ -1,7 +1,5 @@
 const { resetDatabase, closeDatabaseConnection, savePaymentRequest } = require('../../../helpers')
-
 const { CS, FDMR } = require('../../../../app/constants/schemes')
-
 const { getCompletedPaymentRequests } = require('../../../../app/processing/get-completed-payment-requests')
 
 let paymentRequest
@@ -9,148 +7,117 @@ let paymentRequest
 describe('get completed payment requests', () => {
   beforeEach(async () => {
     await resetDatabase()
-    paymentRequest = JSON.parse(JSON.stringify(require('../../../mocks/payment-requests/payment-request')))
+    paymentRequest = structuredClone(require('../../../mocks/payment-requests/payment-request'))
   })
 
   afterAll(async () => {
     await closeDatabaseConnection()
   })
 
-  test('should not return any payment requests if none completed for agreement', async () => {
+  test('should return empty array if no completed requests for agreement', async () => {
     paymentRequest.paymentRequestNumber = 2
-    const paymentRequests = await getCompletedPaymentRequests(paymentRequest)
-    expect(paymentRequests.length).toBe(0)
+    const requests = await getCompletedPaymentRequests(paymentRequest)
+    expect(requests.length).toBe(0)
   })
 
-  test('should return completed payment requests for agreement', async () => {
+  test('should return completed requests for agreement', async () => {
     await savePaymentRequest(paymentRequest, true)
     paymentRequest.paymentRequestNumber = 2
-    const paymentRequests = await getCompletedPaymentRequests(paymentRequest)
-    expect(paymentRequests.length).toBe(1)
+    const requests = await getCompletedPaymentRequests(paymentRequest)
+    expect(requests.length).toBe(1)
   })
 
-  test('should not return any payment requests for different customer', async () => {
+  test.each([
+    ['different customer', pr => { pr.frn = 1234567891 }],
+    ['different scheme', pr => { pr.schemeId = 2 }],
+    ['different marketing year (non-CS)', pr => { pr.marketingYear = 2021 }]
+  ])('should not return requests for %s', async (_desc, mutate) => {
     await savePaymentRequest(paymentRequest, true)
-    paymentRequest.frn = 1234567891
     paymentRequest.paymentRequestNumber = 2
-    const paymentRequests = await getCompletedPaymentRequests(paymentRequest)
-    expect(paymentRequests.length).toBe(0)
+    mutate(paymentRequest)
+    const requests = await getCompletedPaymentRequests(paymentRequest)
+    expect(requests.length).toBe(0)
   })
 
-  test('should not return any payment requests for different marketing year if not CS', async () => {
-    await savePaymentRequest(paymentRequest, true)
-    paymentRequest.marketingYear = 2021
-    paymentRequest.paymentRequestNumber = 2
-    const paymentRequests = await getCompletedPaymentRequests(paymentRequest)
-    expect(paymentRequests.length).toBe(0)
-  })
-
-  test('should return completed payment requests for different marketing year if CS', async () => {
+  test('should return requests for CS scheme even with different marketing year', async () => {
     paymentRequest.schemeId = CS
     await savePaymentRequest(paymentRequest, true)
     paymentRequest.marketingYear = 2021
     paymentRequest.paymentRequestNumber = 2
-    const paymentRequests = await getCompletedPaymentRequests(paymentRequest)
-    expect(paymentRequests.length).toBe(1)
+    const requests = await getCompletedPaymentRequests(paymentRequest)
+    expect(requests.length).toBe(1)
   })
 
-  test('should not return any payment requests for different scheme', async () => {
-    await savePaymentRequest(paymentRequest, true)
-    paymentRequest.schemeId = 2
-    paymentRequest.paymentRequestNumber = 2
-    const paymentRequests = await getCompletedPaymentRequests(paymentRequest)
-    expect(paymentRequests.length).toBe(0)
-  })
-
-  test('should return all completed payment requests for agreement', async () => {
+  test('should return all completed requests for agreement', async () => {
     await savePaymentRequest(paymentRequest, true)
     paymentRequest.invoiceNumber = 'INV-001'
     await savePaymentRequest(paymentRequest, true)
     paymentRequest.paymentRequestNumber = 2
-    const paymentRequests = await getCompletedPaymentRequests(paymentRequest)
-    expect(paymentRequests.length).toBe(2)
+    const requests = await getCompletedPaymentRequests(paymentRequest)
+    expect(requests.length).toBe(2)
   })
 
-  test('should not include completed payment requests with later request numbers', async () => {
+  test('should not include requests with later numbers', async () => {
     await savePaymentRequest(paymentRequest, true)
     paymentRequest.paymentRequestNumber = 3
     paymentRequest.invoiceNumber = 'INV-002'
     await savePaymentRequest(paymentRequest, true)
     paymentRequest.paymentRequestNumber = 2
-    const paymentRequests = await getCompletedPaymentRequests(paymentRequest)
-    expect(paymentRequests.length).toBe(1)
-    expect(paymentRequests[0].paymentRequestNumber).toBe(1)
+    const requests = await getCompletedPaymentRequests(paymentRequest)
+    expect(requests.length).toBe(1)
+    expect(requests[0].paymentRequestNumber).toBe(1)
   })
 
-  test('should not return invalid payment requests', async () => {
+  test('should ignore invalid completed requests', async () => {
     await savePaymentRequest(paymentRequest, true)
     paymentRequest.invalid = true
     paymentRequest.invoiceNumber = 'INV-003'
     await savePaymentRequest(paymentRequest, true)
     paymentRequest.paymentRequestNumber = 2
-    const paymentRequests = await getCompletedPaymentRequests(paymentRequest)
-    expect(paymentRequests.length).toBe(1)
+    const requests = await getCompletedPaymentRequests(paymentRequest)
+    expect(requests.length).toBe(1)
   })
 
-  test('should return payment requests if CS and previous contract has an extra leading zero', async () => {
+  test.each([
+    ['previous contract has leading zero', 'A0123456', 'A123456'],
+    ['current contract has leading zero', 'A123456', 'A0123456']
+  ])('should handle contracts with extra leading zero (%s)', async (_desc, prevContract, currentContract) => {
     paymentRequest.schemeId = CS
-    paymentRequest.contractNumber = 'A0123456'
+    paymentRequest.contractNumber = prevContract
     await savePaymentRequest(paymentRequest, true)
-    paymentRequest.contractNumber = 'A123456'
+    paymentRequest.contractNumber = currentContract
     paymentRequest.paymentRequestNumber = 2
-    const paymentRequests = await getCompletedPaymentRequests(paymentRequest)
-    expect(paymentRequests.length).toBe(1)
+    const requests = await getCompletedPaymentRequests(paymentRequest)
+    expect(requests.length).toBe(1)
   })
 
-  test('should return payment requests if CS and current contract has an extra leading zero', async () => {
-    paymentRequest.schemeId = CS
-    paymentRequest.contractNumber = 'A123456'
-    await savePaymentRequest(paymentRequest, true)
-    paymentRequest.contractNumber = 'A0123456'
-    paymentRequest.paymentRequestNumber = 2
-    const paymentRequests = await getCompletedPaymentRequests(paymentRequest)
-    expect(paymentRequests.length).toBe(1)
-  })
-
-  test('should return payment requests if first invoice line matches scheme code of current payment request', async () => {
+  test('should return requests if first invoice line matches scheme code', async () => {
     paymentRequest.schemeId = FDMR
     await savePaymentRequest(paymentRequest, true)
     paymentRequest.paymentRequestNumber = 2
-    const paymentRequests = await getCompletedPaymentRequests(paymentRequest)
-    expect(paymentRequests.length).toBe(1)
+    const requests = await getCompletedPaymentRequests(paymentRequest)
+    expect(requests.length).toBe(1)
   })
 
-  test('should not return payment requests if first invoice line does not match scheme code of current payment request', async () => {
+  test('should not return requests if first invoice line does not match scheme code', async () => {
     paymentRequest.schemeId = FDMR
     await savePaymentRequest(paymentRequest, true)
     paymentRequest.invoiceLines[0].schemeCode = 'Different'
     paymentRequest.paymentRequestNumber = 2
-    const paymentRequests = await getCompletedPaymentRequests(paymentRequest)
-    expect(paymentRequests.length).toBe(0)
+    const requests = await getCompletedPaymentRequests(paymentRequest)
+    expect(requests.length).toBe(0)
   })
 
-  test('should include manually injected payment requests', async () => {
-    paymentRequest.paymentRequestNumber = 0
+  test.each([
+    ['manually injected first', 0, 1],
+    ['manually injected later', 1, 0],
+    ['all previous manually injected', 0, 0]
+  ])('should include manually injected requests (%s)', async (_desc, initialNumber, subsequentNumber) => {
+    paymentRequest.paymentRequestNumber = initialNumber
     await savePaymentRequest(paymentRequest, true)
-    paymentRequest.paymentRequestNumber = 1
-    const paymentRequests = await getCompletedPaymentRequests(paymentRequest)
-    expect(paymentRequests.length).toBe(1)
-    expect(paymentRequests[0].paymentRequestNumber).toBe(0)
-  })
-
-  test('should include all completed payment requests if manually injected', async () => {
-    await savePaymentRequest(paymentRequest, true)
-    paymentRequest.paymentRequestNumber = 0
-    const paymentRequests = await getCompletedPaymentRequests(paymentRequest)
-    expect(paymentRequests.length).toBe(1)
-    expect(paymentRequests[0].paymentRequestNumber).toBe(1)
-  })
-
-  test('should include all previous manually injected completed payment requests if manually injected', async () => {
-    paymentRequest.paymentRequestNumber = 0
-    await savePaymentRequest(paymentRequest, true)
-    const paymentRequests = await getCompletedPaymentRequests(paymentRequest)
-    expect(paymentRequests.length).toBe(1)
-    expect(paymentRequests[0].paymentRequestNumber).toBe(0)
+    paymentRequest.paymentRequestNumber = subsequentNumber
+    const requests = await getCompletedPaymentRequests(paymentRequest)
+    expect(requests.length).toBe(1)
+    expect(requests[0].paymentRequestNumber).toBe(initialNumber)
   })
 })

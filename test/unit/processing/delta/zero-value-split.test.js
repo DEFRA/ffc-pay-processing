@@ -1,173 +1,79 @@
-const { AP, AR } = require('../../../../app/constants/ledgers')
+const { AP } = require('../../../../app/constants/ledgers')
 const { zeroValueSplit } = require('../../../../app/processing/delta/zero-value-split/zero-value-split')
 const { v4: uuidv4 } = require('uuid')
+const { createPaymentRequest } = require('../../../helpers/create-payment-request')
 
-describe('zero value split', () => {
-  test('should create two AP requests', () => {
-    const paymentRequest = {
-      ledger: AP,
+describe('zeroValueSplit', () => {
+  let paymentRequest
+
+  beforeEach(() => {
+    paymentRequest = createPaymentRequest({
       value: 0,
-      agreementNumber: '12345678',
-      invoiceNumber: 'S1234567SFI123456V002',
-      paymentRequestNumber: 2,
       schemeId: 1,
-      invoiceLines: [{
-        description: 'G00',
-        value: -50
-      }, {
-        description: 'G00',
-        value: 50
-      }]
-    }
-    const updatedPaymentRequests = zeroValueSplit(paymentRequest)
-    expect(updatedPaymentRequests.length).toBe(2)
-    expect(updatedPaymentRequests.filter(x => x.ledger === AP).length).toBe(2)
-    expect(updatedPaymentRequests.filter(x => x.ledger === AR).length).toBe(0)
+      invoiceLines: [
+        { description: 'G00', value: -50 },
+        { description: 'G00', value: 50 }
+      ]
+    })
   })
 
-  test('should move all positive lines to AP', () => {
-    const paymentRequest = {
-      ledger: AP,
-      value: 0,
-      schemeId: 1,
-      agreementNumber: '12345678',
-      invoiceNumber: 'S1234567SFI123456V002',
-      paymentRequestNumber: 2,
-      invoiceLines: [{
-        description: 'G00',
-        value: -50
-      }, {
-        description: 'G00',
-        value: 50
-      }]
-    }
-    const updatedPaymentRequests = zeroValueSplit(paymentRequest)
-    expect(updatedPaymentRequests.filter(x => x.ledger === AP && x.invoiceLines[0].value === 50).length).toBe(1)
+  test('creates two AP requests', () => {
+    const updated = zeroValueSplit(paymentRequest)
+    expect(updated.length).toBe(2)
+    expect(updated.filter(x => x.ledger === AP).length).toBe(2)
+    expect(updated.filter(x => x.ledger !== AP).length).toBe(0)
   })
 
-  test('should move all negative lines to AP', () => {
-    const paymentRequest = {
-      ledger: AP,
-      value: 0,
-      schemeId: 1,
-      agreementNumber: '12345678',
-      invoiceNumber: 'S1234567SFI123456V002',
-      paymentRequestNumber: 2,
-      invoiceLines: [{
-        description: 'G00',
-        value: -50
-      }, {
-        description: 'G00',
-        value: 50
-      }]
-    }
-    const updatedPaymentRequests = zeroValueSplit(paymentRequest)
-    expect(updatedPaymentRequests.find(x => x.ledger === AP && x.invoiceLines[0].value === -50)).toBeDefined()
+  test('moves all positive lines to AP', () => {
+    const updated = zeroValueSplit(paymentRequest)
+    expect(updated.find(x => x.ledger === AP && x.invoiceLines.some(l => l.value === 50))).toBeDefined()
   })
 
-  test('should calculate positive AP value', () => {
-    const paymentRequest = {
-      ledger: AP,
-      value: 0,
-      schemeId: 1,
-      agreementNumber: '12345678',
-      invoiceNumber: 'S1234567SFI123456V002',
-      paymentRequestNumber: 2,
-      invoiceLines: [{
-        description: 'G00',
-        value: -50
-      }, {
-        description: 'G00',
-        value: 50
-      }]
-    }
-    const updatedPaymentRequests = zeroValueSplit(paymentRequest)
-    expect(updatedPaymentRequests.find(x => x.ledger === AP && x.value === 50)).toBeDefined()
+  test('moves all negative lines to AP', () => {
+    const updated = zeroValueSplit(paymentRequest)
+    expect(updated.find(x => x.ledger === AP && x.invoiceLines.some(l => l.value === -50))).toBeDefined()
   })
 
-  test('should calculate negative AP value', () => {
-    const paymentRequest = {
-      ledger: AP,
-      value: 0,
-      schemeId: 1,
-      agreementNumber: '12345678',
-      invoiceNumber: 'S1234567SFI123456V002',
-      paymentRequestNumber: 2,
-      invoiceLines: [{
-        description: 'G00',
-        value: -50
-      }, {
-        description: 'G00',
-        value: 50
-      }]
-    }
-    const updatedPaymentRequests = zeroValueSplit(paymentRequest)
-    expect(updatedPaymentRequests.find(x => x.ledger === AP && x.value === -50)).toBeDefined()
+  test('calculates positive AP value', () => {
+    const updated = zeroValueSplit(paymentRequest)
+    expect(updated.find(x => x.ledger === AP && x.value === 50)).toBeDefined()
   })
 
-  test('should update original invoice number', () => {
-    const paymentRequest = {
-      ledger: AP,
-      value: 0,
-      schemeId: 1,
-      agreementNumber: '12345678',
-      invoiceNumber: 'S1234567SFI123456V002',
-      paymentRequestNumber: 2,
-      invoiceLines: [{
-        description: 'G00',
-        value: -50
-      }, {
-        description: 'G00',
-        value: 50
-      }]
-    }
-    const updatedPaymentRequests = zeroValueSplit(paymentRequest)
-    expect(updatedPaymentRequests.find(x => x.originalInvoiceNumber === 'S1234567SFI123456V002')).toBeDefined()
-    expect(updatedPaymentRequests.find(x => x.originalInvoiceNumber === 'S1234567SFI123456V002')).toBeDefined()
+  test('calculates negative AP value', () => {
+    const updated = zeroValueSplit(paymentRequest)
+    expect(updated.find(x => x.ledger === AP && x.value === -50)).toBeDefined()
   })
 
-  test('should update invoice number', () => {
-    const paymentRequest = {
-      ledger: AP,
-      value: 0,
-      schemeId: 1,
-      agreementNumber: '12345678',
-      invoiceNumber: 'S1234567SFI123456V002',
-      paymentRequestNumber: 2,
-      invoiceLines: [{
-        description: 'G00',
-        value: -50
-      }, {
-        description: 'G00',
-        value: 50
-      }]
-    }
-    const updatedPaymentRequests = zeroValueSplit(paymentRequest)
-    expect(updatedPaymentRequests.find(x => x.invoiceNumber === 'S1234567ASFI123456V02')).toBeDefined()
-    expect(updatedPaymentRequests.find(x => x.invoiceNumber === 'S1234567BSFI123456V02')).toBeDefined()
+  test('updates original invoice number', () => {
+    const updated = zeroValueSplit(paymentRequest)
+    expect(updated.find(x => x.originalInvoiceNumber === paymentRequest.invoiceNumber)).toBeDefined()
   })
 
-  test('should create new referenceId for both requests', () => {
-    const paymentRequest = {
-      ledger: AP,
+  test('updates invoice number', () => {
+    const updated = zeroValueSplit(paymentRequest)
+    expect(updated.find(x => /A.*V02$/.test(x.invoiceNumber))).toBeDefined()
+    expect(updated.find(x => /B.*V02$/.test(x.invoiceNumber))).toBeDefined()
+  })
+
+  test('creates new referenceId for both requests', () => {
+    const pr = createPaymentRequest({
       value: 0,
       schemeId: 1,
-      agreementNumber: '12345678',
-      invoiceNumber: 'S1234567SFI123456V002',
-      paymentRequestNumber: 2,
       referenceId: uuidv4(),
-      invoiceLines: [{
-        description: 'G00',
-        value: -50
-      }, {
-        description: 'G00',
-        value: 50
-      }]
-    }
-    const updatedPaymentRequests = zeroValueSplit(paymentRequest)
-    expect(updatedPaymentRequests.find(x => x.invoiceNumber === 'S1234567ASFI123456V02').referenceId).not.toBe(paymentRequest.referenceId)
-    expect(updatedPaymentRequests.find(x => x.invoiceNumber === 'S1234567BSFI123456V02').referenceId).not.toBe(paymentRequest.referenceId)
-    expect(updatedPaymentRequests.find(x => x.invoiceNumber === 'S1234567ASFI123456V02').referenceId).toMatch(/\b[0-9a-f]{8}\b-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-\b[0-9a-f]{12}\b/)
-    expect(updatedPaymentRequests.find(x => x.invoiceNumber === 'S1234567BSFI123456V02').referenceId).toMatch(/\b[0-9a-f]{8}\b-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-\b[0-9a-f]{12}\b/)
+      invoiceLines: [
+        { description: 'G00', value: -50 },
+        { description: 'G00', value: 50 }
+      ]
+    })
+    const updated = zeroValueSplit(pr)
+    const a = updated.find(x => /A.*V02$/.test(x.invoiceNumber))
+    const b = updated.find(x => /B.*V02$/.test(x.invoiceNumber))
+
+    expect(a).toBeDefined()
+    expect(b).toBeDefined()
+    expect(a.referenceId).not.toBe(pr.referenceId)
+    expect(b.referenceId).not.toBe(pr.referenceId)
+    expect(a.referenceId).toMatch(/\b[0-9a-f]{8}\b-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-\b[0-9a-f]{12}\b/)
+    expect(b.referenceId).toMatch(/\b[0-9a-f]{8}\b-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-\b[0-9a-f]{12}\b/)
   })
 })

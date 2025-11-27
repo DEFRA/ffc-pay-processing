@@ -21,16 +21,13 @@ describe('prepare for reprocessing', () => {
     paymentRequest.paymentRequestId = id
   })
 
-  test('should update payment request with new debt type when administrative debt', async () => {
-    await prepareForReprocessing(paymentRequest, ADMINISTRATIVE, RECOVERY_DATE)
+  test.each([
+    [ADMINISTRATIVE],
+    [IRREGULAR]
+  ])('updates payment request with new debt type: %s', async (debtType) => {
+    await prepareForReprocessing(paymentRequest, debtType, RECOVERY_DATE)
     const updatedPaymentRequest = await db.paymentRequest.findOne({ where: { paymentRequestId: paymentRequest.paymentRequestId } })
-    expect(updatedPaymentRequest.debtType).toEqual(ADMINISTRATIVE)
-  })
-
-  test('should update payment request with new debt type when irregular debt', async () => {
-    await prepareForReprocessing(paymentRequest, IRREGULAR, RECOVERY_DATE)
-    const updatedPaymentRequest = await db.paymentRequest.findOne({ where: { paymentRequestId: paymentRequest.paymentRequestId } })
-    expect(updatedPaymentRequest.debtType).toEqual(IRREGULAR)
+    expect(updatedPaymentRequest.debtType).toEqual(debtType)
   })
 
   test('should update payment request with new recovery date', async () => {
