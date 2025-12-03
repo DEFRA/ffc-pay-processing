@@ -4,8 +4,7 @@ const routes = [].concat(
   require('../routes/schemes'),
   require('../routes/holds'),
   require('../routes/payment-requests'),
-  require('../routes/closures'),
-  require('../routes/tracking-migration')
+  require('../routes/closures')
 )
 
 module.exports = {
