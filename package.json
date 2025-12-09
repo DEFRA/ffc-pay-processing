@@ -9,7 +9,6 @@
     "test:lint": "eslint",
     "test:lint:fix": "eslint --fix",
     "test": "jest --runInBand --forceExit",
-    "test:acceptance": "cucumber-js --config ./test/acceptance/cucumber.js",
     "test:watch": "jest --coverage=false --onlyChanged --watch --runInBand",
     "test:debug": "node --inspect-brk=0.0.0.0 ./node_modules/jest/bin/jest.js",
     "start:watch": "nodemon --inspect=0.0.0.0 --ext js --legacy-watch app/index.js",
@@ -47,7 +46,6 @@
     "uuid": "8.3.2"
   },
   "devDependencies": {
-    "@cucumber/cucumber": "9.3.0",
     "blipp": "4.0.2",
     "eslint": "9.39.1",
     "hamjest": "3.7.3",
