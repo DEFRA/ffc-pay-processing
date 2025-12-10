@@ -16,16 +16,24 @@ jest.mock('ffc-messaging', () => ({
   }))
 }))
 
+const mockPublishEvent = jest.fn().mockResolvedValue()
+
+jest.mock('ffc-pay-event-publisher', () => ({
+  EventPublisher: jest.fn(() => ({
+    publishEvent: mockPublishEvent
+  }))
+}))
+
 const inProgressSchedule = require('../../../mocks/schedules/in-progress')
 const { AR } = require('../../../../app/constants/ledgers')
 const { RECOVERY } = require('../../../../app/constants/adjustment-types')
 const { IRREGULAR } = require('../../../../app/constants/debt-types')
-const { PAYMENT_PAUSED_PREFIX } = require('../../../../app/constants/events')
 const { closureDBEntry } = require('../../../mocks/closure/closure-db-entry')
 const { processingConfig } = require('../../../../app/config')
 const db = require('../../../../app/data')
 const { processPaymentRequests } = require('../../../../app/processing/process-payment-requests')
 const { FUTURE_DATE } = require('../../../mocks/values/future-date')
+const { ROUTED_DEBT } = require('../../../../app/constants/messages')
 
 let paymentRequest
 
@@ -80,7 +88,7 @@ describe('process payment requests', () => {
       await saveSchedule(inProgressSchedule, recoveryRequest)
       await processPaymentRequests()
       expect(mockSendMessage).toHaveBeenCalledWith(expect.objectContaining({
-        type: expect.stringContaining(`${PAYMENT_PAUSED_PREFIX}.debt`)
+        type: expect.stringContaining(`${ROUTED_DEBT}`)
       }))
     })
 
