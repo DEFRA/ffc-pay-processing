@@ -1,22 +1,22 @@
 jest.mock('ffc-messaging')
-jest.mock('../outbound', () => ({
+jest.mock('../../../app/outbound', () => ({
   start: jest.fn()
 }))
-jest.mock('./diagnostics', () => ({
+jest.mock('../../../app/messaging/diagnostics', () => ({
   createDiagnosticsHandler: jest.fn(name => jest.fn())
 }))
-jest.mock('./process-payment-message')
-jest.mock('./process-acknowledgement-message')
-jest.mock('./process-return-message')
-jest.mock('./process-quality-check-message')
-jest.mock('./process-manual-ledger-check-message')
-jest.mock('./process-xb-response-message')
+jest.mock('../../../app/messaging/process-payment-message')
+jest.mock('../../../app/messaging/process-acknowledgement-message')
+jest.mock('../../../app/messaging/process-return-message')
+jest.mock('../../../app/messaging/process-quality-check-message')
+jest.mock('../../../app/messaging/process-manual-ledger-check-message')
+jest.mock('../../../app/messaging/process-xb-response-message')
 
 const { MessageReceiver } = require('ffc-messaging')
 const messaging = require('../../../app/messaging')
-const { createDiagnosticsHandler } = require('./diagnostics')
-const { start: startOutbox } = require('../outbound')
-const { messageConfig } = require('../config')
+const { createDiagnosticsHandler } = require('../../../app/messaging/diagnostics')
+const { start: startOutbox } = require('../../../app/outbound')
+const { messageConfig } = require('../../../app/config')
 
 describe('Messaging module', () => {
   let subscribeMock, closeConnectionMock
