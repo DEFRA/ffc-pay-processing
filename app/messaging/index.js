@@ -56,11 +56,11 @@ const stop = async () => {
   for (const receiver of paymentReceivers) {
     await receiver.closeConnection()
   }
-  if (acknowledgementReceiver) await acknowledgementReceiver.closeConnection()
-  if (returnReceiver) await returnReceiver.closeConnection()
-  if (qualityCheckReceiver) await qualityCheckReceiver.closeConnection()
-  if (manualLedgerCheckReceiver) await manualLedgerCheckReceiver.closeConnection()
-  if (xbResponseReceiver) await xbResponseReceiver.closeConnection()
+  if (acknowledgementReceiver) { await acknowledgementReceiver.closeConnection() }
+  if (returnReceiver) { await returnReceiver.closeConnection() }
+  if (qualityCheckReceiver) { await qualityCheckReceiver.closeConnection() }
+  if (manualLedgerCheckReceiver) { await manualLedgerCheckReceiver.closeConnection() }
+  if (xbResponseReceiver) { await xbResponseReceiver.closeConnection() }
 }
 
 module.exports = { start, stop }

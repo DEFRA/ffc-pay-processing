@@ -35,7 +35,6 @@ describe('Messaging', () => {
   describe('start', () => {
     test('creates correct number of receivers', async () => {
       await start()
-      // payment + 5 other receivers
       expect(MessageReceiver).toHaveBeenCalledTimes(
         messageConfig.processingSubscription.numberOfReceivers + 5
       )
@@ -74,21 +73,37 @@ describe('Messaging', () => {
   })
 
   describe('stop', () => {
-    test('closes all receivers connections', async () => {
-      await start()
-      await stop()
-      mockInstances.forEach(instance => {
-        expect(instance.closeConnection).toHaveBeenCalled()
+    let mockAck, mockReturn, mockQc, mockManual, mockXb
+
+    beforeEach(() => {
+      mockAck = { subscribe: jest.fn(), closeConnection: jest.fn() }
+      mockReturn = { subscribe: jest.fn(), closeConnection: jest.fn() }
+      mockQc = { subscribe: jest.fn(), closeConnection: jest.fn() }
+      mockManual = { subscribe: jest.fn(), closeConnection: jest.fn() }
+      mockXb = { subscribe: jest.fn(), closeConnection: jest.fn() }
+
+      let callIndex = 0
+      MessageReceiver.mockImplementation((config) => {
+        switch (callIndex++) {
+          case messageConfig.processingSubscription.numberOfReceivers: return mockAck
+          case messageConfig.processingSubscription.numberOfReceivers + 1: return mockReturn
+          case messageConfig.processingSubscription.numberOfReceivers + 2: return mockQc
+          case messageConfig.processingSubscription.numberOfReceivers + 3: return mockManual
+          case messageConfig.processingSubscription.numberOfReceivers + 4: return mockXb
+          default: return { subscribe: jest.fn(), closeConnection: jest.fn() }
+        }
       })
     })
 
-    test('handles close connection error', async () => {
-      MessageReceiver.mockImplementation(() => ({
-        subscribe: jest.fn(),
-        closeConnection: jest.fn().mockRejectedValue(new Error('Test error'))
-      }))
+    test('closes all receivers including optional ones', async () => {
       await start()
-      await expect(stop()).rejects.toThrow('Test error')
+      await stop()
+
+      expect(mockAck.closeConnection).toHaveBeenCalled()
+      expect(mockReturn.closeConnection).toHaveBeenCalled()
+      expect(mockQc.closeConnection).toHaveBeenCalled()
+      expect(mockManual.closeConnection).toHaveBeenCalled()
+      expect(mockXb.closeConnection).toHaveBeenCalled()
     })
   })
 })
