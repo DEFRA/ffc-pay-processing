@@ -11,35 +11,45 @@ jest.mock('../../../app/messaging/process-return-message')
 jest.mock('../../../app/messaging/process-quality-check-message')
 jest.mock('../../../app/messaging/process-manual-ledger-check-message')
 jest.mock('../../../app/messaging/process-xb-response-message')
+jest.mock('../../../app/messaging/diagnostics', () => ({
+  createDiagnosticsHandler: jest.fn(fn => fn)
+}))
 
 describe('Messaging', () => {
+  let mockInstances
+
   beforeEach(() => {
     jest.clearAllMocks()
-    MessageReceiver.mockImplementation(() => ({
-      subscribe: jest.fn(),
-      closeConnection: jest.fn()
-    }))
+    mockInstances = []
+
+    MessageReceiver.mockImplementation(() => {
+      const mock = {
+        subscribe: jest.fn(),
+        closeConnection: jest.fn()
+      }
+      mockInstances.push(mock)
+      return mock
+    })
   })
 
   describe('start', () => {
-    let mockInstance
-
-    beforeEach(async () => {
+    test('creates correct number of receivers', async () => {
       await start()
-      mockInstance = MessageReceiver.mock.results[0].value
-    })
-
-    test('creates correct number of payment receivers', () => {
+      // payment + 5 other receivers
       expect(MessageReceiver).toHaveBeenCalledTimes(
         messageConfig.processingSubscription.numberOfReceivers + 5
       )
     })
 
-    test('subscribes all receivers', () => {
-      expect(mockInstance.subscribe).toHaveBeenCalled()
+    test('subscribes all receivers with diagnostics', async () => {
+      await start()
+      mockInstances.forEach(instance => {
+        expect(instance.subscribe).toHaveBeenCalled()
+      })
     })
 
-    test('starts outbox', () => {
+    test('starts outbox', async () => {
+      await start()
       expect(startOutbox).toHaveBeenCalled()
     })
 
@@ -49,12 +59,13 @@ describe('Messaging', () => {
       ['quality check', messageConfig.qcSubscription],
       ['manual ledger check', messageConfig.qcManualSubscription],
       ['xb response', messageConfig.xbResponseSubscription]
-    ])('creates %s receiver', (_, subscription) => {
+    ])('creates %s receiver with correct subscription', async (_, subscription) => {
+      await start()
       expect(MessageReceiver).toHaveBeenCalledWith(subscription, expect.any(Function))
     })
 
     test('handles subscription error', async () => {
-      MessageReceiver.mockImplementation(() => ({
+      MessageReceiver.mockImplementationOnce(() => ({
         subscribe: jest.fn().mockRejectedValue(new Error('Test error')),
         closeConnection: jest.fn()
       }))
@@ -63,11 +74,12 @@ describe('Messaging', () => {
   })
 
   describe('stop', () => {
-    test('closes all payment receiver connections', async () => {
+    test('closes all receivers connections', async () => {
       await start()
       await stop()
-      const mockInstance = MessageReceiver.mock.results[0].value
-      expect(mockInstance.closeConnection).toHaveBeenCalled()
+      mockInstances.forEach(instance => {
+        expect(instance.closeConnection).toHaveBeenCalled()
+      })
     })
 
     test('handles close connection error', async () => {
