@@ -73,9 +73,13 @@ describe('Messaging', () => {
   })
 
   describe('stop', () => {
-    let mockAck, mockReturn, mockQc, mockManual, mockXb
+    let mockPayment, mockAck, mockReturn, mockQc, mockManual, mockXb
+    let instances
 
     beforeEach(() => {
+      instances = []
+
+      mockPayment = { subscribe: jest.fn(), closeConnection: jest.fn() }
       mockAck = { subscribe: jest.fn(), closeConnection: jest.fn() }
       mockReturn = { subscribe: jest.fn(), closeConnection: jest.fn() }
       mockQc = { subscribe: jest.fn(), closeConnection: jest.fn() }
@@ -83,21 +87,31 @@ describe('Messaging', () => {
       mockXb = { subscribe: jest.fn(), closeConnection: jest.fn() }
 
       let callIndex = 0
-      MessageReceiver.mockImplementation((config) => {
-        switch (callIndex++) {
-          case messageConfig.processingSubscription.numberOfReceivers: return mockAck
-          case messageConfig.processingSubscription.numberOfReceivers + 1: return mockReturn
-          case messageConfig.processingSubscription.numberOfReceivers + 2: return mockQc
-          case messageConfig.processingSubscription.numberOfReceivers + 3: return mockManual
-          case messageConfig.processingSubscription.numberOfReceivers + 4: return mockXb
-          default: return { subscribe: jest.fn(), closeConnection: jest.fn() }
+      MessageReceiver.mockImplementation((config, action) => {
+        if (callIndex < messageConfig.processingSubscription.numberOfReceivers) {
+          callIndex++
+          const mock = { subscribe: mockPayment.subscribe, closeConnection: mockPayment.closeConnection }
+          instances.push(mock)
+          return mock
         }
+        let mock
+        switch (callIndex++) {
+          case messageConfig.processingSubscription.numberOfReceivers: mock = mockAck; break
+          case messageConfig.processingSubscription.numberOfReceivers + 1: mock = mockReturn; break
+          case messageConfig.processingSubscription.numberOfReceivers + 2: mock = mockQc; break
+          case messageConfig.processingSubscription.numberOfReceivers + 3: mock = mockManual; break
+          case messageConfig.processingSubscription.numberOfReceivers + 4: mock = mockXb; break
+        }
+        instances.push(mock)
+        return mock
       })
     })
 
     test('closes all receivers including optional ones', async () => {
       await start()
       await stop()
+
+      expect(mockPayment.closeConnection).toHaveBeenCalledTimes(messageConfig.processingSubscription.numberOfReceivers)
 
       expect(mockAck.closeConnection).toHaveBeenCalled()
       expect(mockReturn.closeConnection).toHaveBeenCalled()
