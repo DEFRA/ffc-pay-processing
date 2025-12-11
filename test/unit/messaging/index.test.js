@@ -112,12 +112,15 @@ describe('Messaging', () => {
       await stop()
 
       expect(mockPayment.closeConnection).toHaveBeenCalledTimes(messageConfig.processingSubscription.numberOfReceivers)
-
       expect(mockAck.closeConnection).toHaveBeenCalled()
       expect(mockReturn.closeConnection).toHaveBeenCalled()
       expect(mockQc.closeConnection).toHaveBeenCalled()
       expect(mockManual.closeConnection).toHaveBeenCalled()
       expect(mockXb.closeConnection).toHaveBeenCalled()
+    })
+
+    test('does not throw if receivers are undefined', async () => {
+      await expect(stop()).resolves.not.toThrow()
     })
   })
 })
