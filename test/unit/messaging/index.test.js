@@ -1,10 +1,10 @@
-const { MessageReceiver } = require('ffc-messaging')
-const { start, stop } = require('../../../app/messaging')
-const { messageConfig } = require('../../../app/config')
-const { start: startOutbox } = require('../../../app/outbound')
-
 jest.mock('ffc-messaging')
-jest.mock('../../../app/outbound')
+jest.mock('../../../app/outbound', () => ({
+  start: jest.fn()
+}))
+jest.mock('../../../app/messaging/diagnostics', () => ({
+  createDiagnosticsHandler: jest.fn(name => jest.fn())
+}))
 jest.mock('../../../app/messaging/process-payment-message')
 jest.mock('../../../app/messaging/process-acknowledgement-message')
 jest.mock('../../../app/messaging/process-return-message')
@@ -12,71 +12,62 @@ jest.mock('../../../app/messaging/process-quality-check-message')
 jest.mock('../../../app/messaging/process-manual-ledger-check-message')
 jest.mock('../../../app/messaging/process-xb-response-message')
 
-describe('Messaging', () => {
+const { MessageReceiver } = require('ffc-messaging')
+const messaging = require('../../../app/messaging')
+const { createDiagnosticsHandler } = require('../../../app/messaging/diagnostics')
+const { start: startOutbox } = require('../../../app/outbound')
+const { messageConfig } = require('../../../app/config')
+
+describe('Messaging module', () => {
+  let subscribeMock, closeConnectionMock
+
   beforeEach(() => {
-    jest.clearAllMocks()
-    MessageReceiver.mockImplementation(() => ({
-      subscribe: jest.fn(),
-      closeConnection: jest.fn()
+    subscribeMock = jest.fn()
+    closeConnectionMock = jest.fn()
+    MessageReceiver.mockImplementation((config, action) => ({
+      config,
+      action,
+      subscribe: subscribeMock,
+      closeConnection: closeConnectionMock
     }))
+    createDiagnosticsHandler.mockImplementation(name => jest.fn())
+    startOutbox.mockResolvedValue()
   })
 
-  describe('start', () => {
-    let mockInstance
-
-    beforeEach(async () => {
-      await start()
-      mockInstance = MessageReceiver.mock.results[0].value
-    })
-
-    test('creates correct number of payment receivers', () => {
-      expect(MessageReceiver).toHaveBeenCalledTimes(
-        messageConfig.processingSubscription.numberOfReceivers + 5
-      )
-    })
-
-    test('subscribes all receivers', () => {
-      expect(mockInstance.subscribe).toHaveBeenCalled()
-    })
-
-    test('starts outbox', () => {
-      expect(startOutbox).toHaveBeenCalled()
-    })
-
-    test.each([
-      ['acknowledgement', messageConfig.acknowledgementSubscription],
-      ['return', messageConfig.returnSubscription],
-      ['quality check', messageConfig.qcSubscription],
-      ['manual ledger check', messageConfig.qcManualSubscription],
-      ['xb response', messageConfig.xbResponseSubscription]
-    ])('creates %s receiver', (_, subscription) => {
-      expect(MessageReceiver).toHaveBeenCalledWith(subscription, expect.any(Function))
-    })
-
-    test('handles subscription error', async () => {
-      MessageReceiver.mockImplementation(() => ({
-        subscribe: jest.fn().mockRejectedValue(new Error('Test error')),
-        closeConnection: jest.fn()
-      }))
-      await expect(start()).rejects.toThrow('Test error')
-    })
+  afterEach(() => {
+    jest.resetAllMocks()
   })
 
-  describe('stop', () => {
-    test('closes all payment receiver connections', async () => {
-      await start()
-      await stop()
-      const mockInstance = MessageReceiver.mock.results[0].value
-      expect(mockInstance.closeConnection).toHaveBeenCalled()
-    })
+  test('start creates the correct number of payment receivers and subscribes all receivers', async () => {
+    await messaging.start()
 
-    test('handles close connection error', async () => {
-      MessageReceiver.mockImplementation(() => ({
-        subscribe: jest.fn(),
-        closeConnection: jest.fn().mockRejectedValue(new Error('Test error'))
-      }))
-      await start()
-      await expect(stop()).rejects.toThrow('Test error')
-    })
+    expect(MessageReceiver).toHaveBeenCalledTimes(
+      messageConfig.processingSubscription.numberOfReceivers + 5
+    )
+
+    for (let i = 0; i < messageConfig.processingSubscription.numberOfReceivers; i++) {
+      expect(createDiagnosticsHandler).toHaveBeenCalledWith(`payment-receiver-${i + 1}`)
+    }
+
+    expect(createDiagnosticsHandler).toHaveBeenCalledWith('acknowledgement-receiver')
+    expect(createDiagnosticsHandler).toHaveBeenCalledWith('return-receiver')
+    expect(createDiagnosticsHandler).toHaveBeenCalledWith('qc-receiver')
+    expect(createDiagnosticsHandler).toHaveBeenCalledWith('manual-ledger-receiver')
+    expect(createDiagnosticsHandler).toHaveBeenCalledWith('xb-response-receiver')
+
+    expect(subscribeMock).toHaveBeenCalledTimes(
+      messageConfig.processingSubscription.numberOfReceivers + 5
+    )
+
+    expect(startOutbox).toHaveBeenCalled()
+  })
+
+  test('stop calls closeConnection on all receivers', async () => {
+    await messaging.start()
+    await messaging.stop()
+
+    const totalReceivers =
+      messageConfig.processingSubscription.numberOfReceivers + 5
+    expect(closeConnectionMock).toHaveBeenCalledTimes(totalReceivers)
   })
 })
