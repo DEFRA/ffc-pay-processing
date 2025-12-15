@@ -78,23 +78,6 @@ paths:
             type: array
             items:
               $ref: '#/definitions/PaymentScheme'
-  /change-payment-status:
-    post:
-      summary: Change payment status
-      parameters:
-      - name: paymentStatus
-        in: body
-        description: Activate or deactivate a payment scheme
-        required: true
-        schema:
-          $ref: '#/definitions/ChangePaymentStatus'
-      responses:
-        '200':
-          description: OK
-        '400':
-          description: Bad request
-        '500':
-          description: Internal server error
   /payment-request/reset:
     post:
       summary: Reset payment request
@@ -160,13 +143,6 @@ definitions:
         $ref: '#/definitions/SchemeId'
       name:
         $ref: '#/definitions/SchemeName'
-      active:
-        $ref: '#/definitions/Active'
-  ChangePaymentStatus:
-    type: object
-    properties:
-      schemeId:
-        $ref: '#/definitions/SchemeId'
       active:
         $ref: '#/definitions/Active'
   PaymentRequestReset:
