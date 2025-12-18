@@ -1,6 +1,6 @@
-const { SOS710, SOS920, SOS921, SOS922, SOS923, SOS924, SOS925, SOS926, SOS927, SOS928, SOS228, SOS229, SOS231, SOS232, SOS233, SOS234, SOS236, SOS237, SOS238, SOS239 } = require('../../../constants/account-codes/ap')
-const { SOS750, SOS940, SOS941, SOS942, SOS943, SOS944, SOS945, SOS946, SOS948, SOS352, SOS553, SOS554, SOS555, SOS556, SOS558, SOS559, SOS560, SOS557 } = require('../../../constants/account-codes/ar-admin')
-const { SOS770, SOS960, SOS961, SOS962, SOS963, SOS964, SOS965, SOS966, SOS967, SOS968 } = require('../../../constants/account-codes/ar-irregular')
+const { SOS710, SOS920, SOS921, SOS922, SOS923, SOS924, SOS925, SOS926, SOS927, SOS928, SOS228, SOS229, SOS231, SOS232, SOS233, SOS234, SOS236, SOS237, SOS238, SOS239, SOS929 } = require('../../../constants/account-codes/ap')
+const { SOS750, SOS940, SOS941, SOS942, SOS943, SOS944, SOS945, SOS946, SOS948, SOS352, SOS553, SOS554, SOS555, SOS556, SOS558, SOS559, SOS560, SOS557, SOS947, SOS949 } = require('../../../constants/account-codes/ar-admin')
+const { SOS770, SOS960, SOS961, SOS962, SOS963, SOS964, SOS965, SOS966, SOS967, SOS968, SOS969 } = require('../../../constants/account-codes/ar-irregular')
 const { G00, P02, P05, P06, P08, P14, P22, P23, P24 } = require('../../../constants/line-codes')
 
 module.exports = [{
@@ -29,10 +29,18 @@ module.exports = [{
   stateAid: true
 }, {
   lineCode: P02,
+  ap: SOS929,
+  arAdmin: SOS949,
+  arIrregular: SOS969,
+  capital: true,
+  revenue: false,
+  stateAid: false
+}, {
+  lineCode: P02,
   ap: SOS928,
   arAdmin: SOS948,
   arIrregular: SOS968,
-  capital: true,
+  capital: false,
   revenue: true,
   stateAid: false
 }, {
@@ -143,14 +151,14 @@ module.exports = [{
   lineCode: P24,
   ap: SOS920,
   arAdmin: SOS940,
-  arIrregular: SOS967,
+  arIrregular: SOS960,
   capital: true,
   revenue: false,
   stateAid: false
 }, {
   lineCode: P24,
   ap: SOS927,
-  arAdmin: SOS960,
+  arAdmin: SOS947,
   arIrregular: SOS967,
   capital: false,
   revenue: true,
