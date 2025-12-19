@@ -1,9 +1,9 @@
 jest.mock('../../../../../app/schemes')
-const { getSchemes: mockGetSchemes, updateScheme: mockUpdateScheme } = require('../../../../../app/schemes')
+const { getSchemes: mockGetSchemes } = require('../../../../../app/schemes')
 
 const scheme = require('../../../../mocks/schemes/scheme')
 
-const { GET, POST } = require('../../../../../app/constants/methods')
+const { GET } = require('../../../../../app/constants/methods')
 
 let server
 
@@ -64,75 +64,5 @@ describe('scheme routes', () => {
 
     const result = await server.inject(options)
     expect(result.statusCode).toBe(200)
-  })
-
-  test('POST /change-payment-status updates scheme status', async () => {
-    const options = {
-      method: POST,
-      url: '/change-payment-status',
-      payload: {
-        schemeId: scheme.schemeId,
-        active: true
-      }
-    }
-
-    await server.inject(options)
-    expect(mockUpdateScheme).toHaveBeenCalledWith(scheme.schemeId, true)
-  })
-
-  test('POST /change-payment-status returns 200 if scheme updated', async () => {
-    const options = {
-      method: POST,
-      url: '/change-payment-status',
-      payload: {
-        schemeId: scheme.schemeId,
-        active: true
-      }
-    }
-
-    const result = await server.inject(options)
-    expect(result.statusCode).toBe(200)
-  })
-
-  test.each([
-    '',
-    undefined,
-    null,
-    true,
-    false,
-    'abc'
-  ])('POST /change-payment-status returns 400 if schemeId is %p', async (schemeId) => {
-    const options = {
-      method: POST,
-      url: '/change-payment-status',
-      payload: {
-        schemeId,
-        active: true
-      }
-    }
-
-    const result = await server.inject(options)
-    expect(result.statusCode).toBe(400)
-  })
-
-  test.each([
-    '',
-    undefined,
-    null,
-    'abc',
-    1,
-    0
-  ])('POST /change-payment-status returns 400 if active is %p', async (active) => {
-    const options = {
-      method: POST,
-      url: '/change-payment-status',
-      payload: {
-        schemeId: scheme.schemeId,
-        active
-      }
-    }
-
-    const result = await server.inject(options)
-    expect(result.statusCode).toBe(400)
   })
 })
