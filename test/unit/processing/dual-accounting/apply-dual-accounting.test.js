@@ -5,7 +5,6 @@ jest.mock('../../../../app/processing/dual-accounting/cs')
 const { applyCSDualAccounting: mockApplyCSDualAccounting } = require('../../../../app/processing/dual-accounting/cs')
 
 const bpsPaymentRequest = require('../../../mocks/payment-requests/bps')
-const fdmrPaymentRequest = require('../../../mocks/payment-requests/fdmr')
 const csPaymentRequest = require('../../../mocks/payment-requests/cs')
 const sfiPaymentRequest = require('../../../mocks/payment-requests/sfi')
 
@@ -18,7 +17,6 @@ describe('applyDualAccounting', () => {
 
   const testCases = [
     { name: 'BPS', request: bpsPaymentRequest, mockFn: mockApplyBPSDualAccounting },
-    { name: 'FDMR', request: fdmrPaymentRequest, mockFn: mockApplyBPSDualAccounting },
     { name: 'CS', request: csPaymentRequest, mockFn: mockApplyCSDualAccounting }
   ]
 

@@ -5,7 +5,6 @@ const {
   VET_VISITS,
   CS,
   BPS,
-  FDMR,
   SFI23,
   DELINKED,
   SFI_EXPANDED,
@@ -18,7 +17,6 @@ const lumpSums = require('./lump-sums')
 const vetVisits = require('./vet-visits')
 const cs = require('./cs')
 const bps = require('./bps')
-const fdmr = require('./fdmr')
 const delinked = require('./delinked')
 const cohtr = require('./cohtr')
 const cohtc = require('./cohtc')
@@ -32,7 +30,6 @@ const schemeMap = new Map([
   [VET_VISITS, vetVisits],
   [CS, cs],
   [BPS, bps],
-  [FDMR, fdmr],
   [DELINKED, delinked],
   [COHT_REVENUE, cohtr],
   [COHT_CAPITAL, cohtc]
