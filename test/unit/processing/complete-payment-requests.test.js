@@ -162,18 +162,15 @@ describe('completePaymentRequests', () => {
 
     await completePaymentRequests(1, [paymentRequest])
 
-    // Capture the payload used to persist the completed payment request
     expect(db.completedPaymentRequest.create).toHaveBeenCalledTimes(1)
     const createdPayload = db.completedPaymentRequest.create.mock.calls[0][0]
 
-    // Ensure core fields still present
     expect(createdPayload).toEqual(expect.objectContaining({
       invoiceNumber: 'SITI9999',
       paymentRequestNumber: 2,
       value: 123.45
     }))
 
-    // Ensure the new fields are mapped through
     expect(createdPayload).toEqual(expect.objectContaining({
       claimDate: '2025-01-31',
       fesCode: 'FES-ABC',
@@ -181,7 +178,6 @@ describe('completePaymentRequests', () => {
       remmittanceDescription: 'Quarterly reconciliation'
     }))
 
-    // Transaction should still commit and an outbox entry should be created for non-zero payments
     expect(db.outbox.create).toHaveBeenCalledTimes(1)
     expect(mockTransaction.commit).toHaveBeenCalled()
   })
@@ -191,7 +187,6 @@ describe('completePaymentRequests', () => {
       invoiceNumber: 'SITI0001',
       paymentRequestNumber: 3,
       value: 50,
-      // No claimDate, fesCode, annualValue, remmittanceDescription
       invoiceLines: [
         { value: 50, dataValues: { value: 50 } }
       ],
@@ -208,13 +203,11 @@ describe('completePaymentRequests', () => {
     expect(db.completedPaymentRequest.create).toHaveBeenCalledTimes(1)
     const createdPayload = db.completedPaymentRequest.create.mock.calls[0][0]
 
-    // Verify the new fields are either undefined or not present on payload
     expect(createdPayload.claimDate).toBeUndefined()
     expect(createdPayload.fesCode).toBeUndefined()
     expect(createdPayload.annualValue).toBeUndefined()
     expect(createdPayload.remmittanceDescription).toBeUndefined()
 
-    // Still creates outbox and commits for non-zero payment
     expect(db.outbox.create).toHaveBeenCalledTimes(1)
     expect(mockTransaction.commit).toHaveBeenCalled()
   })
