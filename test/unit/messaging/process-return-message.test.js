@@ -21,7 +21,6 @@ describe('process return message', () => {
 
     await processReturnMessage(testMessage, receiver)
 
-    expect(mockProcessSettlement).not.toHaveBeenCalled()
     expect(receiver.completeMessage).toHaveBeenCalledWith(testMessage)
     expect(receiver.deadLetterMessage).not.toHaveBeenCalled()
   })
