@@ -1,5 +1,5 @@
 const db = require('../data')
-const { BPS, CS, FDMR } = require('../constants/schemes')
+const { BPS, CS } = require('../constants/schemes')
 
 const getCompletedPaymentRequestsFilter = (paymentRequest) => {
   const defaultFilter = {
@@ -15,12 +15,6 @@ const getCompletedPaymentRequestsFilter = (paymentRequest) => {
         schemeId: paymentRequest.schemeId,
         frn: paymentRequest.frn,
         marketingYear: paymentRequest.marketingYear
-      }
-    case FDMR:
-      return {
-        ...defaultFilter,
-        schemeId: paymentRequest.schemeId,
-        frn: paymentRequest.frn
       }
     case CS:
       return {

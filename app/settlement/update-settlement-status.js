@@ -1,5 +1,5 @@
 const { GBP } = require('../constants/currency')
-const { BPS, FDMR } = require('../constants/schemes')
+const { BPS } = require('../constants/schemes')
 const db = require('../data')
 
 const updateSettlementStatus = async (settlement, filter) => {
@@ -13,7 +13,7 @@ const updateSettlementStatus = async (settlement, filter) => {
     return undefined
   }
 
-  if ([BPS, FDMR].includes(completedPaymentRequest.schemeId) && completedPaymentRequest.marketingYear <= 2020 && settlement.currency === GBP) {
+  if ([BPS].includes(completedPaymentRequest.schemeId) && completedPaymentRequest.marketingYear <= 2020 && settlement.currency === GBP) {
     settlement.value = completedPaymentRequest.value
   }
 

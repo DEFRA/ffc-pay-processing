@@ -1,5 +1,5 @@
 const { resetDatabase, closeDatabaseConnection, savePaymentRequest } = require('../../../helpers')
-const { CS, FDMR } = require('../../../../app/constants/schemes')
+const { CS } = require('../../../../app/constants/schemes')
 const { getCompletedPaymentRequests } = require('../../../../app/processing/get-completed-payment-requests')
 
 let paymentRequest
@@ -89,23 +89,6 @@ describe('get completed payment requests', () => {
     paymentRequest.paymentRequestNumber = 2
     const requests = await getCompletedPaymentRequests(paymentRequest)
     expect(requests.length).toBe(1)
-  })
-
-  test('should return requests if first invoice line matches scheme code', async () => {
-    paymentRequest.schemeId = FDMR
-    await savePaymentRequest(paymentRequest, true)
-    paymentRequest.paymentRequestNumber = 2
-    const requests = await getCompletedPaymentRequests(paymentRequest)
-    expect(requests.length).toBe(1)
-  })
-
-  test('should not return requests if first invoice line does not match scheme code', async () => {
-    paymentRequest.schemeId = FDMR
-    await savePaymentRequest(paymentRequest, true)
-    paymentRequest.invoiceLines[0].schemeCode = 'Different'
-    paymentRequest.paymentRequestNumber = 2
-    const requests = await getCompletedPaymentRequests(paymentRequest)
-    expect(requests.length).toBe(0)
   })
 
   test.each([

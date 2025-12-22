@@ -1,7 +1,7 @@
 jest.mock('../../../app/data')
 const db = require('../../../app/data')
 
-const { SFI, BPS, CS, FDMR } = require('../../../app/constants/schemes')
+const { SFI, BPS, CS } = require('../../../app/constants/schemes')
 const { getCompletedPaymentRequestsFilter } = require('../../../app/processing/get-completed-payment-requests-filter')
 
 let basePaymentRequest
@@ -32,8 +32,6 @@ describe('get completed payment requests filter', () => {
     { scheme: SFI, manual: true, expectedNumber: { [db.Sequelize.Op.not]: null } },
     { scheme: BPS, manual: false, expectedNumber: { [db.Sequelize.Op.lt]: 1 } },
     { scheme: BPS, manual: true, expectedNumber: { [db.Sequelize.Op.not]: null } },
-    { scheme: FDMR, manual: false, expectedNumber: { [db.Sequelize.Op.lt]: 1 } },
-    { scheme: FDMR, manual: true, expectedNumber: { [db.Sequelize.Op.not]: null } },
     { scheme: CS, manual: false, expectedNumber: { [db.Sequelize.Op.lt]: 1 } },
     { scheme: CS, manual: true, expectedNumber: { [db.Sequelize.Op.not]: null } }
   ])(
