@@ -130,4 +130,168 @@ describe('processPaymentRequest', () => {
     expect(mapAccountCodes).toHaveBeenCalledWith(paymentRequest)
     expect(completePaymentRequests).toHaveBeenCalledWith(scheduleId, [paymentRequest])
   })
+  
+  describe('new fields: fesCode, annualValue, remmittanceDescription, and generic STRING handling', () => {
+    test('should pass new string fields through transform and complete unchanged', async () => {
+      paymentRequest.schemeId = 'OTHER_SCHEME'
+      paymentRequest.genericStringField = 'GENERIC-STRING'
+      paymentRequest.fesCode = 'FES123'
+      paymentRequest.annualValue = '1234.56'
+      paymentRequest.remmittanceDescription = 'Quarterly remittance'
+
+      transformPaymentRequest.mockResolvedValue({
+        deltaPaymentRequest: paymentRequest,
+        completedPaymentRequests: [paymentRequest]
+      })
+
+      await processPaymentRequest(scheduledPaymentRequest)
+
+      expect(transformPaymentRequest).toHaveBeenCalledWith(
+        expect.objectContaining({
+          genericStringField: 'GENERIC-STRING',
+          fesCode: 'FES123',
+          annualValue: '1234.56',
+          remmittanceDescription: 'Quarterly remittance'
+        })
+      )
+
+      expect(mapAccountCodes).toHaveBeenCalledWith(
+        expect.objectContaining({
+          genericStringField: 'GENERIC-STRING',
+          fesCode: 'FES123',
+          annualValue: '1234.56',
+          remmittanceDescription: 'Quarterly remittance'
+        })
+      )
+
+      expect(completePaymentRequests).toHaveBeenCalledWith(
+        scheduleId,
+        [
+          expect.objectContaining({
+            genericStringField: 'GENERIC-STRING',
+            fesCode: 'FES123',
+            annualValue: '1234.56',
+            remmittanceDescription: 'Quarterly remittance'
+          })
+        ]
+      )
+    })
+
+    test('should handle missing optional fields gracefully (undefined values)', async () => {
+      paymentRequest.schemeId = 'OTHER_SCHEME'
+      paymentRequest.genericStringField = undefined
+      paymentRequest.fesCode = undefined
+      paymentRequest.annualValue = undefined
+      paymentRequest.remmittanceDescription = undefined
+
+      transformPaymentRequest.mockResolvedValue({
+        deltaPaymentRequest: paymentRequest,
+        completedPaymentRequests: [paymentRequest]
+      })
+
+      await processPaymentRequest(scheduledPaymentRequest)
+
+      expect(transformPaymentRequest).toHaveBeenCalledWith(
+        expect.objectContaining({
+          genericStringField: undefined,
+          fesCode: undefined,
+          annualValue: undefined,
+          remmittanceDescription: undefined
+        })
+      )
+
+      expect(mapAccountCodes).toHaveBeenCalledWith(
+        expect.objectContaining({
+          genericStringField: undefined,
+          fesCode: undefined,
+          annualValue: undefined,
+          remmittanceDescription: undefined
+        })
+      )
+
+      expect(completePaymentRequests).toHaveBeenCalledWith(
+        scheduleId,
+        [
+          expect.objectContaining({
+            genericStringField: undefined,
+            fesCode: undefined,
+            annualValue: undefined,
+            remmittanceDescription: undefined
+          })
+        ]
+      )
+    })
+
+    test('should retain DECIMAL precision for annualValue through processing', async () => {
+      paymentRequest.schemeId = 'OTHER_SCHEME'
+      paymentRequest.annualValue = '9876543210.123456789'
+      paymentRequest.fesCode = 'FES-PRECISION'
+      paymentRequest.remmittanceDescription = 'Precision test'
+
+      transformPaymentRequest.mockResolvedValue({
+        deltaPaymentRequest: paymentRequest,
+        completedPaymentRequests: [paymentRequest]
+      })
+
+      await processPaymentRequest(scheduledPaymentRequest)
+
+      expect(transformPaymentRequest).toHaveBeenCalledWith(
+        expect.objectContaining({
+          annualValue: '9876543210.123456789'
+        })
+      )
+
+      expect(mapAccountCodes).toHaveBeenCalledWith(
+        expect.objectContaining({
+          annualValue: '9876543210.123456789'
+        })
+      )
+
+      expect(completePaymentRequests).toHaveBeenCalledWith(
+        scheduleId,
+        [
+          expect.objectContaining({
+            annualValue: '9876543210.123456789'
+          })
+        ]
+      )
+    })
+
+    test('should route correctly when manual ledger check is required, still preserving new fields', async () => {
+      paymentRequest.schemeId = 'OTHER_SCHEME'
+      paymentRequest.fesCode = 'FES-LEDGER'
+      paymentRequest.annualValue = '100.00'
+      paymentRequest.remmittanceDescription = 'Manual ledger flow'
+      paymentRequest.genericStringField = 'SOME-STRING'
+
+      transformPaymentRequest.mockResolvedValue({
+        deltaPaymentRequest: paymentRequest,
+        completedPaymentRequests: [paymentRequest]
+      })
+      requiresManualLedgerCheck.mockResolvedValue(true)
+
+      await processPaymentRequest(scheduledPaymentRequest)
+
+      expect(routeManualLedgerToRequestEditor).toHaveBeenCalledWith(
+        expect.objectContaining({
+          deltaPaymentRequest: expect.objectContaining({
+            fesCode: 'FES-LEDGER',
+            annualValue: '100.00',
+            remmittanceDescription: 'Manual ledger flow',
+            genericStringField: 'SOME-STRING'
+          }),
+          completedPaymentRequests: [
+            expect.objectContaining({
+              fesCode: 'FES-LEDGER',
+              annualValue: '100.00',
+              remmittanceDescription: 'Manual ledger flow',
+              genericStringField: 'SOME-STRING'
+            })
+          ]
+        })
+      )
+
+      expect(completePaymentRequests).not.toHaveBeenCalled()
+    })
+  })
 })
