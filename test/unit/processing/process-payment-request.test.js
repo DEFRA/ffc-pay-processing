@@ -130,7 +130,7 @@ describe('processPaymentRequest', () => {
     expect(mapAccountCodes).toHaveBeenCalledWith(paymentRequest)
     expect(completePaymentRequests).toHaveBeenCalledWith(scheduleId, [paymentRequest])
   })
-  
+
   describe('new fields: fesCode, annualValue, remmittanceDescription, and generic STRING handling', () => {
     test('should pass new string fields through transform and complete unchanged', async () => {
       paymentRequest.schemeId = 'OTHER_SCHEME'

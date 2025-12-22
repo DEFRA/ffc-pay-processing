@@ -136,20 +136,8 @@ describe('completePaymentRequests', () => {
     expect(mockTransaction.commit).toHaveBeenCalled()
   })
 
-  
-test('should copy new fields to completedPaymentRequest when present', async () => {
-  const paymentRequest = {
-    invoiceNumber: 'SITI9999',
-    paymentRequestNumber: 2,
-    value: 123.45,
-    claimDate: '2025-01-31',
-    fesCode: 'FES-ABC',
-    annualValue: '9999.99',
-    remmittanceDescription: 'Quarterly reconciliation',
-    invoiceLines: [
-      { value: 123.45, dataValues: { value: 123.45 } }
-    ],
-    dataValues: {
+  test('should copy new fields to completedPaymentRequest when present', async () => {
+    const paymentRequest = {
       invoiceNumber: 'SITI9999',
       paymentRequestNumber: 2,
       value: 123.45,
@@ -157,82 +145,82 @@ test('should copy new fields to completedPaymentRequest when present', async () 
       fesCode: 'FES-ABC',
       annualValue: '9999.99',
       remmittanceDescription: 'Quarterly reconciliation',
-      invoiceLines: [{ value: 123.45 }]
+      invoiceLines: [
+        { value: 123.45, dataValues: { value: 123.45 } }
+      ],
+      dataValues: {
+        invoiceNumber: 'SITI9999',
+        paymentRequestNumber: 2,
+        value: 123.45,
+        claimDate: '2025-01-31',
+        fesCode: 'FES-ABC',
+        annualValue: '9999.99',
+        remmittanceDescription: 'Quarterly reconciliation',
+        invoiceLines: [{ value: 123.45 }]
+      }
     }
-  }
 
-  await completePaymentRequests(1, [paymentRequest])
+    await completePaymentRequests(1, [paymentRequest])
 
-  // Capture the payload used to persist the completed payment request
-  expect(db.completedPaymentRequest.create).toHaveBeenCalledTimes(1)
-  const createdPayload = db.completedPaymentRequest.create.mock.calls[0][0]
+    // Capture the payload used to persist the completed payment request
+    expect(db.completedPaymentRequest.create).toHaveBeenCalledTimes(1)
+    const createdPayload = db.completedPaymentRequest.create.mock.calls[0][0]
 
-  // Ensure core fields still present
-  expect(createdPayload).toEqual(expect.objectContaining({
-    invoiceNumber: 'SITI9999',
-    paymentRequestNumber: 2,
-    value: 123.45
-  }))
+    // Ensure core fields still present
+    expect(createdPayload).toEqual(expect.objectContaining({
+      invoiceNumber: 'SITI9999',
+      paymentRequestNumber: 2,
+      value: 123.45
+    }))
 
-  // Ensure the new fields are mapped through
-  expect(createdPayload).toEqual(expect.objectContaining({
-    claimDate: '2025-01-31',
-    fesCode: 'FES-ABC',
-    annualValue: '9999.99',
-    remmittanceDescription: 'Quarterly reconciliation'
-  }))
+    // Ensure the new fields are mapped through
+    expect(createdPayload).toEqual(expect.objectContaining({
+      claimDate: '2025-01-31',
+      fesCode: 'FES-ABC',
+      annualValue: '9999.99',
+      remmittanceDescription: 'Quarterly reconciliation'
+    }))
 
-  // Transaction should still commit and an outbox entry should be created for non-zero payments
-  expect(db.outbox.create).toHaveBeenCalledTimes(1)
-  expect(mockTransaction.commit).toHaveBeenCalled()
-})
+    // Transaction should still commit and an outbox entry should be created for non-zero payments
+    expect(db.outbox.create).toHaveBeenCalledTimes(1)
+    expect(mockTransaction.commit).toHaveBeenCalled()
+  })
 
-test('should not require new fields and still complete when they are absent', async () => {
-  const paymentRequest = {
-    invoiceNumber: 'SITI0001',
-    paymentRequestNumber: 3,
-    value: 50,
-    // No claimDate, fesCode, annualValue, remmittanceDescription
-    invoiceLines: [
-      { value: 50, dataValues: { value: 50 } }
-    ],
-    dataValues: {
+  test('should not require new fields and still complete when they are absent', async () => {
+    const paymentRequest = {
       invoiceNumber: 'SITI0001',
       paymentRequestNumber: 3,
       value: 50,
-      invoiceLines: [{ value: 50 }]
+      // No claimDate, fesCode, annualValue, remmittanceDescription
+      invoiceLines: [
+        { value: 50, dataValues: { value: 50 } }
+      ],
+      dataValues: {
+        invoiceNumber: 'SITI0001',
+        paymentRequestNumber: 3,
+        value: 50,
+        invoiceLines: [{ value: 50 }]
+      }
     }
-  }
 
-  await completePaymentRequests(1, [paymentRequest])
+    await completePaymentRequests(1, [paymentRequest])
 
-  expect(db.completedPaymentRequest.create).toHaveBeenCalledTimes(1)
-  const createdPayload = db.completedPaymentRequest.create.mock.calls[0][0]
+    expect(db.completedPaymentRequest.create).toHaveBeenCalledTimes(1)
+    const createdPayload = db.completedPaymentRequest.create.mock.calls[0][0]
 
-  // Verify the new fields are either undefined or not present on payload
-  expect(createdPayload.claimDate).toBeUndefined()
-  expect(createdPayload.fesCode).toBeUndefined()
-  expect(createdPayload.annualValue).toBeUndefined()
-  expect(createdPayload.remmittanceDescription).toBeUndefined()
+    // Verify the new fields are either undefined or not present on payload
+    expect(createdPayload.claimDate).toBeUndefined()
+    expect(createdPayload.fesCode).toBeUndefined()
+    expect(createdPayload.annualValue).toBeUndefined()
+    expect(createdPayload.remmittanceDescription).toBeUndefined()
 
-  // Still creates outbox and commits for non-zero payment
-  expect(db.outbox.create).toHaveBeenCalledTimes(1)
-  expect(mockTransaction.commit).toHaveBeenCalled()
-})
+    // Still creates outbox and commits for non-zero payment
+    expect(db.outbox.create).toHaveBeenCalledTimes(1)
+    expect(mockTransaction.commit).toHaveBeenCalled()
+  })
 
-test('should include new fields even when payment value is zero (but still send zero value event)', async () => {
-  const paymentRequest = {
-    invoiceNumber: 'SITI0000',
-    paymentRequestNumber: 4,
-    value: 0,
-    claimDate: '2025-02-15',
-    fesCode: 'FES-ZERO',
-    annualValue: '0.00',
-    remmittanceDescription: 'Zero-value adjustment',
-    invoiceLines: [
-      { value: 0, dataValues: { value: 0 } }
-    ],
-    dataValues: {
+  test('should include new fields even when payment value is zero (but still send zero value event)', async () => {
+    const paymentRequest = {
       invoiceNumber: 'SITI0000',
       paymentRequestNumber: 4,
       value: 0,
@@ -240,27 +228,37 @@ test('should include new fields even when payment value is zero (but still send 
       fesCode: 'FES-ZERO',
       annualValue: '0.00',
       remmittanceDescription: 'Zero-value adjustment',
-      invoiceLines: [{ value: 0 }]
+      invoiceLines: [
+        { value: 0, dataValues: { value: 0 } }
+      ],
+      dataValues: {
+        invoiceNumber: 'SITI0000',
+        paymentRequestNumber: 4,
+        value: 0,
+        claimDate: '2025-02-15',
+        fesCode: 'FES-ZERO',
+        annualValue: '0.00',
+        remmittanceDescription: 'Zero-value adjustment',
+        invoiceLines: [{ value: 0 }]
+      }
     }
-  }
 
-  await completePaymentRequests(1, [paymentRequest])
+    await completePaymentRequests(1, [paymentRequest])
 
-  expect(sendZeroValueEvent).toHaveBeenCalledTimes(1)
-  expect(db.outbox.create).not.toHaveBeenCalled()
-  expect(mockTransaction.commit).toHaveBeenCalled()
+    expect(sendZeroValueEvent).toHaveBeenCalledTimes(1)
+    expect(db.outbox.create).not.toHaveBeenCalled()
+    expect(mockTransaction.commit).toHaveBeenCalled()
 
-  expect(db.completedPaymentRequest.create).toHaveBeenCalledTimes(1)
-  const createdPayload = db.completedPaymentRequest.create.mock.calls[0][0]
-  expect(createdPayload).toEqual(expect.objectContaining({
-    invoiceNumber: 'SITI0000',
-    paymentRequestNumber: 4,
-    value: 0,
-    claimDate: '2025-02-15',
-    fesCode: 'FES-ZERO',
-    annualValue: '0.00',
-    remmittanceDescription: 'Zero-value adjustment'
-  }))
-})
-
+    expect(db.completedPaymentRequest.create).toHaveBeenCalledTimes(1)
+    const createdPayload = db.completedPaymentRequest.create.mock.calls[0][0]
+    expect(createdPayload).toEqual(expect.objectContaining({
+      invoiceNumber: 'SITI0000',
+      paymentRequestNumber: 4,
+      value: 0,
+      claimDate: '2025-02-15',
+      fesCode: 'FES-ZERO',
+      annualValue: '0.00',
+      remmittanceDescription: 'Zero-value adjustment'
+    }))
+  })
 })
