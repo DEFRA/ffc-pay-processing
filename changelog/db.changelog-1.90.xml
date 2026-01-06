@@ -1,78 +1,28 @@
-<?xml version="1.0" encoding="UTF-8"?>
-
-<databaseChangeLog
-    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="
-        http://www.liquibase.org/xml/ns/dbchangelog
-        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.9.xsd">
-
-    <changeSet id="1" author="Oliver Lewington">
-        <tagDatabase tag="v1.90.0"/>
-    </changeSet>
-
-    <changeSet id="2" author="Oliver Lewington">
-        <preConditions onFail="MARK_RAN">
-            <sqlCheck expectedResult="1">
-                SELECT COUNT(*) FROM schemes WHERE "schemeId" = 7
-            </sqlCheck>
-        </preConditions>
-
-        <delete tableName="autoHoldCategories">
-            <where>"schemeId" = 7</where>
-        </delete>
-
-        <delete tableName="holdCategories">
-            <where>"schemeId" = 7</where>
-        </delete>
-
-        <delete tableName="schemes">
-            <where>"schemeId" = 7</where>
-        </delete>
-
-        <rollback>
-            <insert tableName="schemes">
-                <column name="schemeId" valueNumeric="7"/>
-                <column name="name" value="FDMR"/>
-                <column name="active" valueBoolean="true"/>
-            </insert>
-
-            <insert tableName="holdCategories">
-                <column name="holdCategoryId" valueNumeric="110"/>
-                <column name="schemeId" valueNumeric="7"/>
-                <column name="name" value="Bank account anomaly"/>
-            </insert>
-
-            <insert tableName="holdCategories">
-                <column name="holdCategoryId" valueNumeric="111"/>
-                <column name="schemeId" valueNumeric="7"/>
-                <column name="name" value="DAX rejection"/>
-            </insert>
-
-            <insert tableName="holdCategories">
-                <column name="holdCategoryId" valueNumeric="112"/>
-                <column name="schemeId" valueNumeric="7"/>
-                <column name="name" value="Awaiting debt enrichment"/>
-            </insert>
-
-            <insert tableName="holdCategories">
-                <column name="holdCategoryId" valueNumeric="113"/>
-                <column name="schemeId" valueNumeric="7"/>
-                <column name="name" value="Recovery"/>
-            </insert>
-
-            <insert tableName="holdCategories">
-                <column name="holdCategoryId" valueNumeric="114"/>
-                <column name="schemeId" valueNumeric="7"/>
-                <column name="name" value="Top up"/>
-            </insert>
-
-            <insert tableName="holdCategories">
-                <column name="holdCategoryId" valueNumeric="115"/>
-                <column name="schemeId" valueNumeric="7"/>
-                <column name="name" value="Incorrect Currency Preference - FDM"/>
-            </insert>
-        </rollback>
-    </changeSet>
-
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext" xmlns:pro="http://www.liquibase.org/xml/ns/pro" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-3.9.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.9.xsd">
+  <changeSet author="John Barnard" id="1">
+    <tagDatabase tag="v1.90.0" />
+  </changeSet>
+  <changeSet author="John Barnard" id="2">
+    <addColumn tableName="completedPaymentRequests">
+      <column name="fesCode" type="VARCHAR(10)" remarks="Format to be agreed with the source system and D365. Needs the ability for the scheme to have a distinct name for each configuration in D365" />
+    </addColumn>
+    <addColumn tableName="completedPaymentRequests">
+      <column name="annualValue" type="DECIMAL(14, 2)" remarks="Forecast annual payment value with no currency symbol. Can be a negative value." />
+    </addColumn>
+    <addColumn tableName="completedPaymentRequests">
+      <column name="remmittanceDescription" type="VARCHAR(60)" remarks="Text description that is shown on the remittance. Needs to be agreed with the Future RPS Team for each scheme type." />
+    </addColumn>
+  </changeSet>
+  <changeSet author="John Barnard" id="3">
+    <addColumn tableName="paymentRequests">
+      <column name="fesCode" type="VARCHAR(10)" remarks="Format to be agreed with the source system and D365. Needs the ability for the scheme to have a distinct name for each configuration in D365" />
+    </addColumn>
+    <addColumn tableName="paymentRequests">
+      <column name="annualValue" type="DECIMAL(14, 2)" remarks="Forecast annual payment value with no currency symbol. Can be a negative value." />
+    </addColumn>
+    <addColumn tableName="paymentRequests">
+      <column name="remmittanceDescription" type="VARCHAR(60)" remarks="Text description that is shown on the remittance. Needs to be agreed with the Future RPS Team for each scheme type." />
+    </addColumn>
+  </changeSet>  
 </databaseChangeLog>
