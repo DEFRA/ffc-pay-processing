@@ -1,4 +1,4 @@
-const { FDMR, BPS } = require('../../../../app/constants/schemes')
+const { BPS } = require('../../../../app/constants/schemes')
 const { DOM00, DOM01, DOM10 } = require('../../../../app/constants/domestic-fund-codes')
 const { applyBPSDualAccounting } = require('../../../../app/processing/dual-accounting/bps')
 
@@ -17,8 +17,9 @@ const createInvoiceLine = (invoiceNumber = 1, value = 25000, fundCode = 'EGF00')
 
 beforeEach(() => {
   jest.clearAllMocks()
+
   paymentRequest = {
-    sourceSystem: 'FDMR',
+    sourceSystem: 'BPS',
     deliveryBody: 'RP00',
     invoiceNumber: 'F0000002C0000002V001',
     frn: 1000000002,
@@ -29,13 +30,13 @@ beforeEach(() => {
     dueDate: '01/12/2020',
     value: 25000,
     invoiceLines: [createInvoiceLine()],
-    schemeId: FDMR,
+    schemeId: BPS,
     agreementNumber: 'C0000002',
     ledger: 'AP'
   }
 
   previousPaymentRequests = [{
-    sourceSystem: 'FDMR',
+    sourceSystem: 'BPS',
     deliveryBody: 'RP00',
     invoiceNumber: 'F0000001C0000001V001',
     frn: 1000000001,
@@ -46,7 +47,7 @@ beforeEach(() => {
     dueDate: '01/12/2020',
     value: 25000,
     invoiceLines: [createInvoiceLine(1, 25000, DOM00)],
-    schemeId: FDMR,
+    schemeId: BPS,
     agreementNumber: 'C0000001',
     ledger: 'AP'
   }]
@@ -54,13 +55,9 @@ beforeEach(() => {
 
 describe('applyBPSDualAccounting', () => {
   const testCases = [
-    { scheme: FDMR, year: 2020, expected: DOM10, desc: 'FDMR >= 2020' },
     { scheme: BPS, year: 2020, expected: DOM10, desc: 'BPS >= 2020' },
-    { scheme: FDMR, year: 2019, prevFundCode: DOM00, expected: DOM00, firstPayment: true, desc: 'FDMR < 2020 first payment' },
     { scheme: BPS, year: 2019, prevFundCode: DOM00, expected: DOM00, firstPayment: true, desc: 'BPS < 2020 first payment' },
-    { scheme: FDMR, year: 2019, prevFundCode: DOM00, expected: DOM00, firstPayment: false, desc: 'FDMR < 2020 not first payment' },
     { scheme: BPS, year: 2019, prevFundCode: DOM00, expected: DOM00, firstPayment: false, desc: 'BPS < 2020 not first payment' },
-    { scheme: FDMR, year: 2019, prevFundCode: 'EGF00', expected: DOM01, firstPayment: false, desc: 'FDMR < 2020 prev has no domestic fund code' },
     { scheme: BPS, year: 2019, prevFundCode: 'EGF00', expected: DOM01, firstPayment: false, desc: 'BPS < 2020 prev has no domestic fund code' }
   ]
 
