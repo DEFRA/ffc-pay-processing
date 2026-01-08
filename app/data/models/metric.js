@@ -5,7 +5,7 @@ const {
   SCHEME_NAME_MAX_LENGTH
 } = require('../../constants/metric-defaults')
 
-function defineMetricColumns (DataTypes) {
+function defineIdentificationColumns (DataTypes) {
   return {
     id: {
       type: DataTypes.BIGINT,
@@ -31,7 +31,12 @@ function defineMetricColumns (DataTypes) {
       type: DataTypes.INTEGER,
       allowNull: true,
       field: 'scheme_year'
-    },
+    }
+  }
+}
+
+function definePaymentStatusColumns (DataTypes) {
+  return {
     totalPayments: {
       type: DataTypes.INTEGER,
       defaultValue: DEFAULT_COUNT,
@@ -81,7 +86,12 @@ function defineMetricColumns (DataTypes) {
       type: DataTypes.BIGINT,
       defaultValue: DEFAULT_VALUE,
       field: 'value_on_hold'
-    },
+    }
+  }
+}
+
+function defineTimestampColumns (DataTypes) {
+  return {
     calculatedAt: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
@@ -97,6 +107,14 @@ function defineMetricColumns (DataTypes) {
       allowNull: true,
       field: 'data_end_date'
     }
+  }
+}
+
+function defineMetricColumns (DataTypes) {
+  return {
+    ...defineIdentificationColumns(DataTypes),
+    ...definePaymentStatusColumns(DataTypes),
+    ...defineTimestampColumns(DataTypes)
   }
 }
 

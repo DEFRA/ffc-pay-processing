@@ -136,32 +136,48 @@ const aggregateByScheme = (metrics) => {
   return Array.from(schemeMap.values())
 }
 
+const mapSchemeMetrics = (schemeMetrics) => {
+  return schemeMetrics.map(m => ({
+    schemeName: m.schemeName,
+    schemeYear: m.schemeYear,
+    totalPayments: m.totalPayments,
+    totalValue: m.totalValue,
+    pendingPayments: m.pendingPayments,
+    pendingValue: m.pendingValue,
+    processedPayments: m.processedPayments,
+    processedValue: m.processedValue,
+    settledPayments: m.settledPayments,
+    settledValue: m.settledValue,
+    paymentsOnHold: m.paymentsOnHold,
+    valueOnHold: m.valueOnHold
+  }))
+}
+
+const buildPaymentTotals = (totals) => ({
+  totalPayments: totals?.totalPayments || 0,
+  totalValue: totals?.totalValue || 0,
+  totalPendingPayments: totals?.pendingPayments || 0,
+  totalPendingValue: totals?.pendingValue || 0,
+  totalProcessedPayments: totals?.processedPayments || 0,
+  totalProcessedValue: totals?.processedValue || 0
+})
+
+const buildSettlementTotals = (totals) => ({
+  totalSettledPayments: totals?.settledPayments || 0,
+  totalSettledValue: totals?.settledValue || 0,
+  totalPaymentsOnHold: totals?.paymentsOnHold || 0,
+  totalValueOnHold: totals?.valueOnHold || 0
+})
+
+const buildTotalsObject = (totals) => ({
+  ...buildPaymentTotals(totals),
+  ...buildSettlementTotals(totals)
+})
+
 const formatMetricsResponse = (totals, schemeMetrics) => {
   return {
-    totalPayments: totals?.totalPayments || 0,
-    totalValue: totals?.totalValue || 0,
-    totalPendingPayments: totals?.pendingPayments || 0,
-    totalPendingValue: totals?.pendingValue || 0,
-    totalProcessedPayments: totals?.processedPayments || 0,
-    totalProcessedValue: totals?.processedValue || 0,
-    totalSettledPayments: totals?.settledPayments || 0,
-    totalSettledValue: totals?.settledValue || 0,
-    totalPaymentsOnHold: totals?.paymentsOnHold || 0,
-    totalValueOnHold: totals?.valueOnHold || 0,
-    paymentsByScheme: schemeMetrics.map(m => ({
-      schemeName: m.schemeName,
-      schemeYear: m.schemeYear,
-      totalPayments: m.totalPayments,
-      totalValue: m.totalValue,
-      pendingPayments: m.pendingPayments,
-      pendingValue: m.pendingValue,
-      processedPayments: m.processedPayments,
-      processedValue: m.processedValue,
-      settledPayments: m.settledPayments,
-      settledValue: m.settledValue,
-      paymentsOnHold: m.paymentsOnHold,
-      valueOnHold: m.valueOnHold
-    }))
+    ...buildTotalsObject(totals),
+    paymentsByScheme: mapSchemeMetrics(schemeMetrics)
   }
 }
 
@@ -222,35 +238,28 @@ const handleYearCalculation = async (schemeYear) => {
   }
 }
 
-const handleMetricsRequest = async (request, h) => {
-  const period = request.query.period || 'all'
-  const schemeYear = request.query.schemeYear ? Number.parseInt(request.query.schemeYear) : null
-  const month = request.query.month ? Number.parseInt(request.query.month) : null
-
-  let validationError = validatePeriod(period)
+const handleMonthInYearPeriod = async (schemeYear, month, h) => {
+  const validationError = validateMonthInYearParams(schemeYear, month)
   if (validationError) {
     return h.response(validationError).code(HTTP_BAD_REQUEST)
   }
 
-  if (period === 'monthInYear') {
-    validationError = validateMonthInYearParams(schemeYear, month)
-    if (validationError) {
-      return h.response(validationError).code(HTTP_BAD_REQUEST)
-    }
-
-    try {
-      await handleMonthInYearCalculation(schemeYear, month)
-    } catch (error) {
-      return h.response(error.details).code(error.statusCode)
-    }
+  try {
+    await handleMonthInYearCalculation(schemeYear, month)
+  } catch (error) {
+    return h.response(error.details).code(error.statusCode)
   }
 
-  validationError = validateYearParams(period, schemeYear)
+  return null
+}
+
+const handleYearPeriod = async (period, schemeYear, h) => {
+  const validationError = validateYearParams(period, schemeYear)
   if (validationError) {
     return h.response(validationError).code(HTTP_BAD_REQUEST)
   }
 
-  if (period === 'year' && schemeYear) {
+  if (period === PERIOD_YEAR && schemeYear) {
     try {
       await handleYearCalculation(schemeYear)
     } catch (error) {
@@ -258,7 +267,32 @@ const handleMetricsRequest = async (request, h) => {
     }
   }
 
-  const yearFilter = period === 'all' ? null : schemeYear
+  return null
+}
+
+const handleMetricsRequest = async (request, h) => {
+  const period = request.query.period || PERIOD_ALL
+  const schemeYear = request.query.schemeYear ? Number.parseInt(request.query.schemeYear) : null
+  const month = request.query.month ? Number.parseInt(request.query.month) : null
+
+  const validationError = validatePeriod(period)
+  if (validationError) {
+    return h.response(validationError).code(HTTP_BAD_REQUEST)
+  }
+
+  if (period === PERIOD_MONTH_IN_YEAR) {
+    const result = await handleMonthInYearPeriod(schemeYear, month, h)
+    if (result) {
+      return result
+    }
+  }
+
+  const yearResult = await handleYearPeriod(period, schemeYear, h)
+  if (yearResult) {
+    return yearResult
+  }
+
+  const yearFilter = period === PERIOD_ALL ? null : schemeYear
   const metrics = await fetchMetrics(period, yearFilter)
   const response = processMetrics(metrics, yearFilter)
   return h.response(response).code(HTTP_OK)
