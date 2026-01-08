@@ -70,24 +70,28 @@ const getDateRangeForRelativePeriod = (now, days) => ({
 const calculateDateRange = (period, schemeYear = null, month = null) => {
   const now = new Date()
 
-  switch (period) {
-    case PERIOD_ALL:
-      return getDateRangeForAll()
-    case PERIOD_YTD:
-      return getDateRangeForYTD(now)
-    case PERIOD_YEAR:
-      return getDateRangeForYear()
-    case PERIOD_MONTH_IN_YEAR:
-      return getDateRangeForMonthInYear(schemeYear, month)
-    case PERIOD_MONTH:
-      return getDateRangeForRelativePeriod(now, DAYS_PER_MONTH)
-    case PERIOD_WEEK:
-      return getDateRangeForRelativePeriod(now, DAYS_PER_WEEK)
-    case PERIOD_DAY:
-      return getDateRangeForRelativePeriod(now, 1)
-    default:
-      throw new Error(`Unknown period type: ${period}`)
+  if (period === PERIOD_ALL) {
+    return getDateRangeForAll()
   }
+  if (period === PERIOD_YTD) {
+    return getDateRangeForYTD(now)
+  }
+  if (period === PERIOD_YEAR) {
+    return getDateRangeForYear()
+  }
+  if (period === PERIOD_MONTH_IN_YEAR) {
+    return getDateRangeForMonthInYear(schemeYear, month)
+  }
+  if (period === PERIOD_MONTH) {
+    return getDateRangeForRelativePeriod(now, DAYS_PER_MONTH)
+  }
+  if (period === PERIOD_WEEK) {
+    return getDateRangeForRelativePeriod(now, DAYS_PER_WEEK)
+  }
+  if (period === PERIOD_DAY) {
+    return getDateRangeForRelativePeriod(now, 1)
+  }
+  throw new Error(`Unknown period type: ${period}`)
 }
 
 const buildWhereClauseForDateRange = (period, startDate, endDate, useSchemeYear) => {
@@ -167,7 +171,6 @@ const fetchHoldsData = async (whereClause, useSchemeYear, schemeYear) => {
     ? { ...whereClause, marketingYear: schemeYear }
     : whereClause
 
-  // Get all FRNs with active holds by scheme
   const holdsQuery = `
         SELECT 
             pr."schemeId",
@@ -212,6 +215,10 @@ const mergeMetricsWithHolds = (metricsResults, holdsResults) => {
   })
 }
 
+const parseIntOrZero = (value) => {
+  return Number.parseInt(value) || 0
+}
+
 const createMetricRecord = (result, period, snapshotDate, startDate, endDate, schemeYear) => {
   const schemeName = getSchemeNameById(result.schemeId)
 
@@ -220,16 +227,16 @@ const createMetricRecord = (result, period, snapshotDate, startDate, endDate, sc
     periodType: period,
     schemeName,
     schemeYear: schemeYear || null,
-    totalPayments: Number.parseInt(result.totalPayments) || 0,
-    totalValue: Number.parseInt(result.totalValue) || 0,
-    pendingPayments: Number.parseInt(result.pendingPayments) || 0,
-    pendingValue: Number.parseInt(result.pendingValue) || 0,
-    processedPayments: Number.parseInt(result.processedPayments) || 0,
-    processedValue: Number.parseInt(result.processedValue) || 0,
-    settledPayments: Number.parseInt(result.settledPayments) || 0,
-    settledValue: Number.parseInt(result.settledValue) || 0,
-    paymentsOnHold: Number.parseInt(result.paymentsOnHold) || 0,
-    valueOnHold: Number.parseInt(result.valueOnHold) || 0,
+    totalPayments: parseIntOrZero(result.totalPayments),
+    totalValue: parseIntOrZero(result.totalValue),
+    pendingPayments: parseIntOrZero(result.pendingPayments),
+    pendingValue: parseIntOrZero(result.pendingValue),
+    processedPayments: parseIntOrZero(result.processedPayments),
+    processedValue: parseIntOrZero(result.processedValue),
+    settledPayments: parseIntOrZero(result.settledPayments),
+    settledValue: parseIntOrZero(result.settledValue),
+    paymentsOnHold: parseIntOrZero(result.paymentsOnHold),
+    valueOnHold: parseIntOrZero(result.valueOnHold),
     dataStartDate: startDate,
     dataEndDate: endDate
   }
