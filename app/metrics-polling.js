@@ -4,7 +4,7 @@ const moment = require('moment')
 
 const MILLISECONDS_PER_SECOND = 1000
 const SECONDS_PER_MINUTE = 60
-const TARGET_HOUR = 3
+const TARGET_HOUR = 4
 const TARGET_MINUTE = 0
 
 let pollingInterval = null

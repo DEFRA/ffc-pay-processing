@@ -17,7 +17,7 @@ const {
 } = require('../../app/constants/periods')
 
 describe('Metrics Calculator', () => {
-  let mockPaymentRequests
+  let mockMetricsResults
   let mockHoldsResults
   let consoleLogSpy
   let consoleErrorSpy
@@ -31,7 +31,7 @@ describe('Metrics Calculator', () => {
     schemes.BPS = 2
     schemes.FDMR = 3
 
-    mockPaymentRequests = [
+    mockMetricsResults = [
       {
         schemeId: 1,
         totalPayments: '10',
@@ -53,20 +53,19 @@ describe('Metrics Calculator', () => {
       }
     ]
 
+    // Setup default mock behavior - use mockResolvedValue instead of chaining mockResolvedValueOnce
     db.sequelize = {
-      fn: jest.fn((fn, col) => `${fn}(${col})`),
-      col: jest.fn(col => col),
-      literal: jest.fn(str => str),
-      query: jest.fn().mockResolvedValue(mockHoldsResults),
+      query: jest.fn(),
       QueryTypes: { SELECT: 'SELECT' }
     }
 
-    db.paymentRequest = {
-      findAll: jest.fn().mockResolvedValue(mockPaymentRequests)
-    }
-
-    db.schedule = {}
-    db.completedPaymentRequest = {}
+    // Set default implementation that can be overridden
+    db.sequelize.query.mockImplementation((query) => {
+      if (query.includes('holds')) {
+        return Promise.resolve(mockHoldsResults)
+      }
+      return Promise.resolve(mockMetricsResults)
+    })
 
     db.metric = {
       upsert: jest.fn().mockResolvedValue([{}, true])
@@ -82,29 +81,32 @@ describe('Metrics Calculator', () => {
     test('should calculate metrics for all period', async () => {
       await calculateMetricsForPeriod(PERIOD_ALL)
 
-      expect(db.paymentRequest.findAll).toHaveBeenCalled()
-      expect(db.sequelize.query).toHaveBeenCalled()
+      expect(db.sequelize.query).toHaveBeenCalledTimes(2)
       expect(db.metric.upsert).toHaveBeenCalled()
     })
 
     test('should calculate metrics for ytd period', async () => {
       await calculateMetricsForPeriod(PERIOD_YTD)
 
-      expect(db.paymentRequest.findAll).toHaveBeenCalled()
+      expect(db.sequelize.query).toHaveBeenCalledTimes(2)
       expect(db.metric.upsert).toHaveBeenCalled()
     })
 
     test('should calculate metrics for year period with schemeYear', async () => {
       await calculateMetricsForPeriod(PERIOD_YEAR, 2023)
 
-      expect(db.paymentRequest.findAll).toHaveBeenCalled()
+      expect(db.sequelize.query).toHaveBeenCalledTimes(2)
       expect(db.metric.upsert).toHaveBeenCalled()
+
+      // Check that schemeYear was passed in the query
+      const metricsQueryCall = db.sequelize.query.mock.calls[0]
+      expect(metricsQueryCall[1].replacements.schemeYear).toBe(2023)
     })
 
     test('should calculate metrics for month in year period', async () => {
       await calculateMetricsForPeriod(PERIOD_MONTH_IN_YEAR, 2023, 6)
 
-      expect(db.paymentRequest.findAll).toHaveBeenCalled()
+      expect(db.sequelize.query).toHaveBeenCalledTimes(2)
       expect(db.metric.upsert).toHaveBeenCalled()
     })
 
@@ -121,21 +123,21 @@ describe('Metrics Calculator', () => {
     test('should calculate metrics for month period', async () => {
       await calculateMetricsForPeriod(PERIOD_MONTH)
 
-      expect(db.paymentRequest.findAll).toHaveBeenCalled()
+      expect(db.sequelize.query).toHaveBeenCalledTimes(2)
       expect(db.metric.upsert).toHaveBeenCalled()
     })
 
     test('should calculate metrics for week period', async () => {
       await calculateMetricsForPeriod(PERIOD_WEEK)
 
-      expect(db.paymentRequest.findAll).toHaveBeenCalled()
+      expect(db.sequelize.query).toHaveBeenCalledTimes(2)
       expect(db.metric.upsert).toHaveBeenCalled()
     })
 
     test('should calculate metrics for day period', async () => {
       await calculateMetricsForPeriod(PERIOD_DAY)
 
-      expect(db.paymentRequest.findAll).toHaveBeenCalled()
+      expect(db.sequelize.query).toHaveBeenCalledTimes(2)
       expect(db.metric.upsert).toHaveBeenCalled()
     })
 
@@ -153,7 +155,13 @@ describe('Metrics Calculator', () => {
     })
 
     test('should handle metrics without holds data', async () => {
-      db.sequelize.query.mockResolvedValue([])
+      // Override mock for this specific test
+      db.sequelize.query.mockImplementation((query) => {
+        if (query.includes('holds')) {
+          return Promise.resolve([]) // No holds data
+        }
+        return Promise.resolve(mockMetricsResults)
+      })
 
       await calculateMetricsForPeriod(PERIOD_ALL)
 
@@ -163,7 +171,7 @@ describe('Metrics Calculator', () => {
     })
 
     test('should handle multiple schemes', async () => {
-      mockPaymentRequests = [
+      const multiSchemeMetrics = [
         {
           schemeId: 1,
           totalPayments: '10',
@@ -187,7 +195,14 @@ describe('Metrics Calculator', () => {
           settledValue: '400'
         }
       ]
-      db.paymentRequest.findAll.mockResolvedValue(mockPaymentRequests)
+
+      // Override mock for this specific test
+      db.sequelize.query.mockImplementation((query) => {
+        if (query.includes('holds')) {
+          return Promise.resolve(mockHoldsResults)
+        }
+        return Promise.resolve(multiSchemeMetrics)
+      })
 
       await calculateMetricsForPeriod(PERIOD_ALL)
 
@@ -207,6 +222,42 @@ describe('Metrics Calculator', () => {
       const upsertCall = db.metric.upsert.mock.calls[0][0]
       expect(upsertCall.schemeYear).toBe(2023)
     })
+
+    test('should use raw SQL query with subqueries', async () => {
+      await calculateMetricsForPeriod(PERIOD_ALL)
+
+      const metricsQueryCall = db.sequelize.query.mock.calls[0]
+      expect(metricsQueryCall[0]).toContain('SELECT')
+      expect(metricsQueryCall[0]).toContain('FROM "paymentRequests" pr')
+      expect(metricsQueryCall[0]).toContain('NOT EXISTS')
+      expect(metricsQueryCall[0]).toContain('schedule s')
+      expect(metricsQueryCall[1].type).toBe('SELECT')
+      expect(metricsQueryCall[1].raw).toBe(true)
+    })
+
+    test('should include WHERE clause for date-filtered periods', async () => {
+      await calculateMetricsForPeriod(PERIOD_MONTH)
+
+      const metricsQueryCall = db.sequelize.query.mock.calls[0]
+      expect(metricsQueryCall[0]).toContain('WHERE')
+      expect(metricsQueryCall[1].replacements).toHaveProperty('startDate')
+      expect(metricsQueryCall[1].replacements).toHaveProperty('endDate')
+    })
+
+    test('should not include WHERE clause for all period', async () => {
+      await calculateMetricsForPeriod(PERIOD_ALL)
+
+      const metricsQueryCall = db.sequelize.query.mock.calls[0]
+      expect(metricsQueryCall[1].replacements).toEqual({})
+    })
+
+    test('should use lte operator for month in year period', async () => {
+      await calculateMetricsForPeriod(PERIOD_MONTH_IN_YEAR, 2023, 6)
+
+      const metricsQueryCall = db.sequelize.query.mock.calls[0]
+      expect(metricsQueryCall[1].replacements).toHaveProperty('startDate')
+      expect(metricsQueryCall[1].replacements).toHaveProperty('endDate')
+    })
   })
 
   describe('calculateAllMetrics', () => {
@@ -215,15 +266,15 @@ describe('Metrics Calculator', () => {
 
       expect(consoleLogSpy).toHaveBeenCalledWith('Starting metrics calculation...')
       expect(consoleLogSpy).toHaveBeenCalledWith('✓ All metrics calculated successfully')
-      expect(db.paymentRequest.findAll).toHaveBeenCalled()
+      expect(db.sequelize.query).toHaveBeenCalled()
       expect(db.metric.upsert).toHaveBeenCalled()
     })
 
     test('should calculate basic periods', async () => {
       await calculateAllMetrics()
 
-      const findAllCalls = db.paymentRequest.findAll.mock.calls
-      expect(findAllCalls.length).toBeGreaterThan(5)
+      // Basic periods: ALL, YTD, MONTH, WEEK, DAY = 5 periods x 2 queries each = 10 calls minimum
+      expect(db.sequelize.query.mock.calls.length).toBeGreaterThanOrEqual(10)
     })
 
     test('should calculate yearly metrics for multiple years', async () => {
@@ -231,7 +282,7 @@ describe('Metrics Calculator', () => {
 
       await calculateAllMetrics()
 
-      expect(db.paymentRequest.findAll).toHaveBeenCalled()
+      expect(db.sequelize.query).toHaveBeenCalled()
       expect(db.metric.upsert).toHaveBeenCalled()
 
       delete process.env.METRICS_CALCULATION_YEARS
@@ -242,13 +293,13 @@ describe('Metrics Calculator', () => {
 
       await calculateAllMetrics()
 
-      expect(db.paymentRequest.findAll).toHaveBeenCalled()
+      expect(db.sequelize.query).toHaveBeenCalled()
       expect(db.metric.upsert).toHaveBeenCalled()
     })
 
     test('should handle errors and log them', async () => {
       const error = new Error('Database error')
-      db.paymentRequest.findAll.mockRejectedValue(error)
+      db.sequelize.query.mockRejectedValue(error)
 
       await expect(calculateAllMetrics()).rejects.toThrow('Database error')
 
@@ -261,12 +312,12 @@ describe('Metrics Calculator', () => {
 
       await calculateAllMetrics()
 
-      const yearCalls = db.paymentRequest.findAll.mock.calls.filter(call => {
-        const whereClause = call[0].where
-        return whereClause && whereClause.marketingYear
+      // Should have queries for year metrics + 12 months
+      const queriesWithSchemeYear = db.sequelize.query.mock.calls.filter(call => {
+        return call[1].replacements && call[1].replacements.schemeYear
       })
 
-      expect(yearCalls.length).toBeGreaterThan(0)
+      expect(queriesWithSchemeYear.length).toBeGreaterThan(0)
 
       delete process.env.METRICS_CALCULATION_YEARS
     })
@@ -296,7 +347,7 @@ describe('Metrics Calculator', () => {
     })
 
     test('should handle null values in metrics', async () => {
-      mockPaymentRequests = [
+      const nullMetrics = [
         {
           schemeId: 1,
           totalPayments: null,
@@ -309,7 +360,14 @@ describe('Metrics Calculator', () => {
           settledValue: null
         }
       ]
-      db.paymentRequest.findAll.mockResolvedValue(mockPaymentRequests)
+
+      // Override mock for this specific test
+      db.sequelize.query.mockImplementation((query) => {
+        if (query.includes('holds')) {
+          return Promise.resolve([])
+        }
+        return Promise.resolve(nullMetrics)
+      })
 
       await calculateMetricsForPeriod(PERIOD_ALL)
 
@@ -328,7 +386,7 @@ describe('Metrics Calculator', () => {
     })
 
     test('should handle unknown scheme ID', async () => {
-      mockPaymentRequests = [
+      const unknownSchemeMetrics = [
         {
           schemeId: 999,
           totalPayments: '10',
@@ -341,7 +399,14 @@ describe('Metrics Calculator', () => {
           settledValue: '200'
         }
       ]
-      db.paymentRequest.findAll.mockResolvedValue(mockPaymentRequests)
+
+      // Override mock for this specific test
+      db.sequelize.query.mockImplementation((query) => {
+        if (query.includes('holds')) {
+          return Promise.resolve([])
+        }
+        return Promise.resolve(unknownSchemeMetrics)
+      })
 
       await calculateMetricsForPeriod(PERIOD_ALL)
 
@@ -374,39 +439,122 @@ describe('Metrics Calculator', () => {
       expect(upsertCall.dataStartDate).toBeDefined()
       expect(upsertCall.dataEndDate).toBeDefined()
     })
+
+    test('should set null dates for year period', async () => {
+      await calculateMetricsForPeriod(PERIOD_YEAR, 2023)
+
+      const upsertCall = db.metric.upsert.mock.calls[0][0]
+      expect(upsertCall.dataStartDate).toBeNull()
+      expect(upsertCall.dataEndDate).toBeNull()
+    })
   })
 
   describe('query construction', () => {
-    test('should include where clause for date range', async () => {
+    test('should include date range in replacements for date-filtered periods', async () => {
       await calculateMetricsForPeriod(PERIOD_MONTH)
 
-      const findAllCall = db.paymentRequest.findAll.mock.calls[0][0]
-      expect(findAllCall.where).toBeDefined()
-      expect(findAllCall.where.received).toBeDefined()
+      const metricsQueryCall = db.sequelize.query.mock.calls[0]
+      expect(metricsQueryCall[1].replacements).toHaveProperty('startDate')
+      expect(metricsQueryCall[1].replacements).toHaveProperty('endDate')
     })
 
-    test('should include marketing year for year period', async () => {
+    test('should include marketing year in replacements for year period', async () => {
       await calculateMetricsForPeriod(PERIOD_YEAR, 2023)
 
-      const findAllCall = db.paymentRequest.findAll.mock.calls[0][0]
-      expect(findAllCall.where.marketingYear).toBe(2023)
+      const metricsQueryCall = db.sequelize.query.mock.calls[0]
+      expect(metricsQueryCall[1].replacements.schemeYear).toBe(2023)
     })
 
     test('should include holds query with date filters', async () => {
       await calculateMetricsForPeriod(PERIOD_MONTH)
 
-      expect(db.sequelize.query).toHaveBeenCalled()
-      const queryCall = db.sequelize.query.mock.calls[0]
-      expect(queryCall[0]).toContain('paymentRequests')
-      expect(queryCall[0]).toContain('holds')
+      expect(db.sequelize.query).toHaveBeenCalledTimes(2)
+      const holdsQueryCall = db.sequelize.query.mock.calls[1]
+      expect(holdsQueryCall[0]).toContain('paymentRequests')
+      expect(holdsQueryCall[0]).toContain('holds')
+      expect(holdsQueryCall[1].replacements).toHaveProperty('startDate')
     })
 
     test('should include holds query with scheme year', async () => {
       await calculateMetricsForPeriod(PERIOD_YEAR, 2023)
 
-      expect(db.sequelize.query).toHaveBeenCalled()
-      const queryCall = db.sequelize.query.mock.calls[0]
-      expect(queryCall[1].replacements.schemeYear).toBe(2023)
+      expect(db.sequelize.query).toHaveBeenCalledTimes(2)
+      const holdsQueryCall = db.sequelize.query.mock.calls[1]
+      expect(holdsQueryCall[1].replacements.schemeYear).toBe(2023)
+    })
+
+    test('should use correct query type and raw flag', async () => {
+      await calculateMetricsForPeriod(PERIOD_ALL)
+
+      const metricsQueryCall = db.sequelize.query.mock.calls[0]
+      expect(metricsQueryCall[1].type).toBe('SELECT')
+      expect(metricsQueryCall[1].raw).toBe(true)
+
+      const holdsQueryCall = db.sequelize.query.mock.calls[1]
+      expect(holdsQueryCall[1].type).toBe('SELECT')
+      expect(holdsQueryCall[1].raw).toBe(true)
+    })
+  })
+
+  describe('holds data merging', () => {
+    test('should merge holds for matching scheme', async () => {
+      const multiSchemeMetrics = [
+        { schemeId: 1, totalPayments: '10', totalValue: '1000', pendingPayments: '5', pendingValue: '500', processedPayments: '3', processedValue: '300', settledPayments: '2', settledValue: '200' },
+        { schemeId: 2, totalPayments: '20', totalValue: '2000', pendingPayments: '10', pendingValue: '1000', processedPayments: '6', processedValue: '600', settledPayments: '4', settledValue: '400' }
+      ]
+
+      const multiSchemeHolds = [
+        { schemeId: 1, paymentsOnHold: '3', valueOnHold: '300' },
+        { schemeId: 2, paymentsOnHold: '5', valueOnHold: '500' }
+      ]
+
+      // Override mock for this specific test
+      db.sequelize.query.mockImplementation((query) => {
+        if (query.includes('holds')) {
+          return Promise.resolve(multiSchemeHolds)
+        }
+        return Promise.resolve(multiSchemeMetrics)
+      })
+
+      await calculateMetricsForPeriod(PERIOD_ALL)
+
+      expect(db.metric.upsert).toHaveBeenCalledTimes(2)
+
+      const firstUpsert = db.metric.upsert.mock.calls[0][0]
+      expect(firstUpsert.paymentsOnHold).toBe(3)
+      expect(firstUpsert.valueOnHold).toBe(300)
+
+      const secondUpsert = db.metric.upsert.mock.calls[1][0]
+      expect(secondUpsert.paymentsOnHold).toBe(5)
+      expect(secondUpsert.valueOnHold).toBe(500)
+    })
+
+    test('should handle missing holds for some schemes', async () => {
+      const multiSchemeMetrics = [
+        { schemeId: 1, totalPayments: '10', totalValue: '1000', pendingPayments: '5', pendingValue: '500', processedPayments: '3', processedValue: '300', settledPayments: '2', settledValue: '200' },
+        { schemeId: 2, totalPayments: '20', totalValue: '2000', pendingPayments: '10', pendingValue: '1000', processedPayments: '6', processedValue: '600', settledPayments: '4', settledValue: '400' }
+      ]
+
+      const partialHolds = [
+        { schemeId: 1, paymentsOnHold: '3', valueOnHold: '300' }
+      ]
+
+      // Override mock for this specific test
+      db.sequelize.query.mockImplementation((query) => {
+        if (query.includes('holds')) {
+          return Promise.resolve(partialHolds)
+        }
+        return Promise.resolve(multiSchemeMetrics)
+      })
+
+      await calculateMetricsForPeriod(PERIOD_ALL)
+
+      const firstUpsert = db.metric.upsert.mock.calls[0][0]
+      expect(firstUpsert.paymentsOnHold).toBe(3)
+
+      const secondUpsert = db.metric.upsert.mock.calls[1][0]
+      expect(secondUpsert.paymentsOnHold).toBe(0)
+      expect(secondUpsert.valueOnHold).toBe(0)
     })
   })
 })

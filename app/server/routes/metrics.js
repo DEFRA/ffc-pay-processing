@@ -1,7 +1,6 @@
 const db = require('../../data')
-const { calculateMetricsForPeriod } = require('../../../app/metrics-calculator')
 const { HTTP_OK, HTTP_BAD_REQUEST, HTTP_INTERNAL_SERVER_ERROR } = require('../../../app/constants/http-status-codes')
-
+const { metricsQueue } = require('../../metrics-queue')
 const { PERIOD_ALL, PERIOD_YTD, PERIOD_YEAR, PERIOD_MONTH_IN_YEAR, PERIOD_MONTH, PERIOD_WEEK, PERIOD_DAY } = require('../../../app/constants/periods')
 const VALID_PERIODS = [PERIOD_ALL, PERIOD_YTD, PERIOD_YEAR, PERIOD_MONTH_IN_YEAR, PERIOD_MONTH, PERIOD_WEEK, PERIOD_DAY]
 const MIN_YEAR = 2000
@@ -21,7 +20,8 @@ const validatePeriod = (period) => {
 }
 
 const validateMonthInYearParams = (schemeYear, month) => {
-  if (!schemeYear || !month) {
+  // Check if parameters exist first, but allow 0 for month to validate range
+  if (schemeYear === null || schemeYear === undefined || month === null || month === undefined) {
     return {
       error: 'Missing required parameters',
       message: 'schemeYear and month are required for monthInYear period'
@@ -59,7 +59,7 @@ const validateYearParams = (period, schemeYear) => {
 
 const handleMonthInYearCalculation = async (schemeYear, month) => {
   try {
-    await calculateMetricsForPeriod('monthInYear', schemeYear, month)
+    await metricsQueue.enqueue('monthInYear', schemeYear, month)
   } catch (err) {
     console.error('Error calculating monthInYear metrics:', err)
     const error = new Error(METRICS_CALCULATION_FAILED)
@@ -141,15 +141,15 @@ const mapSchemeMetrics = (schemeMetrics) => {
     schemeName: m.schemeName,
     schemeYear: m.schemeYear,
     totalPayments: m.totalPayments,
-    totalValue: m.totalValue,
+    totalValue: Number.parseInt(m.totalValue),
     pendingPayments: m.pendingPayments,
-    pendingValue: m.pendingValue,
+    pendingValue: Number.parseInt(m.pendingValue),
     processedPayments: m.processedPayments,
-    processedValue: m.processedValue,
+    processedValue: Number.parseInt(m.processedValue),
     settledPayments: m.settledPayments,
-    settledValue: m.settledValue,
+    settledValue: Number.parseInt(m.settledValue),
     paymentsOnHold: m.paymentsOnHold,
-    valueOnHold: m.valueOnHold
+    valueOnHold: Number.parseInt(m.valueOnHold)
   }))
 }
 
@@ -225,7 +225,7 @@ const processMetrics = (metrics, schemeYear) => {
 
 const handleYearCalculation = async (schemeYear) => {
   try {
-    await calculateMetricsForPeriod('year', schemeYear)
+    await metricsQueue.enqueue('year', schemeYear)
   } catch (err) {
     console.error('Error calculating year metrics:', err)
     const error = new Error(METRICS_CALCULATION_FAILED)

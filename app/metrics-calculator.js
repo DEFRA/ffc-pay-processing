@@ -114,54 +114,96 @@ const buildWhereClauseForDateRange = (period, startDate, endDate, useSchemeYear)
   return whereClause
 }
 
-const buildQueryAttributes = () => [
-  'schemeId',
-  [db.sequelize.fn('COUNT', db.sequelize.col('paymentRequest.paymentRequestId')), 'totalPayments'],
-  [db.sequelize.fn('SUM', db.sequelize.col('paymentRequest.value')), 'totalValue'],
+const buildQueryWhereClausesAndReplacements = (schemeWhereClause, useSchemeYear, schemeYear) => {
+  const whereClauses = []
+  const replacements = {}
 
-  // Pending: paymentRequests with no completed schedule
-  [db.sequelize.literal('COUNT(CASE WHEN "schedules"."completed" IS NULL THEN 1 END)'), 'pendingPayments'],
-  [db.sequelize.literal('COALESCE(SUM(CASE WHEN "schedules"."completed" IS NULL THEN "paymentRequest"."value" ELSE 0 END), 0)'), 'pendingValue'],
-
-  // Processed: has completed schedule (creates completedPaymentRequest)
-  [db.sequelize.literal('COUNT(CASE WHEN "schedules"."completed" IS NOT NULL THEN 1 END)'), 'processedPayments'],
-  [db.sequelize.literal('COALESCE(SUM(CASE WHEN "schedules"."completed" IS NOT NULL THEN "paymentRequest"."value" ELSE 0 END), 0)'), 'processedValue'],
-
-  // Settled: completedPaymentRequest has lastSettlement
-  [db.sequelize.literal('COUNT(CASE WHEN "completedPaymentRequests"."lastSettlement" IS NOT NULL THEN 1 END)'), 'settledPayments'],
-  [db.sequelize.literal('COALESCE(SUM(CASE WHEN "completedPaymentRequests"."lastSettlement" IS NOT NULL THEN "completedPaymentRequests"."settledValue" ELSE 0 END), 0)'), 'settledValue']
-]
-
-const buildScheduleInclude = () => ({
-  model: db.schedule,
-  as: 'schedules',
-  attributes: [],
-  required: false
-})
-
-const buildCompletedPaymentRequestInclude = () => ({
-  model: db.completedPaymentRequest,
-  as: 'completedPaymentRequests',
-  attributes: [],
-  required: false,
-  where: {
-    invalid: false
+  if (schemeWhereClause.received) {
+    whereClauses.push(
+      'pr."received" >= :startDate',
+      'pr."received" < :endDate'
+    )
+    replacements.startDate = schemeWhereClause.received[Op.gte]
+    replacements.endDate = schemeWhereClause.received[Op.lt] || schemeWhereClause.received[Op.lte]
   }
-})
+
+  if (useSchemeYear && schemeYear) {
+    whereClauses.push('pr."marketingYear" = :schemeYear')
+    replacements.schemeYear = schemeYear
+  }
+
+  return { whereClauses, replacements }
+}
+
+const buildMetricsQuery = (whereSQL) => {
+  return `
+    SELECT 
+      pr."schemeId",
+      COUNT(pr."paymentRequestId") as "totalPayments",
+      COALESCE(SUM(pr."value"), 0) as "totalValue",
+      
+      -- Pending: no completed schedule
+      COUNT(CASE WHEN NOT EXISTS (
+        SELECT 1 FROM schedule s 
+        WHERE s."paymentRequestId" = pr."paymentRequestId" 
+        AND s."completed" IS NOT NULL
+      ) THEN 1 END) as "pendingPayments",
+      COALESCE(SUM(CASE WHEN NOT EXISTS (
+        SELECT 1 FROM schedule s 
+        WHERE s."paymentRequestId" = pr."paymentRequestId" 
+        AND s."completed" IS NOT NULL
+      ) THEN pr."value" ELSE 0 END), 0) as "pendingValue",
+      
+      -- Processed: has completed schedule
+      COUNT(CASE WHEN EXISTS (
+        SELECT 1 FROM schedule s 
+        WHERE s."paymentRequestId" = pr."paymentRequestId" 
+        AND s."completed" IS NOT NULL
+      ) THEN 1 END) as "processedPayments",
+      COALESCE(SUM(CASE WHEN EXISTS (
+        SELECT 1 FROM schedule s 
+        WHERE s."paymentRequestId" = pr."paymentRequestId" 
+        AND s."completed" IS NOT NULL
+      ) THEN pr."value" ELSE 0 END), 0) as "processedValue",
+      
+      -- Settled: has completedPaymentRequest with lastSettlement
+      COUNT(CASE WHEN EXISTS (
+        SELECT 1 FROM "completedPaymentRequests" cpr 
+        WHERE cpr."paymentRequestId" = pr."paymentRequestId" 
+        AND cpr."invalid" = false
+        AND cpr."lastSettlement" IS NOT NULL
+      ) THEN 1 END) as "settledPayments",
+      COALESCE(SUM(CASE WHEN EXISTS (
+        SELECT 1 FROM "completedPaymentRequests" cpr 
+        WHERE cpr."paymentRequestId" = pr."paymentRequestId" 
+        AND cpr."invalid" = false
+        AND cpr."lastSettlement" IS NOT NULL
+      ) THEN (
+        SELECT cpr2."settledValue" 
+        FROM "completedPaymentRequests" cpr2 
+        WHERE cpr2."paymentRequestId" = pr."paymentRequestId" 
+        AND cpr2."invalid" = false
+        AND cpr2."lastSettlement" IS NOT NULL
+        LIMIT 1
+      ) ELSE 0 END), 0) as "settledValue"
+    FROM "paymentRequests" pr
+    ${whereSQL}
+    GROUP BY pr."schemeId"
+  `
+}
 
 const fetchMetricsData = async (whereClause, useSchemeYear, schemeYear) => {
   const schemeWhereClause = useSchemeYear && schemeYear
     ? { ...whereClause, marketingYear: schemeYear }
     : whereClause
 
-  return db.paymentRequest.findAll({
-    attributes: buildQueryAttributes(),
-    include: [
-      buildScheduleInclude(),
-      buildCompletedPaymentRequestInclude()
-    ],
-    where: schemeWhereClause,
-    group: ['paymentRequest.schemeId'],
+  const { whereClauses, replacements } = buildQueryWhereClausesAndReplacements(schemeWhereClause, useSchemeYear, schemeYear)
+  const whereSQL = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : ''
+  const metricsQuery = buildMetricsQuery(whereSQL)
+
+  return db.sequelize.query(metricsQuery, {
+    replacements,
+    type: db.sequelize.QueryTypes.SELECT,
     raw: true
   })
 }
@@ -252,16 +294,9 @@ const saveMetrics = async (results, period, snapshotDate, startDate, endDate, sc
 const calculateMetricsForPeriod = async (period, schemeYear = null, month = null) => {
   const { startDate, endDate, useSchemeYear } = calculateDateRange(period, schemeYear, month)
   const snapshotDate = new Date().toISOString().split('T')[0]
-
   const whereClause = buildWhereClauseForDateRange(period, startDate, endDate, useSchemeYear)
-
-  // Fetch payment metrics
   const metricsResults = await fetchMetricsData(whereClause, useSchemeYear, schemeYear)
-
-  // Fetch holds metrics separately
   const holdsResults = await fetchHoldsData(whereClause, useSchemeYear, schemeYear)
-
-  // Merge the results
   const combinedResults = mergeMetricsWithHolds(metricsResults, holdsResults)
 
   await saveMetrics(combinedResults, period, snapshotDate, startDate, endDate, schemeYear)

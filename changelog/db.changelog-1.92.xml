@@ -3,6 +3,7 @@
   <changeSet id="1" author="Leigh Godson">
     <tagDatabase tag="v1.92.0" />
   </changeSet>
+  
   <changeSet id="2" author="Leigh Godson">
     <createTable tableName="metrics">
       <column name="id" type="bigserial">
@@ -51,5 +52,101 @@
   
   <changeSet id="3" author="Leigh Godson">
     <setTableRemarks tableName="metrics" remarks="Pre-calculated payment processing metrics for operational dashboard"/>
+  </changeSet>
+
+  <changeSet id="4" author="Leigh Godson">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <indexExists tableName="paymentRequests" indexName="idx_payment_requests_metrics_filter"/>
+      </not>
+    </preConditions>
+    <createIndex indexName="idx_payment_requests_metrics_filter" tableName="paymentRequests">
+      <column name="schemeId"/>
+      <column name="marketingYear"/>
+      <column name="received"/>
+    </createIndex>
+    <rollback>
+      <dropIndex tableName="paymentRequests" indexName="idx_payment_requests_metrics_filter"/>
+    </rollback>
+  </changeSet>
+
+  <changeSet id="5" author="Leigh Godson">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <indexExists tableName="schedule" indexName="idx_schedule_payment_completed"/>
+      </not>
+    </preConditions>
+    <createIndex indexName="idx_schedule_payment_completed" tableName="schedule">
+      <column name="paymentRequestId"/>
+      <column name="completed"/>
+    </createIndex>
+    <rollback>
+      <dropIndex tableName="schedule" indexName="idx_schedule_payment_completed"/>
+    </rollback>
+  </changeSet>
+
+  <changeSet id="6" author="Leigh Godson">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <indexExists tableName="completedPaymentRequests" indexName="idx_completed_payment_settlement"/>
+      </not>
+    </preConditions>
+    <createIndex indexName="idx_completed_payment_settlement" tableName="completedPaymentRequests">
+      <column name="paymentRequestId"/>
+      <column name="lastSettlement"/>
+      <column name="invalid"/>
+    </createIndex>
+    <rollback>
+      <dropIndex tableName="completedPaymentRequests" indexName="idx_completed_payment_settlement"/>
+    </rollback>
+  </changeSet>
+
+  <changeSet id="7" author="Leigh Godson">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <indexExists tableName="holds" indexName="idx_holds_frn_closed"/>
+      </not>
+    </preConditions>
+    <createIndex indexName="idx_holds_frn_closed" tableName="holds">
+      <column name="frn"/>
+      <column name="closed"/>
+    </createIndex>
+    <rollback>
+      <dropIndex tableName="holds" indexName="idx_holds_frn_closed"/>
+    </rollback>
+  </changeSet>
+
+  <changeSet id="8" author="Leigh Godson">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <indexExists tableName="holdCategories" indexName="idx_hold_categories_scheme"/>
+      </not>
+    </preConditions>
+    <createIndex indexName="idx_hold_categories_scheme" tableName="holdCategories">
+      <column name="schemeId"/>
+    </createIndex>
+    <rollback>
+      <dropIndex tableName="holdCategories" indexName="idx_hold_categories_scheme"/>
+    </rollback>
+  </changeSet>
+
+  <changeSet id="9" author="Leigh Godson">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <indexExists tableName="holds" indexName="idx_holds_category_frn"/>
+      </not>
+    </preConditions>
+    <createIndex indexName="idx_holds_category_frn" tableName="holds">
+      <column name="holdCategoryId"/>
+      <column name="frn"/>
+      <column name="closed"/>
+    </createIndex>
+    <rollback>
+      <dropIndex tableName="holds" indexName="idx_holds_category_frn"/>
+    </rollback>
+  </changeSet>
+
+  <changeSet id="10" author="Leigh Godson">
+    <setTableRemarks tableName="paymentRequests" remarks="Performance indexes added for metrics calculation queries"/>
   </changeSet>
 </databaseChangeLog>
