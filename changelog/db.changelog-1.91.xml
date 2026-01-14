@@ -26,6 +26,46 @@
             <where>"schemeId" = 7</where>
         </delete>
 
+        <delete tableName="frnAgreementClosed">
+            <where>"schemeId" = 7</where>
+        </delete>
+
+        <sql>
+            DELETE FROM public."completedInvoiceLines" cil
+            USING public."completedPaymentRequests" cpr
+            WHERE cil."completedPaymentRequestId" = cpr."completedPaymentRequestId"
+                AND cpr."schemeId" = 7;
+        </sql>
+
+        <sql>
+            DELETE FROM public."outbox" out
+            USING public."completedPaymentRequests" cpr
+            WHERE out."completedPaymentRequestId" = cpr."completedPaymentRequestId"
+                AND cpr."schemeId" = 7;
+        </sql>
+
+        <delete tableName="completedPaymentRequests">
+            <where>"schemeId" = 7</where>
+        </delete>
+
+        <sql>
+            DELETE FROM public."invoiceLines" il
+            USING public."paymentRequests" pr
+            WHERE il."paymentRequestId" = pr."paymentRequestId"
+                AND pr."schemeId" = 7;
+        </sql>
+
+        <sql>
+            DELETE FROM public."schedule" sch
+            USING public."paymentRequests" pr
+            WHERE sch."paymentRequestId" = pr."paymentRequestId"
+                AND pr."schemeId" = 7;
+        </sql>
+
+        <delete tableName="paymentRequests">
+            <where>"schemeId" = 7</where>
+        </delete>
+
         <delete tableName="schemes">
             <where>"schemeId" = 7</where>
         </delete>
