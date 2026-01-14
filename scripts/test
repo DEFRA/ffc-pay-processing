@@ -70,5 +70,5 @@ compose() {
   fi
 
   # Clean up
-  compose down -v
+compose down -v --timeout 10
 )

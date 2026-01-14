@@ -1,5 +1,4 @@
 const {
-  DEFAULT_COUNT,
   DEFAULT_VALUE,
   PERIOD_TYPE_MAX_LENGTH,
   SCHEME_NAME_MAX_LENGTH
@@ -39,7 +38,7 @@ function definePaymentStatusColumns (DataTypes) {
   return {
     totalPayments: {
       type: DataTypes.INTEGER,
-      defaultValue: DEFAULT_COUNT,
+      defaultValue: DEFAULT_VALUE,
       field: 'total_payments'
     },
     totalValue: {
@@ -49,7 +48,7 @@ function definePaymentStatusColumns (DataTypes) {
     },
     pendingPayments: {
       type: DataTypes.INTEGER,
-      defaultValue: DEFAULT_COUNT,
+      defaultValue: DEFAULT_VALUE,
       field: 'pending_payments'
     },
     pendingValue: {
@@ -59,7 +58,7 @@ function definePaymentStatusColumns (DataTypes) {
     },
     processedPayments: {
       type: DataTypes.INTEGER,
-      defaultValue: DEFAULT_COUNT,
+      defaultValue: DEFAULT_VALUE,
       field: 'processed_payments'
     },
     processedValue: {
@@ -69,7 +68,7 @@ function definePaymentStatusColumns (DataTypes) {
     },
     settledPayments: {
       type: DataTypes.INTEGER,
-      defaultValue: DEFAULT_COUNT,
+      defaultValue: DEFAULT_VALUE,
       field: 'settled_payments'
     },
     settledValue: {
@@ -79,7 +78,7 @@ function definePaymentStatusColumns (DataTypes) {
     },
     paymentsOnHold: {
       type: DataTypes.INTEGER,
-      defaultValue: DEFAULT_COUNT,
+      defaultValue: DEFAULT_VALUE,
       field: 'payments_on_hold'
     },
     valueOnHold: {
