@@ -31,9 +31,9 @@
 
         <sql>
             DELETE FROM public."holds" hld
-            USING public."autoHoldCategories" hc
+            USING public."holdCategories" hc
             WHERE hld."holdCategoryId" = hc."holdCategoryId"
-                AND ahc."schemeId" = 7;
+                AND hc."schemeId" = 7;
         </sql>
 
         <delete tableName="holdCategories">
