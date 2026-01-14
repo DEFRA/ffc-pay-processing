@@ -18,9 +18,23 @@
             </sqlCheck>
         </preConditions>
 
+        <sql>
+            DELETE FROM public."autoHolds" ahld
+            USING public."autoHoldCategories" ahc
+            WHERE ahld."autoHoldCategoryId" = ahc."autoHoldCategoryId"
+                AND ahc."schemeId" = 7;
+        </sql>
+
         <delete tableName="autoHoldCategories">
             <where>"schemeId" = 7</where>
         </delete>
+
+        <sql>
+            DELETE FROM public."holds" hld
+            USING public."autoHoldCategories" hc
+            WHERE hld."holdCategoryId" = hc."holdCategoryId"
+                AND ahc."schemeId" = 7;
+        </sql>
 
         <delete tableName="holdCategories">
             <where>"schemeId" = 7</where>
