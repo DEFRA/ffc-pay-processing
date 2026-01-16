@@ -287,7 +287,24 @@ const createMetricRecord = (result, period, snapshotDate, startDate, endDate, sc
 const saveMetrics = async (results, period, snapshotDate, startDate, endDate, schemeYear = null) => {
   for (const result of results) {
     const metricRecord = createMetricRecord(result, period, snapshotDate, startDate, endDate, schemeYear)
-    await db.metric.upsert(metricRecord)
+    const existing = await db.metric.findOne({
+      where: {
+        snapshotDate: metricRecord.snapshotDate,
+        periodType: metricRecord.periodType,
+        schemeName: metricRecord.schemeName,
+        schemeYear: metricRecord.schemeYear
+      }
+    })
+
+    if (existing) {
+      await db.metric.update(metricRecord, {
+        where: {
+          id: existing.id
+        }
+      })
+    } else {
+      await db.metric.create(metricRecord)
+    }
   }
 }
 
