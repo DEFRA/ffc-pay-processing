@@ -1,4 +1,4 @@
-const { calculateAllMetrics, calculateMetricsForPeriod } = require('../../app/metrics-calculator')
+const { calculateAllMetrics, calculateMetricsForPeriod, calculateDateRange, createMetricRecord, saveMetrics } = require('../../app/metrics-calculator')
 
 jest.mock('../../app/data')
 jest.mock('../../app/constants/schemes')
@@ -87,6 +87,32 @@ describe('Metrics Calculator', () => {
       expect(db.sequelize.query).toHaveBeenCalledTimes(2)
       expect(db.metric.findOne).toHaveBeenCalled()
       expect(db.metric.create).toHaveBeenCalled()
+    })
+
+    test('should set monthInYear for month in year period', async () => {
+      await calculateMetricsForPeriod(PERIOD_MONTH_IN_YEAR, 2023, 6)
+
+      const createCall = db.metric.create.mock.calls[0][0]
+      expect(createCall.monthInYear).toBe(6)
+      expect(createCall.schemeYear).toBe(2023)
+      expect(createCall.periodType).toBe(PERIOD_MONTH_IN_YEAR)
+    })
+
+    // Add to 'upsert behavior' describe block:
+    test('should use correct where clause with monthInYear', async () => {
+      const today = new Date().toISOString().split('T')[0]
+
+      await calculateMetricsForPeriod(PERIOD_MONTH_IN_YEAR, 2023, 6)
+
+      expect(db.metric.findOne).toHaveBeenCalledWith({
+        where: {
+          snapshotDate: today,
+          periodType: PERIOD_MONTH_IN_YEAR,
+          schemeName: 'SFI',
+          schemeYear: 2023,
+          monthInYear: 6
+        }
+      })
     })
 
     test('should create new metric when none exists', async () => {
@@ -319,6 +345,305 @@ describe('Metrics Calculator', () => {
       const metricsQueryCall = db.sequelize.query.mock.calls[0]
       expect(metricsQueryCall[1].replacements).toHaveProperty('startDate')
       expect(metricsQueryCall[1].replacements).toHaveProperty('endDate')
+    })
+  })
+
+  describe('calculateDateRange', () => {
+    test('should handle null month parameter', () => {
+      const result = calculateDateRange(PERIOD_ALL, null, null)
+      expect(result).toHaveProperty('startDate')
+      expect(result).toHaveProperty('endDate')
+      expect(result).toHaveProperty('useSchemeYear')
+    })
+
+    test('should handle undefined month parameter', () => {
+      const result = calculateDateRange(PERIOD_ALL)
+      expect(result.startDate).toBeNull()
+      expect(result.endDate).toBeNull()
+    })
+
+    test('should pass month to getDateRangeForMonthInYear', () => {
+      const result = calculateDateRange(PERIOD_MONTH_IN_YEAR, 2023, 6)
+      expect(result.startDate).toBeInstanceOf(Date)
+      expect(result.endDate).toBeInstanceOf(Date)
+      expect(result.useSchemeYear).toBe(true)
+    })
+
+    test('should handle month parameter with all periods', () => {
+      const periods = [
+        { period: PERIOD_ALL, schemeYear: null, month: null },
+        { period: PERIOD_YTD, schemeYear: null, month: null },
+        { period: PERIOD_YEAR, schemeYear: 2023, month: null },
+        { period: PERIOD_MONTH, schemeYear: null, month: null },
+        { period: PERIOD_WEEK, schemeYear: null, month: null },
+        { period: PERIOD_DAY, schemeYear: null, month: null }
+      ]
+
+      periods.forEach(({ period, schemeYear, month }) => {
+        const result = calculateDateRange(period, schemeYear, month)
+        expect(result).toHaveProperty('startDate')
+        expect(result).toHaveProperty('endDate')
+        expect(result).toHaveProperty('useSchemeYear')
+      })
+    })
+  })
+
+  describe('createMetricRecord', () => {
+    const mockResult = {
+      schemeId: 1,
+      totalPayments: '10',
+      totalValue: '1000',
+      pendingPayments: '5',
+      pendingValue: '500',
+      processedPayments: '3',
+      processedValue: '300',
+      settledPayments: '2',
+      settledValue: '200',
+      paymentsOnHold: '1',
+      valueOnHold: '100'
+    }
+
+    beforeEach(() => {
+      schemes.SFI = 1
+      schemes.BPS = 2
+    })
+
+    test('should handle null monthInYear parameter', () => {
+      const record = createMetricRecord(
+        mockResult,
+        PERIOD_ALL,
+        '2023-01-01',
+        null,
+        null,
+        null,
+        null
+      )
+      expect(record.monthInYear).toBeNull()
+    })
+
+    test('should handle undefined monthInYear parameter', () => {
+      const record = createMetricRecord(
+        mockResult,
+        PERIOD_ALL,
+        '2023-01-01',
+        null,
+        null,
+        null
+      )
+      expect(record.monthInYear).toBeNull()
+    })
+
+    test('should handle numeric monthInYear parameter', () => {
+      const record = createMetricRecord(
+        mockResult,
+        PERIOD_MONTH_IN_YEAR,
+        '2023-01-01',
+        new Date('2023-06-01'),
+        new Date('2023-06-30'),
+        2023,
+        6
+      )
+      expect(record.monthInYear).toBe(6)
+    })
+
+    test('should handle zero monthInYear as falsy and convert to null', () => {
+      const record = createMetricRecord(
+        mockResult,
+        PERIOD_YEAR,
+        '2023-01-01',
+        null,
+        null,
+        2023,
+        0
+      )
+      expect(record.monthInYear).toBeNull()
+    })
+
+    test('should set monthInYear for all valid months', () => {
+      for (let month = 1; month <= 12; month++) {
+        const record = createMetricRecord(
+          mockResult,
+          PERIOD_MONTH_IN_YEAR,
+          '2023-01-01',
+          new Date(),
+          new Date(),
+          2023,
+          month
+        )
+        expect(record.monthInYear).toBe(month)
+      }
+    })
+
+    test('should handle null schemeYear parameter', () => {
+      const record = createMetricRecord(
+        mockResult,
+        PERIOD_ALL,
+        '2023-01-01',
+        null,
+        null,
+        null,
+        null
+      )
+      expect(record.schemeYear).toBeNull()
+    })
+
+    test('should handle undefined schemeYear parameter', () => {
+      const record = createMetricRecord(
+        mockResult,
+        PERIOD_ALL,
+        '2023-01-01',
+        null,
+        null
+      )
+      expect(record.schemeYear).toBeNull()
+    })
+  })
+
+  describe('saveMetrics', () => {
+    const mockResults = [
+      {
+        schemeId: 1,
+        totalPayments: '10',
+        totalValue: '1000',
+        pendingPayments: '5',
+        pendingValue: '500',
+        processedPayments: '3',
+        processedValue: '300',
+        settledPayments: '2',
+        settledValue: '200',
+        paymentsOnHold: '1',
+        valueOnHold: '100'
+      }
+    ]
+
+    beforeEach(() => {
+      schemes.SFI = 1
+      db.metric = {
+        findOne: jest.fn().mockResolvedValue(null),
+        update: jest.fn().mockResolvedValue([1]),
+        create: jest.fn().mockResolvedValue({ id: 1 })
+      }
+    })
+
+    test('should handle null schemeYear and monthInYear parameters', async () => {
+      await saveMetrics(
+        mockResults,
+        PERIOD_ALL,
+        '2023-01-01',
+        null,
+        null,
+        null,
+        null
+      )
+
+      expect(db.metric.findOne).toHaveBeenCalledWith({
+        where: expect.objectContaining({
+          schemeYear: null,
+          monthInYear: null
+        })
+      })
+    })
+
+    test('should handle undefined schemeYear and monthInYear parameters', async () => {
+      await saveMetrics(
+        mockResults,
+        PERIOD_ALL,
+        '2023-01-01',
+        null,
+        null
+      )
+
+      expect(db.metric.findOne).toHaveBeenCalledWith({
+        where: expect.objectContaining({
+          schemeYear: null,
+          monthInYear: null
+        })
+      })
+    })
+
+    test('should handle numeric monthInYear parameter', async () => {
+      await saveMetrics(
+        mockResults,
+        PERIOD_MONTH_IN_YEAR,
+        '2023-01-01',
+        new Date('2023-06-01'),
+        new Date('2023-06-30'),
+        2023,
+        6
+      )
+
+      expect(db.metric.findOne).toHaveBeenCalledWith({
+        where: expect.objectContaining({
+          schemeYear: 2023,
+          monthInYear: 6
+        })
+      })
+
+      expect(db.metric.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          monthInYear: 6,
+          schemeYear: 2023
+        })
+      )
+    })
+
+    test('should pass monthInYear to createMetricRecord', async () => {
+      await saveMetrics(
+        mockResults,
+        PERIOD_MONTH_IN_YEAR,
+        '2023-01-01',
+        new Date(),
+        new Date(),
+        2023,
+        12
+      )
+
+      expect(db.metric.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          monthInYear: 12
+        })
+      )
+    })
+
+    test('should handle schemeYear without monthInYear', async () => {
+      await saveMetrics(
+        mockResults,
+        PERIOD_YEAR,
+        '2023-01-01',
+        null,
+        null,
+        2023,
+        null
+      )
+
+      expect(db.metric.findOne).toHaveBeenCalledWith({
+        where: expect.objectContaining({
+          schemeYear: 2023,
+          monthInYear: null
+        })
+      })
+    })
+
+    test('should update existing record with monthInYear', async () => {
+      db.metric.findOne.mockResolvedValue({ id: 999 })
+
+      await saveMetrics(
+        mockResults,
+        PERIOD_MONTH_IN_YEAR,
+        '2023-01-01',
+        new Date(),
+        new Date(),
+        2023,
+        6
+      )
+
+      expect(db.metric.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          monthInYear: 6,
+          schemeYear: 2023
+        }),
+        { where: { id: 999 } }
+      )
     })
   })
 
@@ -674,85 +999,6 @@ describe('Metrics Calculator', () => {
         expect.any(Object),
         { where: { id: 456 } }
       )
-    })
-  })
-  // Add this INSIDE the main describe('Metrics Calculator', () => { block
-  // Place it before the closing }) of the main describe block
-
-  describe('monthInYear parameter coverage', () => {
-    test('should set monthInYear when calculating month in year period', async () => {
-      await calculateMetricsForPeriod(PERIOD_MONTH_IN_YEAR, 2023, 6)
-
-      const createCall = db.metric.create.mock.calls[0][0]
-      expect(createCall.monthInYear).toBe(6)
-    })
-
-    test('should set monthInYear to null for non-month-in-year periods', async () => {
-      await calculateMetricsForPeriod(PERIOD_ALL)
-
-      const createCall = db.metric.create.mock.calls[0][0]
-      expect(createCall.monthInYear).toBeNull()
-    })
-
-    test('should include monthInYear in findOne where clause for month in year period', async () => {
-      const today = new Date().toISOString().split('T')[0]
-
-      await calculateMetricsForPeriod(PERIOD_MONTH_IN_YEAR, 2023, 6)
-
-      expect(db.metric.findOne).toHaveBeenCalledWith({
-        where: {
-          snapshotDate: today,
-          periodType: PERIOD_MONTH_IN_YEAR,
-          schemeName: 'SFI',
-          schemeYear: 2023,
-          monthInYear: 6
-        }
-      })
-    })
-
-    test('should update existing metric with monthInYear for month in year period', async () => {
-      db.metric.findOne.mockResolvedValue({ id: 789 })
-
-      await calculateMetricsForPeriod(PERIOD_MONTH_IN_YEAR, 2023, 6)
-
-      expect(db.metric.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          monthInYear: 6,
-          schemeYear: 2023
-        }),
-        { where: { id: 789 } }
-      )
-    })
-
-    test('should pass monthInYear through saveMetrics for month in year period', async () => {
-      await calculateMetricsForPeriod(PERIOD_MONTH_IN_YEAR, 2023, 12)
-
-      const createCall = db.metric.create.mock.calls[0][0]
-      expect(createCall.monthInYear).toBe(12)
-      expect(createCall.periodType).toBe(PERIOD_MONTH_IN_YEAR)
-    })
-
-    test('should handle monthInYear null for year period', async () => {
-      await calculateMetricsForPeriod(PERIOD_YEAR, 2023)
-
-      const createCall = db.metric.create.mock.calls[0][0]
-      expect(createCall.monthInYear).toBeNull()
-      expect(createCall.schemeYear).toBe(2023)
-    })
-
-    test('calculateDateRange should accept month parameter for month in year', async () => {
-      await calculateMetricsForPeriod(PERIOD_MONTH_IN_YEAR, 2023, 3)
-
-      expect(db.sequelize.query).toHaveBeenCalled()
-      const createCall = db.metric.create.mock.calls[0][0]
-      expect(createCall.monthInYear).toBe(3)
-    })
-
-    test('createMetricRecord should handle monthInYear parameter explicitly', async () => {
-      await calculateMetricsForPeriod(PERIOD_MONTH_IN_YEAR, 2023, 1)
-
-      const createCall = db.metric.create.mock.calls[0][0]
-      expect(createCall).toHaveProperty('monthInYear', 1)
     })
   })
 })

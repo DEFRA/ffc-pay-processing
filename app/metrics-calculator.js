@@ -362,5 +362,8 @@ const calculateAllMetrics = async () => {
 
 module.exports = {
   calculateAllMetrics,
-  calculateMetricsForPeriod
+  calculateMetricsForPeriod,
+  calculateDateRange,
+  createMetricRecord,
+  saveMetrics
 }
