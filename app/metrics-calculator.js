@@ -26,7 +26,6 @@ const {
 } = require('../app/constants/periods')
 const schemes = require('../app/constants/schemes')
 
-const DEFAULT_YEARS_TO_CALCULATE = 3
 const getSchemeNameById = (schemeId) => {
   const schemeEntry = Object.entries(schemes).find(([, id]) => id === schemeId)
   return schemeEntry ? schemeEntry[0] : null
@@ -337,22 +336,23 @@ const calculateYearlyMetrics = async (year) => {
   }
 }
 
-const calculateHistoricalMetrics = async (currentYear, yearsToCalculate) => {
-  for (let i = 0; i <= yearsToCalculate; i++) {
-    const year = currentYear - i
-    await calculateYearlyMetrics(year)
-  }
-}
-
 const calculateAllMetrics = async () => {
   console.log('Starting metrics calculation...')
 
-  const currentYear = new Date().getFullYear()
-  const yearsToCalculate = Number.parseInt(process.env.METRICS_CALCULATION_YEARS || String(DEFAULT_YEARS_TO_CALCULATE))
-
   try {
     await calculateBasicPeriods()
-    await calculateHistoricalMetrics(currentYear, yearsToCalculate)
+    const years = await db.paymentRequest.findAll({
+      attributes: [[db.sequelize.fn('DISTINCT', db.sequelize.col('marketingYear')), 'year']],
+      order: [['marketingYear', 'DESC']],
+      raw: true
+    })
+
+    for (const { year } of years) {
+      if (year) {
+        await calculateYearlyMetrics(year)
+      }
+    }
+
     console.log('✓ All metrics calculated successfully')
   } catch (error) {
     console.error('✗ Error calculating metrics:', error)

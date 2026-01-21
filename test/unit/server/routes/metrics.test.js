@@ -406,7 +406,122 @@ describe('Metrics Route Handler', () => {
       expect(consoleLogSpy).toHaveBeenCalledWith('Found records:', 2)
     })
 
-    test('should aggregate by scheme when no schemeYear filter', async () => {
+    test('should filter by monthInYear when provided', async () => {
+      mockRequest.query.period = PERIOD_MONTH_IN_YEAR
+      mockRequest.query.schemeYear = '2023'
+      mockRequest.query.month = '6'
+      metricsQueue.enqueue.mockResolvedValue()
+      db.metric.findOne.mockResolvedValue({ maxDate: '2023-01-01' })
+      db.metric.findAll.mockResolvedValue([
+        {
+          schemeName: 'Scheme1',
+          schemeYear: 2023,
+          monthInYear: 6,
+          totalPayments: 10,
+          totalValue: '1000',
+          pendingPayments: 5,
+          pendingValue: '500',
+          processedPayments: 3,
+          processedValue: '300',
+          settledPayments: 2,
+          settledValue: '200',
+          paymentsOnHold: 1,
+          valueOnHold: '100'
+        }
+      ])
+
+      await handler(mockRequest, mockH)
+
+      expect(db.metric.findOne).toHaveBeenCalledWith({
+        attributes: [[db.sequelize.fn('MAX', db.sequelize.col('snapshot_date')), 'maxDate']],
+        where: { periodType: PERIOD_MONTH_IN_YEAR, schemeYear: 2023 },
+        raw: true
+      })
+      expect(db.metric.findAll).toHaveBeenCalledWith({
+        where: {
+          snapshotDate: '2023-01-01',
+          periodType: PERIOD_MONTH_IN_YEAR,
+          schemeYear: 2023,
+          monthInYear: 6
+        },
+        order: [['schemeName', 'ASC']]
+      })
+      expect(mockResponse.code).toHaveBeenCalledWith(HTTP_OK)
+    })
+
+    test('should include monthInYear in where clause for different months', async () => {
+      const months = [1, 3, 6, 9, 12]
+
+      for (const month of months) {
+        jest.clearAllMocks()
+        mockRequest.query.period = PERIOD_MONTH_IN_YEAR
+        mockRequest.query.schemeYear = '2023'
+        mockRequest.query.month = String(month)
+        metricsQueue.enqueue.mockResolvedValue()
+        db.metric.findOne.mockResolvedValue({ maxDate: '2023-01-01' })
+        db.metric.findAll.mockResolvedValue([])
+
+        await handler(mockRequest, mockH)
+
+        expect(db.metric.findAll).toHaveBeenCalledWith({
+          where: {
+            snapshotDate: '2023-01-01',
+            periodType: PERIOD_MONTH_IN_YEAR,
+            schemeYear: 2023,
+            monthInYear: month
+          },
+          order: [['schemeName', 'ASC']]
+        })
+      }
+    })
+
+    test('should not include monthInYear for non-monthInYear periods', async () => {
+      mockRequest.query.period = PERIOD_YEAR
+      mockRequest.query.schemeYear = '2023'
+      metricsQueue.enqueue.mockResolvedValue()
+      db.metric.findOne.mockResolvedValue({ maxDate: '2023-01-01' })
+      db.metric.findAll.mockResolvedValue([])
+
+      await handler(mockRequest, mockH)
+
+      expect(db.metric.findAll).toHaveBeenCalledWith({
+        where: {
+          snapshotDate: '2023-01-01',
+          periodType: PERIOD_YEAR,
+          schemeYear: 2023
+          // monthInYear should NOT be included
+        },
+        order: [['schemeName', 'ASC']]
+      })
+    })
+
+    test('should handle monthInYear with different scheme years', async () => {
+      const years = [2020, 2021, 2023, 2025]
+
+      for (const year of years) {
+        jest.clearAllMocks()
+        mockRequest.query.period = PERIOD_MONTH_IN_YEAR
+        mockRequest.query.schemeYear = String(year)
+        mockRequest.query.month = '3'
+        metricsQueue.enqueue.mockResolvedValue()
+        db.metric.findOne.mockResolvedValue({ maxDate: '2023-01-01' })
+        db.metric.findAll.mockResolvedValue([])
+
+        await handler(mockRequest, mockH)
+
+        expect(db.metric.findAll).toHaveBeenCalledWith({
+          where: {
+            snapshotDate: '2023-01-01',
+            periodType: PERIOD_MONTH_IN_YEAR,
+            schemeYear: year,
+            monthInYear: 3
+          },
+          order: [['schemeName', 'ASC']]
+        })
+      }
+    })
+
+    test('should not aggregate for all period', async () => {
       mockRequest.query.period = PERIOD_ALL
       db.metric.findOne.mockResolvedValue({ maxDate: '2023-01-01' })
       db.metric.findAll.mockResolvedValue([
@@ -456,20 +571,35 @@ describe('Metrics Route Handler', () => {
         paymentsByScheme: [
           {
             schemeName: 'Scheme1',
-            schemeYear: null,
-            totalPayments: 15,
-            totalValue: 1500,
-            pendingPayments: 7,
-            pendingValue: 700,
-            processedPayments: 4,
-            processedValue: 400,
-            settledPayments: 3,
-            settledValue: 300,
+            schemeYear: 2022,
+            totalPayments: 10,
+            totalValue: 1000,
+            pendingPayments: 5,
+            pendingValue: 500,
+            processedPayments: 3,
+            processedValue: 300,
+            settledPayments: 2,
+            settledValue: 200,
             paymentsOnHold: 1,
             valueOnHold: 100
+          },
+          {
+            schemeName: 'Scheme1',
+            schemeYear: 2023,
+            totalPayments: 5,
+            totalValue: 500,
+            pendingPayments: 2,
+            pendingValue: 200,
+            processedPayments: 1,
+            processedValue: 100,
+            settledPayments: 1,
+            settledValue: 100,
+            paymentsOnHold: 0,
+            valueOnHold: 0
           }
         ]
       })
+      expect(mockResponse.code).toHaveBeenCalledWith(HTTP_OK)
     })
 
     test('should not aggregate when schemeYear filter is applied', async () => {
