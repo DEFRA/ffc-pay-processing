@@ -30,6 +30,11 @@ function defineIdentificationColumns (DataTypes) {
       type: DataTypes.INTEGER,
       allowNull: true,
       field: 'scheme_year'
+    },
+    monthInYear: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      field: 'month_in_year'
     }
   }
 }
@@ -124,7 +129,7 @@ function defineMetricOptions () {
     indexes: [
       {
         unique: true,
-        fields: ['snapshot_date', 'period_type', 'scheme_name', 'scheme_year']
+        fields: ['snapshot_date', 'period_type', 'scheme_name', 'scheme_year', 'month_in_year']
       },
       {
         fields: ['snapshot_date', 'period_type']

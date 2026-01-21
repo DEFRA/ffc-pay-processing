@@ -261,7 +261,7 @@ const parseIntOrZero = (value) => {
   return Number.parseInt(value) || 0
 }
 
-const createMetricRecord = (result, period, snapshotDate, startDate, endDate, schemeYear) => {
+const createMetricRecord = (result, period, snapshotDate, startDate, endDate, schemeYear, monthInYear = null) => {
   const schemeName = getSchemeNameById(result.schemeId)
 
   return {
@@ -269,6 +269,7 @@ const createMetricRecord = (result, period, snapshotDate, startDate, endDate, sc
     periodType: period,
     schemeName,
     schemeYear: schemeYear || null,
+    monthInYear: monthInYear || null,
     totalPayments: parseIntOrZero(result.totalPayments),
     totalValue: parseIntOrZero(result.totalValue),
     pendingPayments: parseIntOrZero(result.pendingPayments),
@@ -284,15 +285,16 @@ const createMetricRecord = (result, period, snapshotDate, startDate, endDate, sc
   }
 }
 
-const saveMetrics = async (results, period, snapshotDate, startDate, endDate, schemeYear = null) => {
+const saveMetrics = async (results, period, snapshotDate, startDate, endDate, schemeYear = null, monthInYear = null) => {
   for (const result of results) {
-    const metricRecord = createMetricRecord(result, period, snapshotDate, startDate, endDate, schemeYear)
+    const metricRecord = createMetricRecord(result, period, snapshotDate, startDate, endDate, schemeYear, monthInYear)
     const existing = await db.metric.findOne({
       where: {
         snapshotDate: metricRecord.snapshotDate,
         periodType: metricRecord.periodType,
         schemeName: metricRecord.schemeName,
-        schemeYear: metricRecord.schemeYear
+        schemeYear: metricRecord.schemeYear,
+        monthInYear: metricRecord.monthInYear
       }
     })
 
@@ -315,8 +317,9 @@ const calculateMetricsForPeriod = async (period, schemeYear = null, month = null
   const metricsResults = await fetchMetricsData(whereClause, useSchemeYear, schemeYear)
   const holdsResults = await fetchHoldsData(whereClause, useSchemeYear, schemeYear)
   const combinedResults = mergeMetricsWithHolds(metricsResults, holdsResults)
+  const monthInYear = period === PERIOD_MONTH_IN_YEAR ? month : null
 
-  await saveMetrics(combinedResults, period, snapshotDate, startDate, endDate, schemeYear)
+  await saveMetrics(combinedResults, period, snapshotDate, startDate, endDate, schemeYear, monthInYear)
 }
 
 const calculateBasicPeriods = async () => {

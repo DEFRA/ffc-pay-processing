@@ -406,6 +406,7 @@ describe('Metrics Calculator', () => {
       expect(createCall).toHaveProperty('valueOnHold')
       expect(createCall).toHaveProperty('dataStartDate')
       expect(createCall).toHaveProperty('dataEndDate')
+      expect(createCall).toHaveProperty('monthInYear')
     })
 
     test('should handle null values in metrics', async () => {
@@ -642,7 +643,8 @@ describe('Metrics Calculator', () => {
           snapshotDate: today,
           periodType: PERIOD_ALL,
           schemeName: 'SFI',
-          schemeYear: null
+          schemeYear: null,
+          monthInYear: null
         }
       })
     })
@@ -657,7 +659,8 @@ describe('Metrics Calculator', () => {
           snapshotDate: today,
           periodType: PERIOD_YEAR,
           schemeName: 'SFI',
-          schemeYear: 2023
+          schemeYear: 2023,
+          monthInYear: null
         }
       })
     })
