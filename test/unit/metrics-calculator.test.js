@@ -676,6 +676,85 @@ describe('Metrics Calculator', () => {
       )
     })
   })
+  // Add this INSIDE the main describe('Metrics Calculator', () => { block
+  // Place it before the closing }) of the main describe block
+
+  describe('monthInYear parameter coverage', () => {
+    test('should set monthInYear when calculating month in year period', async () => {
+      await calculateMetricsForPeriod(PERIOD_MONTH_IN_YEAR, 2023, 6)
+
+      const createCall = db.metric.create.mock.calls[0][0]
+      expect(createCall.monthInYear).toBe(6)
+    })
+
+    test('should set monthInYear to null for non-month-in-year periods', async () => {
+      await calculateMetricsForPeriod(PERIOD_ALL)
+
+      const createCall = db.metric.create.mock.calls[0][0]
+      expect(createCall.monthInYear).toBeNull()
+    })
+
+    test('should include monthInYear in findOne where clause for month in year period', async () => {
+      const today = new Date().toISOString().split('T')[0]
+
+      await calculateMetricsForPeriod(PERIOD_MONTH_IN_YEAR, 2023, 6)
+
+      expect(db.metric.findOne).toHaveBeenCalledWith({
+        where: {
+          snapshotDate: today,
+          periodType: PERIOD_MONTH_IN_YEAR,
+          schemeName: 'SFI',
+          schemeYear: 2023,
+          monthInYear: 6
+        }
+      })
+    })
+
+    test('should update existing metric with monthInYear for month in year period', async () => {
+      db.metric.findOne.mockResolvedValue({ id: 789 })
+
+      await calculateMetricsForPeriod(PERIOD_MONTH_IN_YEAR, 2023, 6)
+
+      expect(db.metric.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          monthInYear: 6,
+          schemeYear: 2023
+        }),
+        { where: { id: 789 } }
+      )
+    })
+
+    test('should pass monthInYear through saveMetrics for month in year period', async () => {
+      await calculateMetricsForPeriod(PERIOD_MONTH_IN_YEAR, 2023, 12)
+
+      const createCall = db.metric.create.mock.calls[0][0]
+      expect(createCall.monthInYear).toBe(12)
+      expect(createCall.periodType).toBe(PERIOD_MONTH_IN_YEAR)
+    })
+
+    test('should handle monthInYear null for year period', async () => {
+      await calculateMetricsForPeriod(PERIOD_YEAR, 2023)
+
+      const createCall = db.metric.create.mock.calls[0][0]
+      expect(createCall.monthInYear).toBeNull()
+      expect(createCall.schemeYear).toBe(2023)
+    })
+
+    test('calculateDateRange should accept month parameter for month in year', async () => {
+      await calculateMetricsForPeriod(PERIOD_MONTH_IN_YEAR, 2023, 3)
+
+      expect(db.sequelize.query).toHaveBeenCalled()
+      const createCall = db.metric.create.mock.calls[0][0]
+      expect(createCall.monthInYear).toBe(3)
+    })
+
+    test('createMetricRecord should handle monthInYear parameter explicitly', async () => {
+      await calculateMetricsForPeriod(PERIOD_MONTH_IN_YEAR, 2023, 1)
+
+      const createCall = db.metric.create.mock.calls[0][0]
+      expect(createCall).toHaveProperty('monthInYear', 1)
+    })
+  })
 })
 
 // Custom matcher to check call order
