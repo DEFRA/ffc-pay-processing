@@ -7,12 +7,10 @@ const {
 } = require('../app/constants/time')
 const {
   FIRST_DAY_OF_MONTH,
-  YEAR_START_MONTH,
   END_OF_DAY_HOUR,
   END_OF_DAY_MINUTE,
   END_OF_DAY_SECOND,
   END_OF_DAY_MILLISECOND,
-  MONTH_INDEX_OFFSET,
   MONTHS_PER_YEAR
 } = require('../app/constants/date')
 const {
@@ -33,42 +31,34 @@ const getSchemeNameById = (schemeId) => {
 
 const getDateRangeForAll = () => ({
   startDate: null,
-  endDate: null,
-  useSchemeYear: false
+  endDate: null
 })
 
 const getDateRangeForYTD = (now) => ({
-  startDate: new Date(now.getFullYear(), YEAR_START_MONTH, FIRST_DAY_OF_MONTH),
-  endDate: now,
-  useSchemeYear: false
+  startDate: new Date(now.getFullYear(), 0, FIRST_DAY_OF_MONTH),
+  endDate: now
 })
 
-const getDateRangeForYear = () => ({
-  startDate: null,
-  endDate: null,
-  useSchemeYear: true
+const getDateRangeForYear = (year) => ({
+  startDate: new Date(year, 0, 1),
+  endDate: new Date(year + 1, 0, 1),
+  year
 })
 
-const getDateRangeForMonthInYear = (schemeYear, month) => {
-  if (!schemeYear || !month) {
-    throw new Error('schemeYear and month are required for monthInYear period')
-  }
-  return {
-    startDate: new Date(schemeYear, month - MONTH_INDEX_OFFSET, FIRST_DAY_OF_MONTH),
-    endDate: new Date(schemeYear, month, 0, END_OF_DAY_HOUR, END_OF_DAY_MINUTE, END_OF_DAY_SECOND, END_OF_DAY_MILLISECOND),
-    useSchemeYear: true
-  }
-}
+const getDateRangeForMonthInYear = (year, month) => ({
+  startDate: new Date(year, month - 1, 1),
+  endDate: new Date(year, month, 1, END_OF_DAY_HOUR, END_OF_DAY_MINUTE, END_OF_DAY_SECOND, END_OF_DAY_MILLISECOND),
+  year,
+  month
+})
 
 const getDateRangeForRelativePeriod = (now, days) => ({
   startDate: new Date(now.getTime() - days * MILLISECONDS_PER_DAY),
-  endDate: now,
-  useSchemeYear: false
+  endDate: now
 })
 
-const calculateDateRange = (period, schemeYear = null, month = null) => {
+const calculateDateRange = (period, year = null, month = null) => {
   const now = new Date()
-
   if (period === PERIOD_ALL) {
     return getDateRangeForAll()
   }
@@ -76,10 +66,12 @@ const calculateDateRange = (period, schemeYear = null, month = null) => {
     return getDateRangeForYTD(now)
   }
   if (period === PERIOD_YEAR) {
-    return getDateRangeForYear()
+    if (!year) throw new Error('Year is required for yearly metrics')
+    return getDateRangeForYear(year)
   }
   if (period === PERIOD_MONTH_IN_YEAR) {
-    return getDateRangeForMonthInYear(schemeYear, month)
+    if (!year || !month) throw new Error('Year and month are required for monthInYear metrics')
+    return getDateRangeForMonthInYear(year, month)
   }
   if (period === PERIOD_MONTH) {
     return getDateRangeForRelativePeriod(now, DAYS_PER_MONTH)
@@ -93,55 +85,39 @@ const calculateDateRange = (period, schemeYear = null, month = null) => {
   throw new Error(`Unknown period type: ${period}`)
 }
 
-const buildWhereClauseForDateRange = (period, startDate, endDate, useSchemeYear) => {
+const buildWhereClauseForDateRange = (startDate, endDate) => {
   const whereClause = {}
-
-  if (!useSchemeYear && startDate && endDate) {
+  if (startDate && endDate) {
     whereClause.received = {
       [Op.gte]: startDate,
       [Op.lt]: endDate
     }
   }
-
-  if (period === PERIOD_MONTH_IN_YEAR && startDate && endDate) {
-    whereClause.received = {
-      [Op.gte]: startDate,
-      [Op.lte]: endDate
-    }
-  }
-
   return whereClause
 }
 
-const buildQueryWhereClausesAndReplacements = (schemeWhereClause, useSchemeYear, schemeYear) => {
+const buildQueryWhereClausesAndReplacements = (schemeWhereClause) => {
   const whereClauses = []
   const replacements = {}
-
   if (schemeWhereClause.received) {
     whereClauses.push(
       'pr."received" >= :startDate',
       'pr."received" < :endDate'
     )
     replacements.startDate = schemeWhereClause.received[Op.gte]
-    replacements.endDate = schemeWhereClause.received[Op.lt] || schemeWhereClause.received[Op.lte]
+    replacements.endDate = schemeWhereClause.received[Op.lt]
   }
-
-  if (useSchemeYear && schemeYear) {
-    whereClauses.push('pr."marketingYear" = :schemeYear')
-    replacements.schemeYear = schemeYear
-  }
-
   return { whereClauses, replacements }
 }
 
-const buildMetricsQuery = (whereSQL) => {
+const buildMetricsQuery = (whereSQL, groupByYearMonth = true) => {
   return `
     SELECT 
+      ${groupByYearMonth ? 'EXTRACT(YEAR FROM pr."received") AS "year",' : ''}
+      ${groupByYearMonth ? 'EXTRACT(MONTH FROM pr."received") AS "month",' : ''}
       pr."schemeId",
       COUNT(pr."paymentRequestId") as "totalPayments",
       COALESCE(SUM(pr."value"), 0) as "totalValue",
-      
-      -- Pending: no completed schedule
       COUNT(CASE WHEN NOT EXISTS (
         SELECT 1 FROM schedule s 
         WHERE s."paymentRequestId" = pr."paymentRequestId" 
@@ -152,8 +128,6 @@ const buildMetricsQuery = (whereSQL) => {
         WHERE s."paymentRequestId" = pr."paymentRequestId" 
         AND s."completed" IS NOT NULL
       ) THEN pr."value" ELSE 0 END), 0) as "pendingValue",
-      
-      -- Processed: has completed schedule
       COUNT(CASE WHEN EXISTS (
         SELECT 1 FROM schedule s 
         WHERE s."paymentRequestId" = pr."paymentRequestId" 
@@ -164,8 +138,6 @@ const buildMetricsQuery = (whereSQL) => {
         WHERE s."paymentRequestId" = pr."paymentRequestId" 
         AND s."completed" IS NOT NULL
       ) THEN pr."value" ELSE 0 END), 0) as "processedValue",
-      
-      -- Settled: has completedPaymentRequest with lastSettlement
       COUNT(CASE WHEN EXISTS (
         SELECT 1 FROM "completedPaymentRequests" cpr 
         WHERE cpr."paymentRequestId" = pr."paymentRequestId" 
@@ -187,19 +159,19 @@ const buildMetricsQuery = (whereSQL) => {
       ) ELSE 0 END), 0) as "settledValue"
     FROM "paymentRequests" pr
     ${whereSQL}
-    GROUP BY pr."schemeId"
+    GROUP BY ${groupByYearMonth ? '"year", "month", ' : ''}pr."schemeId"
   `
 }
 
-const fetchMetricsData = async (whereClause, useSchemeYear, schemeYear) => {
-  const schemeWhereClause = useSchemeYear && schemeYear
-    ? { ...whereClause, marketingYear: schemeYear }
-    : whereClause
-
-  const { whereClauses, replacements } = buildQueryWhereClausesAndReplacements(schemeWhereClause, useSchemeYear, schemeYear)
+const fetchMetricsData = async (whereClause, year = null, month = null, period = null) => {
+  const schemeWhereClause = whereClause
+  const { whereClauses, replacements } = buildQueryWhereClausesAndReplacements(schemeWhereClause)
   const whereSQL = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : ''
-  const metricsQuery = buildMetricsQuery(whereSQL)
-
+  let groupByYearMonth = true
+  if (period === PERIOD_ALL) {
+    groupByYearMonth = false
+  }
+  const metricsQuery = buildMetricsQuery(whereSQL, groupByYearMonth)
   return db.sequelize.query(metricsQuery, {
     replacements,
     type: db.sequelize.QueryTypes.SELECT,
@@ -207,13 +179,12 @@ const fetchMetricsData = async (whereClause, useSchemeYear, schemeYear) => {
   })
 }
 
-const fetchHoldsData = async (whereClause, useSchemeYear, schemeYear) => {
-  const schemeWhereClause = useSchemeYear && schemeYear
-    ? { ...whereClause, marketingYear: schemeYear }
-    : whereClause
-
+const fetchHoldsData = async (whereClause) => {
+  const schemeWhereClause = whereClause
   const holdsQuery = `
         SELECT 
+            EXTRACT(YEAR FROM pr."received") AS "year",
+            EXTRACT(MONTH FROM pr."received") AS "month",
             pr."schemeId",
             COUNT(DISTINCT pr."paymentRequestId") as "paymentsOnHold",
             COALESCE(SUM(pr."value"), 0) as "valueOnHold"
@@ -223,19 +194,13 @@ const fetchHoldsData = async (whereClause, useSchemeYear, schemeYear) => {
         WHERE h."closed" IS NULL
           AND hc."schemeId" = pr."schemeId"
           ${schemeWhereClause.received ? 'AND pr."received" >= :startDate AND pr."received" < :endDate' : ''}
-          ${useSchemeYear && schemeYear ? 'AND pr."marketingYear" = :schemeYear' : ''}
-        GROUP BY pr."schemeId"
+        GROUP BY "year", "month", pr."schemeId"
     `
-
   const replacements = {}
   if (schemeWhereClause.received) {
     replacements.startDate = schemeWhereClause.received[Op.gte]
-    replacements.endDate = schemeWhereClause.received[Op.lt] || schemeWhereClause.received[Op.lte]
+    replacements.endDate = schemeWhereClause.received[Op.lt]
   }
-  if (useSchemeYear && schemeYear) {
-    replacements.schemeYear = schemeYear
-  }
-
   return db.sequelize.query(holdsQuery, {
     replacements,
     type: db.sequelize.QueryTypes.SELECT,
@@ -244,10 +209,10 @@ const fetchHoldsData = async (whereClause, useSchemeYear, schemeYear) => {
 }
 
 const mergeMetricsWithHolds = (metricsResults, holdsResults) => {
-  const holdsMap = new Map(holdsResults.map(h => [h.schemeId, h]))
-
+  const holdsMap = new Map(holdsResults.map(h => [h.schemeId + '-' + h.year + '-' + h.month, h]))
   return metricsResults.map(metric => {
-    const holdData = holdsMap.get(metric.schemeId)
+    const key = metric.schemeId + '-' + metric.year + '-' + metric.month
+    const holdData = holdsMap.get(key)
     return {
       ...metric,
       paymentsOnHold: holdData ? Number.parseInt(holdData.paymentsOnHold) : 0,
@@ -260,15 +225,14 @@ const parseIntOrZero = (value) => {
   return Number.parseInt(value) || 0
 }
 
-const createMetricRecord = (result, period, snapshotDate, startDate, endDate, schemeYear, monthInYear = null) => {
+const createMetricRecord = (result, period, snapshotDate, startDate, endDate, year, month = null) => {
   const schemeName = getSchemeNameById(result.schemeId)
-
   return {
     snapshotDate,
     periodType: period,
     schemeName,
-    schemeYear: schemeYear || null,
-    monthInYear: monthInYear || null,
+    schemeYear: year || null,
+    monthInYear: month || null,
     totalPayments: parseIntOrZero(result.totalPayments),
     totalValue: parseIntOrZero(result.totalValue),
     pendingPayments: parseIntOrZero(result.pendingPayments),
@@ -284,9 +248,10 @@ const createMetricRecord = (result, period, snapshotDate, startDate, endDate, sc
   }
 }
 
-const saveMetrics = async (results, period, snapshotDate, startDate, endDate, schemeYear = null, monthInYear = null) => {
+const saveMetrics = async (results, period, snapshotDate, startDate, endDate, year = null, month = null) => {
   for (const result of results) {
-    const metricRecord = createMetricRecord(result, period, snapshotDate, startDate, endDate, schemeYear, monthInYear)
+    const metricRecord = createMetricRecord(result, period, snapshotDate, startDate, endDate, year, month)
+
     const existing = await db.metric.findOne({
       where: {
         snapshotDate: metricRecord.snapshotDate,
@@ -296,7 +261,6 @@ const saveMetrics = async (results, period, snapshotDate, startDate, endDate, sc
         monthInYear: metricRecord.monthInYear
       }
     })
-
     if (existing) {
       await db.metric.update(metricRecord, {
         where: {
@@ -309,16 +273,15 @@ const saveMetrics = async (results, period, snapshotDate, startDate, endDate, sc
   }
 }
 
-const calculateMetricsForPeriod = async (period, schemeYear = null, month = null) => {
-  const { startDate, endDate, useSchemeYear } = calculateDateRange(period, schemeYear, month)
+const calculateMetricsForPeriod = async (period, year = null, month = null) => {
+  const { startDate, endDate } = calculateDateRange(period, year, month)
   const snapshotDate = new Date().toISOString().split('T')[0]
-  const whereClause = buildWhereClauseForDateRange(period, startDate, endDate, useSchemeYear)
-  const metricsResults = await fetchMetricsData(whereClause, useSchemeYear, schemeYear)
-  const holdsResults = await fetchHoldsData(whereClause, useSchemeYear, schemeYear)
+  const whereClause = buildWhereClauseForDateRange(startDate, endDate)
+  const metricsResults = await fetchMetricsData(whereClause, year, month, period)
+  const holdsResults = await fetchHoldsData(whereClause)
   const combinedResults = mergeMetricsWithHolds(metricsResults, holdsResults)
   const monthInYear = period === PERIOD_MONTH_IN_YEAR ? month : null
-
-  await saveMetrics(combinedResults, period, snapshotDate, startDate, endDate, schemeYear, monthInYear)
+  await saveMetrics(combinedResults, period, snapshotDate, startDate, endDate, year, monthInYear)
 }
 
 const calculateBasicPeriods = async () => {
@@ -330,7 +293,6 @@ const calculateBasicPeriods = async () => {
 
 const calculateYearlyMetrics = async (year) => {
   await calculateMetricsForPeriod(PERIOD_YEAR, year)
-
   for (let month = 1; month <= MONTHS_PER_YEAR; month++) {
     await calculateMetricsForPeriod(PERIOD_MONTH_IN_YEAR, year, month)
   }
@@ -338,21 +300,17 @@ const calculateYearlyMetrics = async (year) => {
 
 const calculateAllMetrics = async () => {
   console.log('Starting metrics calculation...')
-
   try {
     await calculateBasicPeriods()
-    const years = await db.paymentRequest.findAll({
-      attributes: [[db.sequelize.fn('DISTINCT', db.sequelize.col('marketingYear')), 'year']],
-      order: [['marketingYear', 'DESC']],
-      raw: true
-    })
-
+    const years = await db.sequelize.query(
+      'SELECT DISTINCT EXTRACT(YEAR FROM "received") AS year FROM "paymentRequests" ORDER BY year DESC',
+      { type: db.sequelize.QueryTypes.SELECT }
+    )
     for (const { year } of years) {
       if (year) {
-        await calculateYearlyMetrics(year)
+        await calculateYearlyMetrics(Number(year))
       }
     }
-
     console.log('✓ All metrics calculated successfully')
   } catch (error) {
     console.error('✗ Error calculating metrics:', error)
@@ -365,5 +323,15 @@ module.exports = {
   calculateMetricsForPeriod,
   calculateDateRange,
   createMetricRecord,
-  saveMetrics
+  saveMetrics,
+  getSchemeNameById,
+  buildWhereClauseForDateRange,
+  buildQueryWhereClausesAndReplacements,
+  buildMetricsQuery,
+  fetchMetricsData,
+  fetchHoldsData,
+  mergeMetricsWithHolds,
+  parseIntOrZero,
+  calculateBasicPeriods,
+  calculateYearlyMetrics
 }
