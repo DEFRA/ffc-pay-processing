@@ -26,7 +26,6 @@ const {
 } = require('../app/constants/periods')
 const schemes = require('../app/constants/schemes')
 
-const DEFAULT_YEARS_TO_CALCULATE = 3
 const getSchemeNameById = (schemeId) => {
   const schemeEntry = Object.entries(schemes).find(([, id]) => id === schemeId)
   return schemeEntry ? schemeEntry[0] : null
@@ -261,7 +260,7 @@ const parseIntOrZero = (value) => {
   return Number.parseInt(value) || 0
 }
 
-const createMetricRecord = (result, period, snapshotDate, startDate, endDate, schemeYear) => {
+const createMetricRecord = (result, period, snapshotDate, startDate, endDate, schemeYear, monthInYear = null) => {
   const schemeName = getSchemeNameById(result.schemeId)
 
   return {
@@ -269,6 +268,7 @@ const createMetricRecord = (result, period, snapshotDate, startDate, endDate, sc
     periodType: period,
     schemeName,
     schemeYear: schemeYear || null,
+    monthInYear: monthInYear || null,
     totalPayments: parseIntOrZero(result.totalPayments),
     totalValue: parseIntOrZero(result.totalValue),
     pendingPayments: parseIntOrZero(result.pendingPayments),
@@ -284,15 +284,16 @@ const createMetricRecord = (result, period, snapshotDate, startDate, endDate, sc
   }
 }
 
-const saveMetrics = async (results, period, snapshotDate, startDate, endDate, schemeYear = null) => {
+const saveMetrics = async (results, period, snapshotDate, startDate, endDate, schemeYear = null, monthInYear = null) => {
   for (const result of results) {
-    const metricRecord = createMetricRecord(result, period, snapshotDate, startDate, endDate, schemeYear)
+    const metricRecord = createMetricRecord(result, period, snapshotDate, startDate, endDate, schemeYear, monthInYear)
     const existing = await db.metric.findOne({
       where: {
         snapshotDate: metricRecord.snapshotDate,
         periodType: metricRecord.periodType,
         schemeName: metricRecord.schemeName,
-        schemeYear: metricRecord.schemeYear
+        schemeYear: metricRecord.schemeYear,
+        monthInYear: metricRecord.monthInYear
       }
     })
 
@@ -315,8 +316,9 @@ const calculateMetricsForPeriod = async (period, schemeYear = null, month = null
   const metricsResults = await fetchMetricsData(whereClause, useSchemeYear, schemeYear)
   const holdsResults = await fetchHoldsData(whereClause, useSchemeYear, schemeYear)
   const combinedResults = mergeMetricsWithHolds(metricsResults, holdsResults)
+  const monthInYear = period === PERIOD_MONTH_IN_YEAR ? month : null
 
-  await saveMetrics(combinedResults, period, snapshotDate, startDate, endDate, schemeYear)
+  await saveMetrics(combinedResults, period, snapshotDate, startDate, endDate, schemeYear, monthInYear)
 }
 
 const calculateBasicPeriods = async () => {
@@ -334,22 +336,23 @@ const calculateYearlyMetrics = async (year) => {
   }
 }
 
-const calculateHistoricalMetrics = async (currentYear, yearsToCalculate) => {
-  for (let i = 0; i <= yearsToCalculate; i++) {
-    const year = currentYear - i
-    await calculateYearlyMetrics(year)
-  }
-}
-
 const calculateAllMetrics = async () => {
   console.log('Starting metrics calculation...')
 
-  const currentYear = new Date().getFullYear()
-  const yearsToCalculate = Number.parseInt(process.env.METRICS_CALCULATION_YEARS || String(DEFAULT_YEARS_TO_CALCULATE))
-
   try {
     await calculateBasicPeriods()
-    await calculateHistoricalMetrics(currentYear, yearsToCalculate)
+    const years = await db.paymentRequest.findAll({
+      attributes: [[db.sequelize.fn('DISTINCT', db.sequelize.col('marketingYear')), 'year']],
+      order: [['marketingYear', 'DESC']],
+      raw: true
+    })
+
+    for (const { year } of years) {
+      if (year) {
+        await calculateYearlyMetrics(year)
+      }
+    }
+
     console.log('✓ All metrics calculated successfully')
   } catch (error) {
     console.error('✗ Error calculating metrics:', error)
@@ -359,5 +362,8 @@ const calculateAllMetrics = async () => {
 
 module.exports = {
   calculateAllMetrics,
-  calculateMetricsForPeriod
+  calculateMetricsForPeriod,
+  calculateDateRange,
+  createMetricRecord,
+  saveMetrics
 }

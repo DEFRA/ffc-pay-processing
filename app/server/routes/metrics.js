@@ -181,7 +181,7 @@ const formatMetricsResponse = (totals, schemeMetrics) => {
   }
 }
 
-const fetchMetrics = async (period, schemeYear) => {
+const fetchMetrics = async (period, schemeYear, month = null) => {
   const whereCondition = schemeYear
     ? { periodType: period, schemeYear }
     : { periodType: period }
@@ -201,7 +201,8 @@ const fetchMetrics = async (period, schemeYear) => {
   const whereClause = {
     snapshotDate: mostRecentSnapshot.maxDate,
     periodType: period,
-    ...(schemeYear && { schemeYear })
+    ...(schemeYear && { schemeYear }),
+    ...(month && { monthInYear: month })
   }
 
   console.log('Fetching with where clause:', whereClause)
@@ -216,9 +217,9 @@ const fetchMetrics = async (period, schemeYear) => {
   return results
 }
 
-const processMetrics = (metrics, schemeYear) => {
+const processMetrics = (metrics, schemeYear, period) => {
   const schemeMetrics = metrics.filter(m => m.schemeName !== null)
-  const aggregatedSchemes = schemeYear ? schemeMetrics : aggregateByScheme(schemeMetrics)
+  const aggregatedSchemes = (period === PERIOD_ALL || schemeYear || (period === PERIOD_YEAR && schemeYear === null)) ? schemeMetrics : aggregateByScheme(schemeMetrics)
   const totals = calculateTotals(schemeMetrics)
   return formatMetricsResponse(totals, aggregatedSchemes)
 }
@@ -293,8 +294,8 @@ const handleMetricsRequest = async (request, h) => {
   }
 
   const yearFilter = period === PERIOD_ALL ? null : schemeYear
-  const metrics = await fetchMetrics(period, yearFilter)
-  const response = processMetrics(metrics, yearFilter)
+  const metrics = await fetchMetrics(period, yearFilter, month)
+  const response = processMetrics(metrics, yearFilter, period)
   return h.response(response).code(HTTP_OK)
 }
 
