@@ -19,35 +19,36 @@ const {
   PERIOD_DAY
 } = require('../../app/constants/periods')
 
+const validateParams = (period, year, month) => {
+  if (period === PERIOD_YEAR && !year) {
+    throw new Error('Year is required for yearly metrics')
+  }
+  if (period === PERIOD_MONTH_IN_YEAR && (!year || !month)) {
+    throw new Error('Year and month are required for monthInYear metrics')
+  }
+}
+
 const calculateDateRange = (period, year = null, month = null) => {
   const now = new Date()
-  if (period === PERIOD_ALL) {
-    return getDateRangeForAll()
+  validateParams(period, year, month)
+  switch (period) {
+    case PERIOD_ALL:
+      return getDateRangeForAll()
+    case PERIOD_YTD:
+      return getDateRangeForYTD(now)
+    case PERIOD_YEAR:
+      return getDateRangeForYear(year)
+    case PERIOD_MONTH_IN_YEAR:
+      return getDateRangeForMonthInYear(year, month)
+    case PERIOD_MONTH:
+      return getDateRangeForRelativePeriod(now, DAYS_PER_MONTH)
+    case PERIOD_WEEK:
+      return getDateRangeForRelativePeriod(now, DAYS_PER_WEEK)
+    case PERIOD_DAY:
+      return getDateRangeForRelativePeriod(now, 1)
+    default:
+      throw new Error(`Unknown period type: ${period}`)
   }
-  if (period === PERIOD_YTD) {
-    return getDateRangeForYTD(now)
-  }
-  if (period === PERIOD_YEAR) {
-    if (year) { return getDateRangeForYear(year) } else {
-      throw new Error('Year is required for yearly metrics')
-    }
-  }
-  if (period === PERIOD_MONTH_IN_YEAR) {
-    if (!year || !month) {
-      throw new Error('Year and month are required for monthInYear metrics')
-    }
-    return getDateRangeForMonthInYear(year, month)
-  }
-  if (period === PERIOD_MONTH) {
-    return getDateRangeForRelativePeriod(now, DAYS_PER_MONTH)
-  }
-  if (period === PERIOD_WEEK) {
-    return getDateRangeForRelativePeriod(now, DAYS_PER_WEEK)
-  }
-  if (period === PERIOD_DAY) {
-    return getDateRangeForRelativePeriod(now, 1)
-  }
-  throw new Error(`Unknown period type: ${period}`)
 }
 
 const calculateMetricsForPeriod = async (period, year = null, month = null) => {
