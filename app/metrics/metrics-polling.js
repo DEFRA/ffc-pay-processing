@@ -1,4 +1,4 @@
-const config = require('./config')
+const config = require('../config')
 const { calculateAllMetrics } = require('./metrics-calculator')
 const moment = require('moment')
 

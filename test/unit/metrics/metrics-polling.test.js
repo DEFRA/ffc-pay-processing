@@ -1,11 +1,11 @@
-const { startMetricsPolling, stopMetricsPolling } = require('../../app/metrics-polling')
+const { startMetricsPolling, stopMetricsPolling } = require('../../../app/metrics/metrics-polling')
 
-jest.mock('../../app/config')
-jest.mock('../../app/metrics-calculator')
+jest.mock('../../../app/config')
+jest.mock('../../../app/metrics/metrics-calculator')
 jest.mock('moment')
 
-const config = require('../../app/config')
-const { calculateAllMetrics } = require('../../app/metrics-calculator')
+const config = require('../../../app/config')
+const { calculateAllMetrics } = require('../../../app/metrics/metrics-calculator')
 const moment = require('moment')
 
 describe('Metrics Polling', () => {
