@@ -2,10 +2,10 @@ const routes = require('../../../../app/server/routes/metrics')
 const handler = routes[0].handler
 
 jest.mock('../../../../app/data')
-jest.mock('../../../../app/metrics-queue')
+jest.mock('../../../../app/metrics/metrics-queue')
 
 const db = require('../../../../app/data')
-const { metricsQueue } = require('../../../../app/metrics-queue')
+const { metricsQueue } = require('../../../../app/metrics/metrics-queue')
 
 const { PERIOD_ALL, PERIOD_YTD, PERIOD_YEAR, PERIOD_MONTH_IN_YEAR, PERIOD_MONTH, PERIOD_WEEK, PERIOD_DAY } = require('../../../../app/constants/periods')
 const { HTTP_OK, HTTP_BAD_REQUEST, HTTP_INTERNAL_SERVER_ERROR } = require('../../../../app/constants/http-status-codes')

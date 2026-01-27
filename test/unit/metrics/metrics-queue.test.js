@@ -1,7 +1,7 @@
-const { metricsQueue } = require('../../app/metrics-queue')
+const { metricsQueue } = require('../../../app/metrics/metrics-queue')
 
-jest.mock('../../app/metrics-calculator')
-const { calculateMetricsForPeriod } = require('../../app/metrics-calculator')
+jest.mock('../../../app/metrics/metrics-calculator')
+const { calculateMetricsForPeriod } = require('../../../app/metrics/metrics-calculator')
 
 describe('MetricsCalculationQueue', () => {
   let consoleLogSpy
@@ -341,8 +341,8 @@ describe('MetricsCalculationQueue', () => {
 
   describe('singleton instance', () => {
     test('should export singleton instance', () => {
-      const { metricsQueue: instance1 } = require('../../app/metrics-queue')
-      const { metricsQueue: instance2 } = require('../../app/metrics-queue')
+      const { metricsQueue: instance1 } = require('../../../app/metrics/metrics-queue')
+      const { metricsQueue: instance2 } = require('../../../app/metrics/metrics-queue')
 
       expect(instance1).toBe(instance2)
     })

@@ -1,6 +1,6 @@
 const db = require('../../data')
 const { HTTP_OK, HTTP_BAD_REQUEST, HTTP_INTERNAL_SERVER_ERROR } = require('../../../app/constants/http-status-codes')
-const { metricsQueue } = require('../../metrics-queue')
+const { metricsQueue } = require('../../metrics/metrics-queue')
 const { PERIOD_ALL, PERIOD_YTD, PERIOD_YEAR, PERIOD_MONTH_IN_YEAR, PERIOD_MONTH, PERIOD_WEEK, PERIOD_DAY } = require('../../../app/constants/periods')
 const VALID_PERIODS = [PERIOD_ALL, PERIOD_YTD, PERIOD_YEAR, PERIOD_MONTH_IN_YEAR, PERIOD_MONTH, PERIOD_WEEK, PERIOD_DAY]
 const MIN_YEAR = 2000

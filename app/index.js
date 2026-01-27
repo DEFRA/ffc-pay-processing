@@ -3,7 +3,7 @@ require('log-timestamp')
 const { processingConfig } = require('./config')
 const { start: startMessaging, stop: stopMessaging } = require('./messaging')
 const { start: startProcessing } = require('./processing')
-const { startMetricsPolling, stopMetricsPolling } = require('./metrics-polling')
+const { startMetricsPolling, stopMetricsPolling } = require('./metrics/metrics-polling')
 const { start: startServer } = require('./server')
 
 process.on(['SIGTERM', 'SIGINT'], async () => {
