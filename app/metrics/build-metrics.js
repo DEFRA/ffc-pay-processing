@@ -1,11 +1,11 @@
-const { Op } = require('sequelize')
+const db = require('../data')
 
 const buildWhereClauseForDateRange = (startDate, endDate) => {
   const whereClause = {}
   if (startDate && endDate) {
     whereClause.received = {
-      [Op.gte]: startDate,
-      [Op.lt]: endDate
+      [db.Sequelize.Op.gte]: startDate,
+      [db.Sequelize.Op.lt]: endDate
     }
   }
   return whereClause
@@ -19,8 +19,8 @@ const buildQueryWhereClausesAndReplacements = (schemeWhereClause) => {
       'pr."received" >= :startDate',
       'pr."received" < :endDate'
     )
-    replacements.startDate = schemeWhereClause.received[Op.gte]
-    replacements.endDate = schemeWhereClause.received[Op.lt]
+    replacements.startDate = schemeWhereClause.received[db.Sequelize.Op.gte]
+    replacements.endDate = schemeWhereClause.received[db.Sequelize.Op.lt]
   }
   return { whereClauses, replacements }
 }

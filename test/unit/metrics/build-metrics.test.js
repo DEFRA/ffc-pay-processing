@@ -1,8 +1,14 @@
 jest.mock('sequelize', () => {
-  const Op = { gte: Symbol('gte'), lt: Symbol('lt') }
-  return { Op }
+  const Sequelize = require('sequelize')
+  return {
+    Sequelize: {
+      Op: Sequelize.Op,
+      gte: Sequelize.Op.gte,
+      lt: Sequelize.Op.lt
+    }
+  }
 })
-const { Op } = require('sequelize')
+const db = require('../../../app/data')
 const { buildWhereClauseForDateRange, buildQueryWhereClausesAndReplacements, buildMetricsQuery } = require('../../../app/metrics/build-metrics')
 
 describe('Build Metrics', () => {
@@ -11,8 +17,8 @@ describe('Build Metrics', () => {
       const start = new Date(2023, 0, 1)
       const end = new Date(2024, 0, 1)
       const result = buildWhereClauseForDateRange(start, end)
-      expect(result.received[Op.gte]).toEqual(start)
-      expect(result.received[Op.lt]).toEqual(end)
+      expect(result.received[db.Sequelize.Op.gte]).toEqual(start)
+      expect(result.received[db.Sequelize.Op.lt]).toEqual(end)
     })
 
     test('should build empty where clause without dates', () => {
@@ -25,7 +31,7 @@ describe('Build Metrics', () => {
     test('should build clauses and replacements with received', () => {
       const start = new Date(2023, 0, 1)
       const end = new Date(2024, 0, 1)
-      const schemeWhereClause = { received: { [Op.gte]: start, [Op.lt]: end } }
+      const schemeWhereClause = { received: { [db.Sequelize.Op.gte]: start, [db.Sequelize.Op.lt]: end } }
       const result = buildQueryWhereClausesAndReplacements(schemeWhereClause)
       expect(result.whereClauses).toEqual(['pr."received" >= :startDate', 'pr."received" < :endDate'])
       expect(result.replacements.startDate).toEqual(start)
