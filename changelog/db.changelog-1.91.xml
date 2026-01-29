@@ -1,131 +1,114 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
-<databaseChangeLog
-    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="
-        http://www.liquibase.org/xml/ns/dbchangelog
-        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.9.xsd">
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext" xmlns:pro="http://www.liquibase.org/xml/ns/pro" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-3.9.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.9.xsd">
 
     <changeSet id="1" author="Oliver Lewington">
         <tagDatabase tag="v1.91.0"/>
     </changeSet>
 
     <changeSet id="2" author="Oliver Lewington">
-        <preConditions onFail="MARK_RAN">
+        <preConditions onFail="MARK_RAN" onError="CONTINUE">
             <sqlCheck expectedResult="1">
                 SELECT COUNT(*) FROM schemes WHERE "schemeId" = 7
             </sqlCheck>
         </preConditions>
 
         <sql>
-            DELETE FROM public."autoHolds" ahld
+            DELETE FROM public."autoHolds" ah
             USING public."autoHoldCategories" ahc
-            WHERE ahld."autoHoldCategoryId" = ahc."autoHoldCategoryId"
-                AND ahc."schemeId" = 7;
+            WHERE ah."autoHoldCategoryId" = ahc."autoHoldCategoryId"
+              AND ahc."schemeId" = 7;
         </sql>
 
         <delete tableName="autoHoldCategories">
             <where>"schemeId" = 7</where>
         </delete>
+    </changeSet>
+
+    <changeSet id="3" author="Oliver Lewington">
+        <preConditions onFail="MARK_RAN" onError="CONTINUE">
+            <sqlCheck expectedResult="1">
+                SELECT COUNT(*) FROM schemes WHERE "schemeId" = 7
+            </sqlCheck>
+        </preConditions>
 
         <sql>
-            DELETE FROM public."holds" hld
+            DELETE FROM public."holds" h
             USING public."holdCategories" hc
-            WHERE hld."holdCategoryId" = hc."holdCategoryId"
-                AND hc."schemeId" = 7;
+            WHERE h."holdCategoryId" = hc."holdCategoryId"
+              AND hc."schemeId" = 7;
         </sql>
 
         <delete tableName="holdCategories">
             <where>"schemeId" = 7</where>
         </delete>
+    </changeSet>
 
-        <delete tableName="frnAgreementClosed">
-            <where>"schemeId" = 7</where>
-        </delete>
+    <changeSet id="4" author="Oliver Lewington">
+        <preConditions onFail="MARK_RAN" onError="CONTINUE">
+            <sqlCheck expectedResult="1">
+                SELECT COUNT(*) FROM schemes WHERE "schemeId" = 7
+            </sqlCheck>
+        </preConditions>
 
         <sql>
             DELETE FROM public."completedInvoiceLines" cil
             USING public."completedPaymentRequests" cpr
             WHERE cil."completedPaymentRequestId" = cpr."completedPaymentRequestId"
-                AND cpr."schemeId" = 7;
+              AND cpr."schemeId" = 7;
         </sql>
 
         <sql>
-            DELETE FROM public."outbox" out
+            DELETE FROM public."outbox" o
             USING public."completedPaymentRequests" cpr
-            WHERE out."completedPaymentRequestId" = cpr."completedPaymentRequestId"
-                AND cpr."schemeId" = 7;
+            WHERE o."completedPaymentRequestId" = cpr."completedPaymentRequestId"
+              AND cpr."schemeId" = 7;
         </sql>
 
         <delete tableName="completedPaymentRequests">
             <where>"schemeId" = 7</where>
         </delete>
+    </changeSet>
+
+    <changeSet id="5" author="Oliver Lewington">
+        <preConditions onFail="MARK_RAN" onError="CONTINUE">
+            <sqlCheck expectedResult="1">
+                SELECT COUNT(*) FROM schemes WHERE "schemeId" = 7
+            </sqlCheck>
+        </preConditions>
 
         <sql>
             DELETE FROM public."invoiceLines" il
             USING public."paymentRequests" pr
             WHERE il."paymentRequestId" = pr."paymentRequestId"
-                AND pr."schemeId" = 7;
+              AND pr."schemeId" = 7;
         </sql>
 
         <sql>
-            DELETE FROM public."schedule" sch
+            DELETE FROM public."schedule" s
             USING public."paymentRequests" pr
-            WHERE sch."paymentRequestId" = pr."paymentRequestId"
-                AND pr."schemeId" = 7;
+            WHERE s."paymentRequestId" = pr."paymentRequestId"
+              AND pr."schemeId" = 7;
         </sql>
 
         <delete tableName="paymentRequests">
+            <where>"schemeId" = 7</where>
+        </delete>
+    </changeSet>
+
+    <changeSet id="6" author="Oliver Lewington">
+        <preConditions onFail="MARK_RAN" onError="CONTINUE">
+            <sqlCheck expectedResult="1">
+                SELECT COUNT(*) FROM schemes WHERE "schemeId" = 7
+            </sqlCheck>
+        </preConditions>
+
+        <delete tableName="frnAgreementClosed">
             <where>"schemeId" = 7</where>
         </delete>
 
         <delete tableName="schemes">
             <where>"schemeId" = 7</where>
         </delete>
-
-        <rollback>
-            <insert tableName="schemes">
-                <column name="schemeId" valueNumeric="7"/>
-                <column name="name" value="FDMR"/>
-                <column name="active" valueBoolean="true"/>
-            </insert>
-
-            <insert tableName="holdCategories">
-                <column name="holdCategoryId" valueNumeric="110"/>
-                <column name="schemeId" valueNumeric="7"/>
-                <column name="name" value="Bank account anomaly"/>
-            </insert>
-
-            <insert tableName="holdCategories">
-                <column name="holdCategoryId" valueNumeric="111"/>
-                <column name="schemeId" valueNumeric="7"/>
-                <column name="name" value="DAX rejection"/>
-            </insert>
-
-            <insert tableName="holdCategories">
-                <column name="holdCategoryId" valueNumeric="112"/>
-                <column name="schemeId" valueNumeric="7"/>
-                <column name="name" value="Awaiting debt enrichment"/>
-            </insert>
-
-            <insert tableName="holdCategories">
-                <column name="holdCategoryId" valueNumeric="113"/>
-                <column name="schemeId" valueNumeric="7"/>
-                <column name="name" value="Recovery"/>
-            </insert>
-
-            <insert tableName="holdCategories">
-                <column name="holdCategoryId" valueNumeric="114"/>
-                <column name="schemeId" valueNumeric="7"/>
-                <column name="name" value="Top up"/>
-            </insert>
-
-            <insert tableName="holdCategories">
-                <column name="holdCategoryId" valueNumeric="115"/>
-                <column name="schemeId" valueNumeric="7"/>
-                <column name="name" value="Incorrect Currency Preference - FDM"/>
-            </insert>
-        </rollback>
     </changeSet>
+
 </databaseChangeLog>
