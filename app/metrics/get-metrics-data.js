@@ -5,11 +5,7 @@ const {
   MILLISECONDS_PER_DAY
 } = require('../../app/constants/time')
 const {
-  FIRST_DAY_OF_MONTH,
-  END_OF_DAY_HOUR,
-  END_OF_DAY_MINUTE,
-  END_OF_DAY_SECOND,
-  END_OF_DAY_MILLISECOND,
+  FIRST_DAY_OF_MONTH
 } = require('../../app/constants/date')
 const {
   PERIOD_ALL
@@ -36,16 +32,19 @@ const getDateRangeForYear = (year) => ({
   year
 })
 
-const getDateRangeForMonthInYear = (year, month) => ({
-  startDate: new Date(year, month - 1, 1),
-  endDate: new Date(year, month, 1, END_OF_DAY_HOUR, END_OF_DAY_MINUTE, END_OF_DAY_SECOND, END_OF_DAY_MILLISECOND),
-  year,
-  month
-})
+const getDateRangeForMonthInYear = (year, month) => {
+  const endDate = month === 12 ? new Date(year + 1, 0, 1) : new Date(year, month, 1)
+  return {
+    startDate: new Date(year, month - 1, 1),
+    endDate,
+    year,
+    month
+  }
+}
 
 const getDateRangeForRelativePeriod = (now, days) => ({
   startDate: new Date(now.getTime() - days * MILLISECONDS_PER_DAY),
-  endDate: now
+  endDate: null
 })
 
 const fetchMetricsData = async (whereClause, _year = null, _month = null, period = null) => {

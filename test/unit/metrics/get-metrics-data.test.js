@@ -90,9 +90,17 @@ describe('Get Metrics Data', () => {
     test('should return month range', () => {
       const result = getDateRangeForMonthInYear(2023, 6)
       expect(result.startDate).toEqual(new Date(2023, 5, 1))
-      expect(result.endDate).toEqual(new Date(2023, 6, 1, 23, 59, 59, 999))
+      expect(result.endDate).toEqual(new Date(2023, 6, 1))
       expect(result.year).toBe(2023)
       expect(result.month).toBe(6)
+    })
+
+    test('should return month range if December', () => {
+      const result = getDateRangeForMonthInYear(2023, 12)
+      expect(result.startDate).toEqual(new Date(2023, 11, 1))
+      expect(result.endDate).toEqual(new Date(2024, 0, 1))
+      expect(result.year).toBe(2023)
+      expect(result.month).toBe(12)
     })
   })
 
@@ -102,7 +110,7 @@ describe('Get Metrics Data', () => {
       const days = 7
       const result = getDateRangeForRelativePeriod(now, days)
       expect(result.startDate.getTime()).toBe(now.getTime() - days * 24 * 60 * 60 * 1000)
-      expect(result.endDate).toBe(now)
+      expect(result.endDate).toBe(null)
     })
   })
 
