@@ -32,11 +32,11 @@ const buildQueryWhereClausesAndReplacements = (schemeWhereClause) => {
   return { whereClauses, replacements }
 }
 
-const buildMetricsQuery = (whereSQL, groupByYearMonth = true) => {
+const buildMetricsQuery = (whereSQL, groupByYear = true, groupByMonth = true) => {
   return `
     SELECT 
-      ${groupByYearMonth ? 'EXTRACT(YEAR FROM pr."received") AS "year",' : ''}
-      ${groupByYearMonth ? 'EXTRACT(MONTH FROM pr."received") AS "month",' : ''}
+      ${groupByYear ? 'EXTRACT(YEAR FROM pr."received") AS "year",' : ''}
+      ${groupByMonth ? 'EXTRACT(MONTH FROM pr."received") AS "month",' : ''}
       pr."schemeId",
       COUNT(pr."paymentRequestId") as "totalPayments",
       COALESCE(SUM(pr."value"), 0) as "totalValue",
@@ -81,7 +81,7 @@ const buildMetricsQuery = (whereSQL, groupByYearMonth = true) => {
       ) ELSE 0 END), 0) as "settledValue"
     FROM "paymentRequests" pr
     ${whereSQL}
-    GROUP BY ${groupByYearMonth ? '"year", "month", ' : ''}pr."schemeId"
+    GROUP BY ${groupByYear ? '"year", ' : ''}${groupByMonth ? '"month", ' : ''}pr."schemeId"
   `
 }
 

@@ -8,7 +8,8 @@ const {
   FIRST_DAY_OF_MONTH
 } = require('../../app/constants/date')
 const {
-  PERIOD_ALL
+  PERIOD_ALL,
+  PERIOD_YEAR
 } = require('../../app/constants/periods')
 
 const getSchemeNameById = (schemeId) => {
@@ -50,11 +51,16 @@ const getDateRangeForRelativePeriod = (now, days) => ({
 const fetchMetricsData = async (whereClause, _year = null, _month = null, period = null) => {
   const { whereClauses, replacements } = buildQueryWhereClausesAndReplacements(whereClause)
   const whereSQL = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : ''
-  let groupByYearMonth = true
+  let groupByYear = true
+  let groupByMonth = true
   if (period === PERIOD_ALL) {
-    groupByYearMonth = false
+    groupByYear = false
+    groupByMonth = false
   }
-  const metricsQuery = buildMetricsQuery(whereSQL, groupByYearMonth)
+  if (period === PERIOD_YEAR) {
+    groupByMonth = false
+  }
+  const metricsQuery = buildMetricsQuery(whereSQL, groupByYear, groupByMonth)
   return db.sequelize.query(metricsQuery, {
     replacements,
     type: db.sequelize.QueryTypes.SELECT,
