@@ -12,6 +12,8 @@ const {
   PERIOD_YEAR
 } = require('../../app/constants/periods')
 
+const DECEMBER_MONTH = 12
+
 const getSchemeNameById = (schemeId) => {
   const schemeEntry = Object.entries(schemes).find(([, id]) => id === schemeId)
   return schemeEntry ? schemeEntry[0] : null
@@ -34,7 +36,7 @@ const getDateRangeForYear = (year) => ({
 })
 
 const getDateRangeForMonthInYear = (year, month) => {
-  const endDate = month === 12 ? new Date(year + 1, 0, 1) : new Date(year, month, 1)
+  const endDate = month === DECEMBER_MONTH ? new Date(year + 1, 0, 1) : new Date(year, month, 1)
   return {
     startDate: new Date(year, month - 1, 1),
     endDate,
