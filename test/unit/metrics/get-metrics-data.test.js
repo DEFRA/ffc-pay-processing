@@ -73,7 +73,7 @@ describe('Get Metrics Data', () => {
       const now = new Date(2023, 5, 15)
       const result = getDateRangeForYTD(now)
       expect(result.startDate).toEqual(new Date(2023, 0, 1))
-      expect(result.endDate).toBe(now)
+      expect(result.endDate).toBe(null)
     })
   })
 

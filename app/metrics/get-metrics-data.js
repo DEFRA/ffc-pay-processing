@@ -1,4 +1,3 @@
-const { Op } = require('sequelize')
 const db = require('../../app/data')
 const schemes = require('../../app/constants/schemes')
 const { buildMetricsQuery, buildQueryWhereClausesAndReplacements } = require('./build-metrics')
@@ -28,7 +27,7 @@ const getDateRangeForAll = () => ({
 
 const getDateRangeForYTD = (now) => ({
   startDate: new Date(now.getFullYear(), 0, FIRST_DAY_OF_MONTH),
-  endDate: now
+  endDate: null
 })
 
 const getDateRangeForYear = (year) => ({
@@ -50,8 +49,7 @@ const getDateRangeForRelativePeriod = (now, days) => ({
 })
 
 const fetchMetricsData = async (whereClause, _year = null, _month = null, period = null) => {
-  const schemeWhereClause = whereClause
-  const { whereClauses, replacements } = buildQueryWhereClausesAndReplacements(schemeWhereClause)
+  const { whereClauses, replacements } = buildQueryWhereClausesAndReplacements(whereClause)
   const whereSQL = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : ''
   let groupByYearMonth = true
   if (period === PERIOD_ALL) {
@@ -79,13 +77,16 @@ const fetchHoldsData = async (whereClause) => {
         INNER JOIN "holdCategories" hc ON h."holdCategoryId" = hc."holdCategoryId"
         WHERE h."closed" IS NULL
           AND hc."schemeId" = pr."schemeId"
-          ${schemeWhereClause.received ? 'AND pr."received" >= :startDate AND pr."received" < :endDate' : ''}
+          ${schemeWhereClause.received?.[db.Sequelize.Op.gte] ? 'AND pr."received" >= :startDate' : ''}
+          ${schemeWhereClause.received?.[db.Sequelize.Op.lt] ? 'AND pr."received" < :endDate' : ''}
         GROUP BY "year", "month", pr."schemeId"
     `
   const replacements = {}
-  if (schemeWhereClause.received) {
-    replacements.startDate = schemeWhereClause.received[Op.gte]
-    replacements.endDate = schemeWhereClause.received[Op.lt]
+  if (schemeWhereClause.received?.[db.Sequelize.Op.gte]) {
+    replacements.startDate = schemeWhereClause.received[db.Sequelize.Op.gte]
+  }
+  if (schemeWhereClause.received?.[db.Sequelize.Op.lt]) {
+    replacements.endDate = schemeWhereClause.received[db.Sequelize.Op.lt]
   }
   return db.sequelize.query(holdsQuery, {
     replacements,
