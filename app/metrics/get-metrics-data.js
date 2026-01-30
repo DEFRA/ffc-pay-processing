@@ -63,7 +63,6 @@ const fetchMetricsData = async (whereClause, _year = null, _month = null, period
 }
 
 const fetchHoldsData = async (whereClause) => {
-  const schemeWhereClause = whereClause
   const holdsQuery = `
         SELECT 
             EXTRACT(YEAR FROM pr."received") AS "year",
@@ -76,16 +75,16 @@ const fetchHoldsData = async (whereClause) => {
         INNER JOIN "holdCategories" hc ON h."holdCategoryId" = hc."holdCategoryId"
         WHERE h."closed" IS NULL
           AND hc."schemeId" = pr."schemeId"
-          ${schemeWhereClause.received?.[db.Sequelize.Op.gte] ? 'AND pr."received" >= :startDate' : ''}
-          ${schemeWhereClause.received?.[db.Sequelize.Op.lt] ? 'AND pr."received" < :endDate' : ''}
+          ${whereClause.received?.[db.Sequelize.Op.gte] ? 'AND pr."received" >= :startDate' : ''}
+          ${whereClause.received?.[db.Sequelize.Op.lt] ? 'AND pr."received" < :endDate' : ''}
         GROUP BY "year", "month", pr."schemeId"
     `
   const replacements = {}
-  if (schemeWhereClause.received?.[db.Sequelize.Op.gte]) {
-    replacements.startDate = schemeWhereClause.received[db.Sequelize.Op.gte]
+  if (whereClause.received?.[db.Sequelize.Op.gte]) {
+    replacements.startDate = whereClause.received[db.Sequelize.Op.gte]
   }
-  if (schemeWhereClause.received?.[db.Sequelize.Op.lt]) {
-    replacements.endDate = schemeWhereClause.received[db.Sequelize.Op.lt]
+  if (whereClause.received?.[db.Sequelize.Op.lt]) {
+    replacements.endDate = whereClause.received[db.Sequelize.Op.lt]
   }
   return db.sequelize.query(holdsQuery, {
     replacements,
