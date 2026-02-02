@@ -1,4 +1,3 @@
-const { Op } = require('sequelize')
 const db = require('../../app/data')
 const schemes = require('../../app/constants/schemes')
 const { buildMetricsQuery, buildQueryWhereClausesAndReplacements } = require('./build-metrics')
@@ -6,15 +5,14 @@ const {
   MILLISECONDS_PER_DAY
 } = require('../../app/constants/time')
 const {
-  FIRST_DAY_OF_MONTH,
-  END_OF_DAY_HOUR,
-  END_OF_DAY_MINUTE,
-  END_OF_DAY_SECOND,
-  END_OF_DAY_MILLISECOND,
+  FIRST_DAY_OF_MONTH
 } = require('../../app/constants/date')
 const {
-  PERIOD_ALL
+  PERIOD_ALL,
+  PERIOD_YEAR
 } = require('../../app/constants/periods')
+
+const DECEMBER_MONTH = 12
 
 const getSchemeNameById = (schemeId) => {
   const schemeEntry = Object.entries(schemes).find(([, id]) => id === schemeId)
@@ -28,7 +26,7 @@ const getDateRangeForAll = () => ({
 
 const getDateRangeForYTD = (now) => ({
   startDate: new Date(now.getFullYear(), 0, FIRST_DAY_OF_MONTH),
-  endDate: now
+  endDate: null
 })
 
 const getDateRangeForYear = (year) => ({
@@ -37,27 +35,34 @@ const getDateRangeForYear = (year) => ({
   year
 })
 
-const getDateRangeForMonthInYear = (year, month) => ({
-  startDate: new Date(year, month - 1, 1),
-  endDate: new Date(year, month, 1, END_OF_DAY_HOUR, END_OF_DAY_MINUTE, END_OF_DAY_SECOND, END_OF_DAY_MILLISECOND),
-  year,
-  month
-})
+const getDateRangeForMonthInYear = (year, month) => {
+  const endDate = month === DECEMBER_MONTH ? new Date(year + 1, 0, 1) : new Date(year, month, 1)
+  return {
+    startDate: new Date(year, month - 1, 1),
+    endDate,
+    year,
+    month
+  }
+}
 
 const getDateRangeForRelativePeriod = (now, days) => ({
   startDate: new Date(now.getTime() - days * MILLISECONDS_PER_DAY),
-  endDate: now
+  endDate: null
 })
 
 const fetchMetricsData = async (whereClause, _year = null, _month = null, period = null) => {
-  const schemeWhereClause = whereClause
-  const { whereClauses, replacements } = buildQueryWhereClausesAndReplacements(schemeWhereClause)
+  const { whereClauses, replacements } = buildQueryWhereClausesAndReplacements(whereClause)
   const whereSQL = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : ''
-  let groupByYearMonth = true
+  let groupByYear = true
+  let groupByMonth = true
   if (period === PERIOD_ALL) {
-    groupByYearMonth = false
+    groupByYear = false
+    groupByMonth = false
   }
-  const metricsQuery = buildMetricsQuery(whereSQL, groupByYearMonth)
+  if (period === PERIOD_YEAR) {
+    groupByMonth = false
+  }
+  const metricsQuery = buildMetricsQuery(whereSQL, groupByYear, groupByMonth)
   return db.sequelize.query(metricsQuery, {
     replacements,
     type: db.sequelize.QueryTypes.SELECT,
@@ -66,7 +71,6 @@ const fetchMetricsData = async (whereClause, _year = null, _month = null, period
 }
 
 const fetchHoldsData = async (whereClause) => {
-  const schemeWhereClause = whereClause
   const holdsQuery = `
         SELECT 
             EXTRACT(YEAR FROM pr."received") AS "year",
@@ -79,13 +83,16 @@ const fetchHoldsData = async (whereClause) => {
         INNER JOIN "holdCategories" hc ON h."holdCategoryId" = hc."holdCategoryId"
         WHERE h."closed" IS NULL
           AND hc."schemeId" = pr."schemeId"
-          ${schemeWhereClause.received ? 'AND pr."received" >= :startDate AND pr."received" < :endDate' : ''}
+          ${whereClause.received?.[db.Sequelize.Op.gte] ? 'AND pr."received" >= :startDate' : ''}
+          ${whereClause.received?.[db.Sequelize.Op.lt] ? 'AND pr."received" < :endDate' : ''}
         GROUP BY "year", "month", pr."schemeId"
     `
   const replacements = {}
-  if (schemeWhereClause.received) {
-    replacements.startDate = schemeWhereClause.received[Op.gte]
-    replacements.endDate = schemeWhereClause.received[Op.lt]
+  if (whereClause.received?.[db.Sequelize.Op.gte]) {
+    replacements.startDate = whereClause.received[db.Sequelize.Op.gte]
+  }
+  if (whereClause.received?.[db.Sequelize.Op.lt]) {
+    replacements.endDate = whereClause.received[db.Sequelize.Op.lt]
   }
   return db.sequelize.query(holdsQuery, {
     replacements,

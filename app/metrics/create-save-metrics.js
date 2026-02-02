@@ -34,7 +34,6 @@ const saveMetrics = async (results, period, snapshotDate, startDate, endDate, ye
 
     const existing = await db.metric.findOne({
       where: {
-        snapshotDate: metricRecord.snapshotDate,
         periodType: metricRecord.periodType,
         schemeName: metricRecord.schemeName,
         schemeYear: metricRecord.schemeYear,

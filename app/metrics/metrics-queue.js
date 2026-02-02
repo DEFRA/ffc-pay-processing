@@ -1,4 +1,4 @@
-const { calculateMetricsForPeriod } = require('./metrics-calculator')
+const db = require('../data')
 
 class MetricsCalculationQueue {
   constructor () {
@@ -63,7 +63,17 @@ class MetricsCalculationQueue {
       console.log(`Processing metrics calculation: ${id} (waited ${waitTime}ms, ${this.queue.size} remaining in queue)`)
 
       try {
-        await calculateMetricsForPeriod(calculation.period, calculation.schemeYear, calculation.month)
+        const where = {
+          period_type: calculation.period
+        }
+        if (calculation.schemeYear) {
+          where.scheme_year = calculation.schemeYear
+        }
+        if (calculation.month) {
+          where.month_in_year = calculation.month
+        }
+
+        await db.metric.findAll(where)
         calculation.resolve()
         console.log(`✓ Completed calculation: ${id}`)
       } catch (error) {

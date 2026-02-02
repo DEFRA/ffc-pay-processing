@@ -2,10 +2,13 @@ const db = require('../data')
 
 const buildWhereClauseForDateRange = (startDate, endDate) => {
   const whereClause = {}
-  if (startDate && endDate) {
-    whereClause.received = {
-      [db.Sequelize.Op.gte]: startDate,
-      [db.Sequelize.Op.lt]: endDate
+  if (startDate || endDate) {
+    whereClause.received = {}
+    if (startDate) {
+      whereClause.received[db.Sequelize.Op.gte] = startDate
+    }
+    if (endDate) {
+      whereClause.received[db.Sequelize.Op.lt] = endDate
     }
   }
   return whereClause
@@ -14,22 +17,26 @@ const buildWhereClauseForDateRange = (startDate, endDate) => {
 const buildQueryWhereClausesAndReplacements = (schemeWhereClause) => {
   const whereClauses = []
   const replacements = {}
-  if (schemeWhereClause.received) {
+  if (schemeWhereClause.received?.[db.Sequelize.Op.gte]) {
     whereClauses.push(
-      'pr."received" >= :startDate',
-      'pr."received" < :endDate'
+      'pr."received" >= :startDate'
     )
     replacements.startDate = schemeWhereClause.received[db.Sequelize.Op.gte]
+  }
+  if (schemeWhereClause.received?.[db.Sequelize.Op.lt]) {
+    whereClauses.push(
+      'pr."received" < :endDate'
+    )
     replacements.endDate = schemeWhereClause.received[db.Sequelize.Op.lt]
   }
   return { whereClauses, replacements }
 }
 
-const buildMetricsQuery = (whereSQL, groupByYearMonth = true) => {
+const buildMetricsQuery = (whereSQL, groupByYear = true, groupByMonth = true) => {
   return `
     SELECT 
-      ${groupByYearMonth ? 'EXTRACT(YEAR FROM pr."received") AS "year",' : ''}
-      ${groupByYearMonth ? 'EXTRACT(MONTH FROM pr."received") AS "month",' : ''}
+      ${groupByYear ? 'EXTRACT(YEAR FROM pr."received") AS "year",' : ''}
+      ${groupByMonth ? 'EXTRACT(MONTH FROM pr."received") AS "month",' : ''}
       pr."schemeId",
       COUNT(pr."paymentRequestId") as "totalPayments",
       COALESCE(SUM(pr."value"), 0) as "totalValue",
@@ -74,7 +81,7 @@ const buildMetricsQuery = (whereSQL, groupByYearMonth = true) => {
       ) ELSE 0 END), 0) as "settledValue"
     FROM "paymentRequests" pr
     ${whereSQL}
-    GROUP BY ${groupByYearMonth ? '"year", "month", ' : ''}pr."schemeId"
+    GROUP BY ${groupByYear ? '"year", ' : ''}${groupByMonth ? '"month", ' : ''}pr."schemeId"
   `
 }
 

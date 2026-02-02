@@ -54,11 +54,10 @@ describe('Build Metrics', () => {
       expect(query).toContain('GROUP BY "year", "month", pr."schemeId"')
     })
 
-    test('should build query without year and month for all', () => {
+    test('should build query without year for all', () => {
       const query = buildMetricsQuery('', false)
       expect(query).not.toContain('EXTRACT(YEAR FROM pr."received") AS "year"')
-      expect(query).not.toContain('EXTRACT(MONTH FROM pr."received") AS "month"')
-      expect(query).toContain('GROUP BY pr."schemeId"')
+      expect(query).toContain('GROUP BY "month", pr."schemeId"')
     })
   })
 })
