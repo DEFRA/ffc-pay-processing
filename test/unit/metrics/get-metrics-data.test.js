@@ -11,7 +11,17 @@ jest.mock('sequelize', () => {
 const db = require('../../../app/data')
 const schemes = require('../../../app/constants/schemes')
 const { buildMetricsQuery, buildQueryWhereClausesAndReplacements } = require('../../../app/metrics/build-metrics')
-const { getSchemeNameById, getDateRangeForAll, getDateRangeForYTD, getDateRangeForYear, getDateRangeForMonthInYear, getDateRangeForRelativePeriod, fetchMetricsData, fetchHoldsData, mergeMetricsWithHolds } = require('../../../app/metrics/get-metrics-data')
+const {
+  getSchemeNameById,
+  getDateRangeForAll,
+  getDateRangeForYTD,
+  getDateRangeForYear,
+  getDateRangeForMonthInYear,
+  getDateRangeForRelativePeriod,
+  fetchMetricsData,
+  fetchHoldsData,
+  mergeMetricsWithHolds
+} = require('../../../app/metrics/get-metrics-data')
 const { Op } = require('sequelize')
 
 describe('Get Metrics Data', () => {
@@ -156,6 +166,17 @@ describe('Get Metrics Data', () => {
       )
       expect(result).toBe(mockResult)
     })
+
+    test('should set groupByYear and groupByMonth correctly for PERIOD_ALL and PERIOD_YEAR', async () => {
+      buildQueryWhereClausesAndReplacements.mockReturnValue({ whereClauses: [], replacements: {} })
+      buildMetricsQuery.mockReturnValue('SELECT * FROM metrics')
+
+      await fetchMetricsData({}, null, null, 'all')
+      expect(buildMetricsQuery).toHaveBeenCalledWith('', false, false)
+
+      await fetchMetricsData({}, null, null, 'year')
+      expect(buildMetricsQuery).toHaveBeenCalledWith('', true, false)
+    })
   })
 
   describe('fetchHoldsData', () => {
@@ -174,6 +195,22 @@ describe('Get Metrics Data', () => {
       const whereClause = { received: { [Op.gte]: startDate, [Op.lt]: endDate } }
       const result = await fetchHoldsData(whereClause)
       expect(db.sequelize.query).toHaveBeenCalled()
+      expect(result).toEqual(mockHoldsResults)
+    })
+
+    test('should include date conditions and replacements when whereClause received has gte and lt', async () => {
+      db.sequelize.query.mockResolvedValue(mockHoldsResults)
+      const startDate = new Date()
+      const endDate = new Date()
+      const whereClause = { received: { [db.Sequelize.Op.gte]: startDate, [db.Sequelize.Op.lt]: endDate } }
+      const result = await fetchHoldsData(whereClause)
+      expect(db.sequelize.query).toHaveBeenCalled()
+      const queryString = db.sequelize.query.mock.calls[0][0]
+      expect(queryString).toMatch(/AND pr."received" >= :startDate/)
+      expect(queryString).toMatch(/AND pr."received" < :endDate/)
+      const replacements = db.sequelize.query.mock.calls[0][1].replacements
+      expect(replacements.startDate).toBe(startDate)
+      expect(replacements.endDate).toBe(endDate)
       expect(result).toEqual(mockHoldsResults)
     })
   })
