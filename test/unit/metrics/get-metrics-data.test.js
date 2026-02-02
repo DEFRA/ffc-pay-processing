@@ -130,6 +130,32 @@ describe('Get Metrics Data', () => {
       expect(db.sequelize.query).toHaveBeenCalled()
       expect(result).toEqual(mockMetricsResults)
     })
+
+    test('should prepend WHERE and join clauses when whereClauses is not empty', async () => {
+      buildQueryWhereClausesAndReplacements.mockReturnValue({
+        whereClauses: ['schemeId = :schemeId', 'year = :year'],
+        replacements: { schemeId: 1, year: 2023 }
+      })
+      buildMetricsQuery.mockReturnValue('SELECT * FROM metrics WHERE schemeId = :schemeId AND year = :year')
+      const mockResult = [{ schemeId: 1, year: 2023, value: 1000 }]
+      db.sequelize.query.mockResolvedValue(mockResult)
+      const result = await fetchMetricsData({ schemeId: 1, year: 2023 }, null, null, 'year')
+      expect(buildQueryWhereClausesAndReplacements).toHaveBeenCalledWith({ schemeId: 1, year: 2023 })
+      expect(buildMetricsQuery).toHaveBeenCalledWith(
+        'WHERE schemeId = :schemeId AND year = :year',
+        true,
+        false
+      )
+      expect(db.sequelize.query).toHaveBeenCalledWith(
+        'SELECT * FROM metrics WHERE schemeId = :schemeId AND year = :year',
+        expect.objectContaining({
+          replacements: { schemeId: 1, year: 2023 },
+          type: db.sequelize.QueryTypes.SELECT,
+          raw: true
+        })
+      )
+      expect(result).toBe(mockResult)
+    })
   })
 
   describe('fetchHoldsData', () => {
