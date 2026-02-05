@@ -1,0 +1,35 @@
+---
+environment: production
+environmentCode: dev
+container:
+  messageQueueHost: DEVFFCINFSB1001.servicebus.windows.net
+  processingTopicAddress: ffc-pay-processing
+  processingSubscriptionAddress: ffc-pay-processing
+  acknowledgementTopicAddress: ffc-pay-acknowledgement
+  acknowledgementSubscriptionAddress: ffc-pay-processing
+  returnTopicAddress: ffc-pay-return
+  returnSubscriptionAddress: ffc-pay-processing
+  paymentSubmitTopicAddress: ffc-pay-submit
+  debtTopicAddress: ffc-pay-debt-data
+  qcTopicAddress: ffc-pay-debt-data-response
+  qcSubscriptionAddress: ffc-pay-processing
+  manualCheckTopicAddress: ffc-pay-manual-check-data
+  qcManualCheckTopicAddress: ffc-pay-quality-check
+  qcManualCheckSubscriptionAddress: ffc-pay-processing
+  xbTopicAddress: ffc-pay-xb
+  xbResponseTopicAddress: ffc-pay-xb-response
+  xbResponseSubscriptionAddress: ffc-pay-processing
+  eventsTopicAddress: ffc-pay-events
+secretProviderClass:
+  azure:
+    keyvaultName: DEVFFCINFKV1001
+    objects:
+      - objectName: devtest-ffcahwr-appInsights-connectionString
+        objectType: secret
+
+  secretObjects:
+    - secretName: ffc-pay-processing
+      type: Opaque
+      data:
+        - objectName: devtest-ffcahwr-appInsights-connectionString
+          key: APPINSIGHTS_CONNECTIONSTRING
