@@ -50,6 +50,7 @@ container:
   xbResponseTopicAddress: ffc-pay-xb-response
   xbResponseSubscriptionAddress: ffc-pay-processing
   eventsTopicAddress: ffc-pay-events
+  autoHoldTopUp: false
   autoHoldRecovery: false
   handleSchemeClosures: true
   processingInterval: 1000
