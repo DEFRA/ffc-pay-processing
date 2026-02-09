@@ -1,7 +1,6 @@
 ---
 environment: production
 environmentCode: snd
-pr: true
 container:
   messageQueueHost: SNDFFCINFSB2001.servicebus.windows.net
   processingTopicAddress: queue:ffc-pay-processing
