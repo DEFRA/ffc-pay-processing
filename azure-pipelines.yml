@@ -40,10 +40,10 @@ extends:
     Type: kubernetes           # Optional: kubernetes (default), npm, functions, nuget
     npmLegacyPeerDeps: false   # Optional: default is false
     dockerFilePath: Dockerfile # Optional default is Dockerfile
+    failOnThreshold: moderate  # Optional: moderate (default), low, high, critical
     prDeployment: ${{ parameters.prDeployment }}
     branchDeployment: ${{ parameters.branchDeployment }}
     sndDeployment: ${{ parameters.sndDeployment }}
-    # failOnThreshold: moderate
     variableGroupName: ffc-pay-processing-env-var
     pr_params:
       container.useManualLedgerCheck: ${{ eq(variables['pr_useManualLedgerCheck'], 'true') }}
