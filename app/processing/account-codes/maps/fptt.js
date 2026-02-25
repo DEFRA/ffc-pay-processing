@@ -1,0 +1,69 @@
+// placeholder map - data requested from Finance team to ensure correct mapping
+const { G00, G01, P02, P03, P05, P06, P08, P11, P14, P22, P23, P24, R00 } = require('../../../constants/line-codes')
+
+module.exports = [{
+  lineCode: G00,
+  ap: ???,
+  arAdmin: ???,
+  arIrregular: ???
+}, {
+  lineCode: G01,
+  ap: ???,
+  arAdmin: ???,
+  arIrregular: ???
+}, {
+  lineCode: P02,
+  ap: ???,
+  arAdmin: ???,
+  arIrregular: ???
+}, {
+  lineCode: P03,
+  ap: ???,
+  arAdmin: ???,
+  arIrregular: ???
+}, {
+  lineCode: P05,
+  ap: ???,
+  arAdmin: ???,
+  arIrregular: ???
+}, {
+  lineCode: P06,
+  ap: ???,
+  arAdmin: ???,
+  arIrregular: ???
+}, {
+  lineCode: P08,
+  ap: ???,
+  arAdmin: ???,
+  arIrregular: ???
+}, {
+  lineCode: P11,
+  ap: ???,
+  arAdmin: ???,
+  arIrregular: ???
+}, {
+  lineCode: P14,
+  ap: ???,
+  arAdmin: ???,
+  arIrregular: ???
+}, {
+  lineCode: P22,
+  ap: ???,
+  arAdmin: ???,
+  arIrregular: ???
+}, {
+  lineCode: P23,
+  ap: ???,
+  arAdmin: ???,
+  arIrregular: ???
+}, {
+  lineCode: P24,
+  ap: ???,
+  arAdmin: ???,
+  arIrregular: ???
+}, {
+  lineCode: R00,
+  ap: ???,
+  arAdmin: ???,
+  arIrregular: ???
+}]
