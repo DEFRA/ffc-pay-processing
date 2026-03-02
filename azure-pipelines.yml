@@ -1,0 +1,107 @@
+# Pipeline name convention
+name: '$(Build.SourceBranchName)$(System.PullRequest.SourceBranch)$(Rev:.r)'
+
+# Trigger configuration
+trigger:
+  - main
+  - feature/*
+  - release/*
+
+pr:
+  - main
+  - releases/*
+
+# Parameters
+parameters:
+  - name: prDeployment
+    type: boolean
+    default: true
+  - name: branchDeployment
+    type: boolean
+    default: true
+  - name: sndDeployment
+    type: boolean
+    default: true
+
+# Resources
+resources:
+  repositories:
+    - repository: templates
+      endpoint: DEFRA
+      type: github
+      name: defra/fcp-pipeline-common
+      # ref: pl-709   # Optional: build specific pipeline branch
+
+# Pipeline template
+extends:
+  template: fcp-common-pipeline.yaml@templates
+  parameters:
+    appFrameworkType: nodejs   # Optional: nodejs (default), dotnet, java
+    Type: kubernetes           # Optional: kubernetes (default), npm, functions, nuget
+    npmLegacyPeerDeps: false   # Optional: default is false
+    dockerFilePath: Dockerfile # Optional default is Dockerfile
+    failOnThreshold: moderate  # Optional: moderate (default), low, high, critical
+    prDeployment: ${{ parameters.prDeployment }}
+    branchDeployment: ${{ parameters.branchDeployment }}
+    sndDeployment: ${{ parameters.sndDeployment }}
+    variableGroupName: ffc-pay-processing-env-var
+    pr_params:
+      container.useManualLedgerCheck: ${{ eq(variables['pr_useManualLedgerCheck'], 'true') }}
+      container.autoHoldTopUp: ${{ eq(variables['pr_autoHoldTopUp'], 'true') }}
+      container.autoHoldRecovery: ${{ eq(variables['pr_autoHoldRecovery'], 'true') }}
+      container.handleSchemeClosures: ${{ eq(variables['pr_handleSchemeClosures'], 'true') }}
+      container.processingActive: ${{ eq(variables['pr_processingActive'], 'true') }}
+      container.processingInterval: $(pr_processingInterval)
+      container.processingCap: $(pr_processingCap)
+      container.paymentPublishingInterval: $(pr_paymentPublishingInterval)
+      container.processingSubscriptionMaxConcurrentCalls: $(pr_processingSubscriptionMaxConcurrentCalls)
+    snd2_params:
+      container.useManualLedgerCheck: ${{ eq(variables['snd2_useManualLedgerCheck'], 'true') }}
+      container.autoHoldTopUp: ${{ eq(variables['snd2_autoHoldTopUp'], 'true') }}
+      container.autoHoldRecovery: ${{ eq(variables['snd2_autoHoldRecovery'], 'true') }}
+      container.handleSchemeClosures: ${{ eq(variables['snd2_handleSchemeClosures'], 'true') }}
+      container.processingActive: ${{ eq(variables['snd2_processingActive'], 'true') }}
+      container.processingInterval: $(snd2_processingInterval)
+      container.processingCap: $(snd2_processingCap)
+      container.paymentPublishingInterval: $(snd2_paymentPublishingInterval)
+      container.processingSubscriptionMaxConcurrentCalls: $(snd2_processingSubscriptionMaxConcurrentCalls)
+    dev_params:
+      container.useManualLedgerCheck: ${{ eq(variables['dev_useManualLedgerCheck'], 'true') }}
+      container.autoHoldTopUp: ${{ eq(variables['dev_autoHoldTopUp'], 'true') }}
+      container.autoHoldRecovery: ${{ eq(variables['dev_autoHoldRecovery'], 'true') }}
+      container.handleSchemeClosures: ${{ eq(variables['dev_handleSchemeClosures'], 'true') }}
+      container.processingActive: ${{ eq(variables['dev_processingActive'], 'true') }}
+      container.processingInterval: $(dev_processingInterval)
+      container.processingCap: $(dev_processingCap)
+      container.paymentPublishingInterval: $(dev_paymentPublishingInterval)
+      container.processingSubscriptionMaxConcurrentCalls: $(dev_processingSubscriptionMaxConcurrentCalls)
+    test_params:
+      container.useManualLedgerCheck: ${{ eq(variables['test_useManualLedgerCheck'], 'true') }}
+      container.autoHoldTopUp: ${{ eq(variables['test_autoHoldTopUp'], 'true') }}
+      container.autoHoldRecovery: ${{ eq(variables['test_autoHoldRecovery'], 'true') }}
+      container.handleSchemeClosures: ${{ eq(variables['test_handleSchemeClosures'], 'true') }}
+      container.processingActive: ${{ eq(variables['test_processingActive'], 'true') }}
+      container.processingInterval: $(test_processingInterval)
+      container.processingCap: $(test_processingCap)
+      container.paymentPublishingInterval: $(test_paymentPublishingInterval)
+      container.processingSubscriptionMaxConcurrentCalls: $(test_processingSubscriptionMaxConcurrentCalls)
+    pre_params:
+      container.useManualLedgerCheck: ${{ eq(variables['pre_useManualLedgerCheck'], 'true') }}
+      container.autoHoldTopUp: ${{ eq(variables['pre_autoHoldTopUp'], 'true') }}
+      container.autoHoldRecovery: ${{ eq(variables['pre_autoHoldRecovery'], 'true') }}
+      container.handleSchemeClosures: ${{ eq(variables['pre_handleSchemeClosures'], 'true') }}
+      container.processingActive: ${{ eq(variables['pre_processingActive'], 'true') }}
+      container.processingInterval: $(pre_processingInterval)
+      container.processingCap: $(pre_processingCap)
+      container.paymentPublishingInterval: $(pre_paymentPublishingInterval)
+      container.processingSubscriptionMaxConcurrentCalls: $(pre_processingSubscriptionMaxConcurrentCalls)
+    prd_params:
+      container.useManualLedgerCheck: ${{ eq(variables['prd_useManualLedgerCheck'], 'true') }}
+      container.autoHoldTopUp: ${{ eq(variables['prd_autoHoldTopUp'], 'true') }}
+      container.autoHoldRecovery: ${{ eq(variables['prd_autoHoldRecovery'], 'true') }}
+      container.handleSchemeClosures: ${{ eq(variables['prd_handleSchemeClosures'], 'true') }}
+      container.processingActive: ${{ eq(variables['prd_processingActive'], 'true') }}
+      container.processingInterval: $(prd_processingInterval)
+      container.processingCap: $(prd_processingCap)
+      container.paymentPublishingInterval: $(prd_paymentPublishingInterval)
+      container.processingSubscriptionMaxConcurrentCalls: $(prd_processingSubscriptionMaxConcurrentCalls)

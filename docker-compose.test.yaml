@@ -6,6 +6,9 @@ services:
     build:
       target: development
     image: ffc-pay-processing-test
+    depends_on:
+      - ffc-pay-processing-postgres
+      - servicebus-emulator
     command: npm run test
     volumes:
       - ./app:/home/node/app
@@ -13,10 +16,59 @@ services:
       - ./test-output:/home/node/test-output
       - ./jest.config.js:/home/node/jest.config.js
       - ./package.json:/home/node/package.json
+    environment:
+      MESSAGE_QUEUE_HOST: servicebus-emulator
+      MESSAGE_QUEUE_USER: RootManageSharedAccessKey
+      MESSAGE_QUEUE_PASSWORD: SAS_KEY_VALUE
+      PROCESSING_TOPIC_ADDRESS: ffc-pay-processing-test
+      PROCESSING_SUBSCRIPTION_ADDRESS: ffc-pay-processing
+      ACKNOWLEDGEMENT_TOPIC_ADDRESS: ffc-pay-acknowledgement-test
+      ACKNOWLEDGEMENT_SUBSCRIPTION_ADDRESS: ffc-pay-processing
+      RETURN_TOPIC_ADDRESS: ffc-pay-return-test
+      RETURN_SUBSCRIPTION_ADDRESS: ffc-pay-processing
+      PAYMENTSUBMIT_TOPIC_ADDRESS: ffc-pay-submit-test
+      DEBT_TOPIC_ADDRESS: ffc-pay-debt-data-test
+      QC_TOPIC_ADDRESS: ffc-pay-debt-data-response-test
+      QC_SUBSCRIPTION_ADDRESS: ffc-pay-processing
+      MANUALCHECK_TOPIC_ADDRESS: ffc-pay-manual-check-data-test
+      QCMANUALCHECK_TOPIC_ADDRESS: ffc-pay-quality-check-test
+      QCMANUALCHECK_SUBSCRIPTION_ADDRESS: ffc-pay-processing
+      XB_TOPIC_ADDRESS: ffc-pay-xb-test
+      XBRESPONSE_TOPIC_ADDRESS: ffc-pay-xb-response-test
+      XBRESPONSE_SUBSCRIPTION_ADDRESS: ffc-pay-processing
+      EVENTS_TOPIC_ADDRESS: ffc-pay-events-test
 
   ffc-pay-processing-postgres:
     volumes:
       - postgres_data:/var/lib/postgresql/data
+
+  sqledge:
+    container_name: "sqledge"
+    image: "mcr.microsoft.com/azure-sql-edge:latest"
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "DummyStrongPa$$w0rd" # To be filled by user as per policy : https://learn.microsoft.com/en-us/sql/relational-databases/security/strong-passwords?view=sql-server-linux-ver16
+
+  servicebus-emulator:
+    container_name: "servicebus-emulator"
+    image: mcr.microsoft.com/azure-messaging/servicebus-emulator:latest
+    pull_policy: always
+    volumes:
+      - "./BusConfig.json:/ServiceBus_Emulator/ConfigFiles/Config.json"
+    ports:
+      - "5672:5672"
+    environment:
+      SQL_SERVER: sqledge
+      MSSQL_SA_PASSWORD: "DummyStrongPa$$w0rd" # Password should be same as what is set for SQL Edge
+      ACCEPT_EULA: "Y"
+    depends_on:
+      - sqledge
+
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 5672"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
 
 volumes:
   postgres_data:

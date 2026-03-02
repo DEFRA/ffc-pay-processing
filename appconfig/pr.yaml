@@ -1,0 +1,22 @@
+---
+environment: production
+environmentCode: snd
+container:
+  messageQueueHost: SNDFFCINFSB2001.servicebus.windows.net
+  processingTopicAddress: queue:ffc-pay-processing
+  processingSubscriptionAddress: ffc-pay-processing
+  acknowledgementTopicAddress: queue:ffc-pay-acknowledgement
+  acknowledgementSubscriptionAddress: ffc-pay-processing
+  returnTopicAddress: queue:ffc-pay-return
+  returnSubscriptionAddress: ffc-pay-processing
+  paymentSubmitTopicAddress: queue:ffc-pay-submit
+  debtTopicAddress: queue:ffc-pay-debt-data
+  qcTopicAddress: queue:ffc-pay-debt-data-response
+  qcSubscriptionAddress: ffc-pay-processing
+  manualCheckTopicAddress: queue:ffc-pay-manual-check-data
+  qcManualCheckTopicAddress: queue:ffc-pay-quality-check
+  qcManualCheckSubscriptionAddress: ffc-pay-processing
+  xbTopicAddress: queue:ffc-pay-xb
+  xbResponseTopicAddress: queue:ffc-pay-xb-response
+  xbResponseSubscriptionAddress: ffc-pay-processing
+  eventsTopicAddress: queue:ffc-pay-events
