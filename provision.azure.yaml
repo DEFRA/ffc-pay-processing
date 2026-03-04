@@ -67,7 +67,7 @@ resources:
       - name: ffc-pay-xb-response
         defaultMessageTimeToLive: P3650D
         duplicateDetectionHistoryTimeWindow: PT10M30S
-        requiresDuplicateDetection: false
+        requiresDuplicateDetection: true
         roles: 
         - name: receiver
         subscriptions:
