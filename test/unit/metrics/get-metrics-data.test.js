@@ -1,13 +1,26 @@
-jest.mock('../../../app/data')
+jest.mock('../../../app/data', () => {
+  const mockOp = {
+    gte: Symbol('gte'),
+    lt: Symbol('lt')
+  }
+  return {
+    Sequelize: {
+      Op: mockOp
+    },
+    sequelize: {
+      query: jest.fn(),
+      QueryTypes: {
+        SELECT: 'SELECT'
+      }
+    }
+  }
+})
 jest.mock('../../../app/constants/schemes', () => ({}))
 jest.mock('../../../app/metrics/build-metrics', () => ({
   buildMetricsQuery: jest.fn(),
   buildQueryWhereClausesAndReplacements: jest.fn()
 }))
-jest.mock('sequelize', () => {
-  const Op = { gte: Symbol('gte'), lt: Symbol('lt') }
-  return { Op }
-})
+
 const db = require('../../../app/data')
 const schemes = require('../../../app/constants/schemes')
 const { buildMetricsQuery, buildQueryWhereClausesAndReplacements } = require('../../../app/metrics/build-metrics')
