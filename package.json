@@ -1,6 +1,6 @@
 {
   "name": "ffc-pay-processing",
-  "version": "2.55.79",
+  "version": "2.55.80",
   "description": "Payment Hub processing service",
   "homepage": "https://github.com/DEFRA/ffc-pay-processing",
   "main": "app/index.js",
@@ -12,7 +12,8 @@
     "test:watch": "jest --coverage=false --onlyChanged --watch --runInBand",
     "test:debug": "node --inspect-brk=0.0.0.0 ./node_modules/jest/bin/jest.js",
     "start:watch": "nodemon --inspect=0.0.0.0 --ext js --legacy-watch app/index.js",
-    "start:debug": "nodemon --inspect-brk=0.0.0.0 --ext js --legacy-watch app/index.js --coverage=false --onlyChanged --watch --runInBand --no-cache"
+    "start:debug": "nodemon --inspect-brk=0.0.0.0 --ext js --legacy-watch app/index.js --coverage=false --onlyChanged --watch --runInBand --no-cache",
+    "prepare": "node --eval \"const fs=require('fs'),cp=require('child_process');if(fs.existsSync('.git')&&!process.env.CI&&!process.env.TF_BUILD)cp.execSync('husky',{stdio:'inherit'})\""
   },
   "author": "Defra",
   "contributors": [
@@ -49,6 +50,7 @@
     "blipp": "4.0.2",
     "eslint": "9.39.1",
     "hamjest": "3.7.3",
+    "husky": "9.1.7",
     "jest": "29.5.0",
     "jest-junit": "14.0.0",
     "neostandard": "0.12.2",

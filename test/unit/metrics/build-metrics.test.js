@@ -1,13 +1,7 @@
 jest.mock('../../../app/data', () => {
-  const mockOp = {
-    gte: Symbol('gte'),
-    lt: Symbol('lt')
-  }
-
+  const Op = { gte: Symbol('gte'), lt: Symbol('lt') }
   return {
-    Sequelize: {
-      Op: mockOp
-    }
+    Sequelize: { Op }
   }
 })
 
