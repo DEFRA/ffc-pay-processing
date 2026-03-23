@@ -4,6 +4,7 @@ jest.mock('../../../app/data', () => {
     Sequelize: { Op }
   }
 })
+
 const db = require('../../../app/data')
 const { buildWhereClauseForDateRange, buildQueryWhereClausesAndReplacements, buildMetricsQuery } = require('../../../app/metrics/build-metrics')
 
