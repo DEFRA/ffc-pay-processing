@@ -1,0 +1,107 @@
+# Pipeline name convention
+name: '$(Build.SourceBranchName)$(System.PullRequest.SourceBranch)$(Rev:.r)'
+
+# Trigger configuration
+trigger:
+  - main
+  - feature/*
+  - release/*
+
+pr:
+  - main
+  - releases/*
+
+# Parameters
+parameters:
+  - name: prDeployment
+    type: boolean
+    default: true
+  - name: branchDeployment
+    type: boolean
+    default: true
+  - name: sndDeployment
+    type: boolean
+    default: true
+
+# Resources
+resources:
+  repositories:
+    - repository: templates
+      endpoint: DEFRA
+      type: github
+      name: defra/fcp-pipeline-common
+      # ref: pl-709   # Optional: build specific pipeline branch
+
+# Pipeline template
+extends:
+  template: fcp-common-pipeline.yaml@templates
+  parameters:
+    appFrameworkType: nodejs   # Optional: nodejs (default), dotnet, java
+    Type: kubernetes           # Optional: kubernetes (default), npm, functions, nuget
+    npmLegacyPeerDeps: false   # Optional: default is false
+    dockerFilePath: Dockerfile # Optional default is Dockerfile
+    failOnThreshold: moderate  # Optional: moderate (default), low, high, critical
+    prDeployment: ${{ parameters.prDeployment }}
+    branchDeployment: ${{ parameters.branchDeployment }}
+    sndDeployment: ${{ parameters.sndDeployment }}
+    variableGroupName: ffc-pay-processing-env-var
+    pr_params:
+      container.useManualLedgerCheck: $(pr_useManualLedgerCheck)
+      container.autoHoldTopUp: $(pr_autoHoldTopUp)
+      container.autoHoldRecovery: $(pr_autoHoldRecovery)
+      container.handleSchemeClosures: $(pr_handleSchemeClosures)
+      container.processingActive: $(pr_processingActive)
+      container.processingInterval: $(pr_processingInterval)
+      container.processingCap: $(pr_processingCap)
+      container.paymentPublishingInterval: $(pr_paymentPublishingInterval)
+      container.processingSubscriptionMaxConcurrentCalls: $(pr_processingSubscriptionMaxConcurrentCalls)
+    snd2_params:
+      container.useManualLedgerCheck: $(snd2_useManualLedgerCheck)
+      container.autoHoldTopUp: $(snd2_autoHoldTopUp)
+      container.autoHoldRecovery: $(snd2_autoHoldRecovery)
+      container.handleSchemeClosures: $(snd2_handleSchemeClosures)
+      container.processingActive: $(snd2_processingActive)
+      container.processingInterval: $(snd2_processingInterval)
+      container.processingCap: $(snd2_processingCap)
+      container.paymentPublishingInterval: $(snd2_paymentPublishingInterval)
+      container.processingSubscriptionMaxConcurrentCalls: $(snd2_processingSubscriptionMaxConcurrentCalls)
+    dev_params:
+      container.useManualLedgerCheck: $(dev_useManualLedgerCheck)
+      container.autoHoldTopUp: $(dev_autoHoldTopUp)
+      container.autoHoldRecovery: $(dev_autoHoldRecovery)
+      container.handleSchemeClosures: $(dev_handleSchemeClosures)
+      container.processingActive: $(dev_processingActive)
+      container.processingInterval: $(dev_processingInterval)
+      container.processingCap: $(dev_processingCap)
+      container.paymentPublishingInterval: $(dev_paymentPublishingInterval)
+      container.processingSubscriptionMaxConcurrentCalls: $(dev_processingSubscriptionMaxConcurrentCalls)
+    test_params:
+      container.useManualLedgerCheck: $(test_useManualLedgerCheck)
+      container.autoHoldTopUp: $(test_autoHoldTopUp)
+      container.autoHoldRecovery: $(test_autoHoldRecovery)
+      container.handleSchemeClosures: $(test_handleSchemeClosures)
+      container.processingActive: $(test_processingActive)
+      container.processingInterval: $(test_processingInterval)
+      container.processingCap: $(test_processingCap)
+      container.paymentPublishingInterval: $(test_paymentPublishingInterval)
+      container.processingSubscriptionMaxConcurrentCalls: $(test_processingSubscriptionMaxConcurrentCalls)
+    pre_params:
+      container.useManualLedgerCheck: $(pre_useManualLedgerCheck)
+      container.autoHoldTopUp: $(pre_autoHoldTopUp)
+      container.autoHoldRecovery: $(pre_autoHoldRecovery)
+      container.handleSchemeClosures: $(pre_handleSchemeClosures)
+      container.processingActive: $(pre_processingActive)
+      container.processingInterval: $(pre_processingInterval)
+      container.processingCap: $(pre_processingCap)
+      container.paymentPublishingInterval: $(pre_paymentPublishingInterval)
+      container.processingSubscriptionMaxConcurrentCalls: $(pre_processingSubscriptionMaxConcurrentCalls)
+    prd_params:
+      container.useManualLedgerCheck: $(prd_useManualLedgerCheck)
+      container.autoHoldTopUp: $(prd_autoHoldTopUp)
+      container.autoHoldRecovery: $(prd_autoHoldRecovery)
+      container.handleSchemeClosures: $(prd_handleSchemeClosures)
+      container.processingActive: $(prd_processingActive)
+      container.processingInterval: $(prd_processingInterval)
+      container.processingCap: $(prd_processingCap)
+      container.paymentPublishingInterval: $(prd_paymentPublishingInterval)
+      container.processingSubscriptionMaxConcurrentCalls: $(prd_processingSubscriptionMaxConcurrentCalls)

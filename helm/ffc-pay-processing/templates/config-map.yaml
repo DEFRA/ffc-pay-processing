@@ -5,7 +5,7 @@ data:
   APPINSIGHTS_CLOUDROLE: {{ quote .Values.name }}
   MESSAGE_QUEUE_HOST: {{ quote .Values.container.messageQueueHost }}
   PROCESSING_SUBSCRIPTION_MAX_CONCURRENT_CALLS: {{ quote .Values.container.processingSubscriptionMaxConcurrentCalls }}
-  {{- if and (.Values.environmentCode) (not .Values.pr) }}
+  {{- if (.Values.environmentCode) }}
   PROCESSING_TOPIC_ADDRESS: {{ .Values.container.processingTopicAddress }}-{{ .Values.environmentCode }}
   PAYMENTSUBMIT_TOPIC_ADDRESS: {{ .Values.container.paymentSubmitTopicAddress }}-{{ .Values.environmentCode }}
   ACKNOWLEDGEMENT_TOPIC_ADDRESS: {{ .Values.container.acknowledgementTopicAddress }}-{{ .Values.environmentCode }}
@@ -16,7 +16,6 @@ data:
   QCMANUALCHECK_TOPIC_ADDRESS: {{ .Values.container.qcManualCheckTopicAddress }}-{{ .Values.environmentCode }}
   XB_TOPIC_ADDRESS: {{ .Values.container.xbTopicAddress }}-{{ .Values.environmentCode }}
   XBRESPONSE_TOPIC_ADDRESS: {{ .Values.container.xbResponseTopicAddress }}-{{ .Values.environmentCode }}
-  EVENT_TOPIC_ADDRESS: {{ .Values.container.eventTopicAddress }}-{{ .Values.environmentCode }}
   EVENTS_TOPIC_ADDRESS: {{ .Values.container.eventsTopicAddress }}-{{ .Values.environmentCode }}
   {{ else }}
   PROCESSING_TOPIC_ADDRESS: {{ quote .Values.container.processingTopicAddress }}
@@ -27,7 +26,6 @@ data:
   QC_TOPIC_ADDRESS: {{ quote .Values.container.qcTopicAddress }}
   MANUALCHECK_TOPIC_ADDRESS: {{ quote .Values.container.manualCheckTopicAddress }}
   QCMANUALCHECK_TOPIC_ADDRESS: {{ quote .Values.container.qcManualCheckTopicAddress }}
-  EVENT_TOPIC_ADDRESS: {{ quote .Values.container.eventTopicAddress }}
   EVENTS_TOPIC_ADDRESS: {{ quote .Values.container.eventsTopicAddress }}
   XB_TOPIC_ADDRESS: {{ quote .Values.container.xbTopicAddress }}
   XBRESPONSE_TOPIC_ADDRESS: {{ quote .Values.container.xbResponseTopicAddress }}
@@ -43,6 +41,7 @@ data:
   POSTGRES_HOST: {{ quote .Values.postgresService.postgresqlHost }}
   POSTGRES_PORT: {{ quote .Values.postgresService.postgresPort }}
   POSTGRES_SCHEMA_NAME: {{ quote .Values.postgresService.postgresSchema }}
+  POSTGRES_USERNAME: {{ .Values.postgresService.postgresUser | quote }}
   AUTO_HOLD_TOP_UP: {{ quote .Values.container.autoHoldTopUp }}
   AUTO_HOLD_RECOVERY: {{ quote .Values.container.autoHoldRecovery }}
   HANDLE_SCHEME_CLOSURES: {{ quote .Values.container.handleSchemeClosures }}

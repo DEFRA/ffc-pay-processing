@@ -1,13 +1,16 @@
-jest.mock('sequelize', () => {
-  const Sequelize = require('sequelize')
+jest.mock('../../../app/data', () => {
+  const mockOp = {
+    gte: Symbol('gte'),
+    lt: Symbol('lt')
+  }
+
   return {
     Sequelize: {
-      Op: Sequelize.Op,
-      gte: Sequelize.Op.gte,
-      lt: Sequelize.Op.lt
+      Op: mockOp
     }
   }
 })
+
 const db = require('../../../app/data')
 const { buildWhereClauseForDateRange, buildQueryWhereClausesAndReplacements, buildMetricsQuery } = require('../../../app/metrics/build-metrics')
 
