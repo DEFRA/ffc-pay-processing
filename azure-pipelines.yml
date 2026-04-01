@@ -22,6 +22,9 @@ parameters:
   - name: sndDeployment
     type: boolean
     default: true
+  - name: snd1Deployment
+    type: boolean
+    default: true
 
 # Resources
 resources:
@@ -44,6 +47,7 @@ extends:
     prDeployment: ${{ parameters.prDeployment }}
     branchDeployment: ${{ parameters.branchDeployment }}
     sndDeployment: ${{ parameters.sndDeployment }}
+    snd1Deployment: ${{ parameters.snd1Deployment }}
     variableGroupName: ffc-pay-processing-env-var
     pr_params:
       container.useManualLedgerCheck: $(pr_useManualLedgerCheck)
@@ -55,6 +59,16 @@ extends:
       container.processingCap: $(pr_processingCap)
       container.paymentPublishingInterval: $(pr_paymentPublishingInterval)
       container.processingSubscriptionMaxConcurrentCalls: $(pr_processingSubscriptionMaxConcurrentCalls)
+    snd1_params:
+      container.useManualLedgerCheck: $(snd1_useManualLedgerCheck)
+      container.autoHoldTopUp: $(snd1_autoHoldTopUp)
+      container.autoHoldRecovery: $(snd1_autoHoldRecovery)
+      container.handleSchemeClosures: $(snd1_handleSchemeClosures)
+      container.processingActive: $(snd1_processingActive)
+      container.processingInterval: $(snd1_processingInterval)
+      container.processingCap: $(snd1_processingCap)
+      container.paymentPublishingInterval: $(snd1_paymentPublishingInterval)
+      container.processingSubscriptionMaxConcurrentCalls: $(snd1_processingSubscriptionMaxConcurrentCalls)
     snd2_params:
       container.useManualLedgerCheck: $(snd2_useManualLedgerCheck)
       container.autoHoldTopUp: $(snd2_autoHoldTopUp)
