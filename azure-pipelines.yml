@@ -19,7 +19,7 @@ parameters:
   - name: branchDeployment
     type: boolean
     default: true
-  - name: snd2Deployment
+  - name: sndDeployment
     type: boolean
     default: true
   - name: snd1Deployment
