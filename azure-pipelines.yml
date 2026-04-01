@@ -25,6 +25,9 @@ parameters:
   - name: snd1Deployment
     type: boolean
     default: true
+  - name: snd1Deployment
+    type: boolean
+    default: true
 
 # Resources
 resources:
