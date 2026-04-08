@@ -1,6 +1,6 @@
 const sanitizeInvoiceLine = (invoiceLine) => {
-  if (invoiceLine && invoiceLine.description) {
-    invoiceLine.description = invoiceLine.description.replace(/€|â‚¬/g, 'EUR')
+  if (invoiceLine?.description) {
+    invoiceLine.description = invoiceLine.description.replaceAll(/€|â‚¬/g, 'EUR')
   }
 }
 

@@ -50,7 +50,7 @@ describe('get completed payment requests filter', () => {
             { contractNumber: paymentRequest.contractNumber },
             db.Sequelize.where(
               db.Sequelize.fn('replace', db.Sequelize.col('contractNumber'), 'A0', 'A'),
-              paymentRequest.contractNumber?.replace('A0', 'A')
+              paymentRequest.contractNumber?.replaceAll('A0', 'A')
             )
           ]
         })

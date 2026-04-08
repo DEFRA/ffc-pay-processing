@@ -11,7 +11,7 @@ module.exports = {
           request.log('error', {
             statusCode,
             message: response.message,
-            payloadMessage: response.data ? response.data.payload.message : ''
+            payloadMessage: (response.data && response.data.payload) ? response.data.payload.message : ''
           })
           return response
         }
