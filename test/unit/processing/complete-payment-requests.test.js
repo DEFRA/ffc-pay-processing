@@ -1,9 +1,11 @@
 const db = require('../../../app/data')
 const { completePaymentRequests } = require('../../../app/processing/complete-payment-requests')
 const { sendZeroValueEvent } = require('../../../app/event')
+const { sanitizeInvoiceLine } = require('../../../app/helpers/sanitize-invoice-line')
 
 jest.mock('../../../app/data')
 jest.mock('../../../app/event')
+jest.mock('../../../app/helpers/sanitize-invoice-line')
 
 describe('completePaymentRequests', () => {
   let mockTransaction
@@ -43,6 +45,7 @@ describe('completePaymentRequests', () => {
     }
 
     sendZeroValueEvent.mockResolvedValue()
+    sanitizeInvoiceLine.mockImplementation(line => line)
   })
 
   test('should process single request with offsetting values', async () => {
@@ -68,6 +71,7 @@ describe('completePaymentRequests', () => {
     await completePaymentRequests(1, [paymentRequest])
 
     expect(db.completedPaymentRequest.create).toHaveBeenCalled()
+    expect(sanitizeInvoiceLine).toHaveBeenCalledTimes(2)
     expect(db.outbox.create).toHaveBeenCalled()
     expect(mockTransaction.commit).toHaveBeenCalled()
   })
@@ -91,6 +95,7 @@ describe('completePaymentRequests', () => {
     await completePaymentRequests(1, requests)
 
     expect(db.completedPaymentRequest.create).toHaveBeenCalledTimes(2)
+    expect(sanitizeInvoiceLine).toHaveBeenCalledTimes(2)
     expect(db.outbox.create).toHaveBeenCalledTimes(2)
   })
 
@@ -119,6 +124,7 @@ describe('completePaymentRequests', () => {
     await completePaymentRequests(1, [paymentRequest])
 
     expect(sendZeroValueEvent).toHaveBeenCalled()
+    expect(sanitizeInvoiceLine).not.toHaveBeenCalled()
     expect(db.outbox.create).not.toHaveBeenCalled()
     expect(mockTransaction.commit).toHaveBeenCalled()
   })
@@ -133,6 +139,7 @@ describe('completePaymentRequests', () => {
     await completePaymentRequests(1, [])
 
     expect(db.completedPaymentRequest.create).not.toHaveBeenCalled()
+    expect(sanitizeInvoiceLine).not.toHaveBeenCalled()
     expect(mockTransaction.commit).toHaveBeenCalled()
   })
 
@@ -178,6 +185,7 @@ describe('completePaymentRequests', () => {
       remmittanceDescription: 'Quarterly reconciliation'
     }))
 
+    expect(sanitizeInvoiceLine).toHaveBeenCalledTimes(1)
     expect(db.outbox.create).toHaveBeenCalledTimes(1)
     expect(mockTransaction.commit).toHaveBeenCalled()
   })
@@ -208,6 +216,7 @@ describe('completePaymentRequests', () => {
     expect(createdPayload.annualValue).toBeUndefined()
     expect(createdPayload.remmittanceDescription).toBeUndefined()
 
+    expect(sanitizeInvoiceLine).toHaveBeenCalledTimes(1)
     expect(db.outbox.create).toHaveBeenCalledTimes(1)
     expect(mockTransaction.commit).toHaveBeenCalled()
   })
@@ -239,6 +248,7 @@ describe('completePaymentRequests', () => {
     await completePaymentRequests(1, [paymentRequest])
 
     expect(sendZeroValueEvent).toHaveBeenCalledTimes(1)
+    expect(sanitizeInvoiceLine).not.toHaveBeenCalled()
     expect(db.outbox.create).not.toHaveBeenCalled()
     expect(mockTransaction.commit).toHaveBeenCalled()
 
@@ -253,5 +263,58 @@ describe('completePaymentRequests', () => {
       annualValue: '0.00',
       remmittanceDescription: 'Zero-value adjustment'
     }))
+  })
+
+  test('should sanitize all non-zero invoice lines', async () => {
+    const paymentRequest = {
+      invoiceNumber: 'SITI1111',
+      paymentRequestNumber: 1,
+      value: 300,
+      invoiceLines: [
+        { value: 100, dataValues: { value: 100, description: '100€' } },
+        { value: 200, dataValues: { value: 200, description: '200€' } }
+      ],
+      dataValues: {
+        invoiceNumber: 'SITI1111',
+        value: 300,
+        paymentRequestNumber: 1,
+        invoiceLines: [
+          { value: 100, dataValues: { value: 100, description: '100€' } },
+          { value: 200, dataValues: { value: 200, description: '200€' } }
+        ]
+      }
+    }
+
+    await completePaymentRequests(1, [paymentRequest])
+
+    expect(sanitizeInvoiceLine).toHaveBeenCalledTimes(2)
+    expect(sanitizeInvoiceLine).toHaveBeenNthCalledWith(1, expect.objectContaining({ value: 100, description: '100€' }))
+    expect(sanitizeInvoiceLine).toHaveBeenNthCalledWith(2, expect.objectContaining({ value: 200, description: '200€' }))
+  })
+
+  test('should not sanitize zero-value invoice lines', async () => {
+    const paymentRequest = {
+      invoiceNumber: 'SITI2222',
+      paymentRequestNumber: 1,
+      value: 100,
+      invoiceLines: [
+        { value: 100, dataValues: { value: 100, description: 'Non-zero€' } },
+        { value: 0, dataValues: { value: 0, description: 'Zero€' } }
+      ],
+      dataValues: {
+        invoiceNumber: 'SITI2222',
+        value: 100,
+        paymentRequestNumber: 1,
+        invoiceLines: [
+          { value: 100, dataValues: { value: 100, description: 'Non-zero€' } },
+          { value: 0, dataValues: { value: 0, description: 'Zero€' } }
+        ]
+      }
+    }
+
+    await completePaymentRequests(1, [paymentRequest])
+
+    expect(sanitizeInvoiceLine).toHaveBeenCalledTimes(1)
+    expect(sanitizeInvoiceLine).toHaveBeenCalledWith(expect.objectContaining({ value: 100, description: 'Non-zero€' }))
   })
 })

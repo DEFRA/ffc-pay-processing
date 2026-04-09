@@ -1,6 +1,7 @@
 const db = require('../data')
 const { zeroValueSplit } = require('../processing/delta/zero-value-split')
 const { sendZeroValueEvent } = require('../event')
+const { sanitizeInvoiceLine } = require('../helpers/sanitize-invoice-line')
 
 const handleScheduleUpdate = async (schedule, transaction) => {
   if (schedule.completed !== null) {
@@ -25,6 +26,7 @@ const processInvoiceLines = async (
     const completedLine = line.dataValues ?? line
     if (completedLine.value !== 0) {
       completedLine.completedPaymentRequestId = completedPaymentRequestId
+      sanitizeInvoiceLine(completedLine)
       await db.completedInvoiceLine.create(completedLine, { transaction })
     }
   }
