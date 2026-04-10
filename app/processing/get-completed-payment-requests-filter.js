@@ -23,7 +23,7 @@ const getCompletedPaymentRequestsFilter = (paymentRequest) => {
         frn: paymentRequest.frn,
         [db.Sequelize.Op.or]: [
           { contractNumber: paymentRequest.contractNumber },
-          db.Sequelize.where(db.Sequelize.fn('replace', db.Sequelize.col('contractNumber'), 'A0', 'A'), paymentRequest.contractNumber?.replace('A0', 'A'))
+          db.Sequelize.where(db.Sequelize.fn('replace', db.Sequelize.col('contractNumber'), 'A0', 'A'), paymentRequest.contractNumber?.replaceAll('A0', 'A'))
         ]
       }
     default:

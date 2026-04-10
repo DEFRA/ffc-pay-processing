@@ -1,12 +1,13 @@
 jest.mock('../../app/messaging')
 jest.mock('../../app/processing')
 jest.mock('../../app/server')
+jest.mock('../../app/metrics/metrics-polling')
 
 const { processingConfig } = require('../../app/config')
 const { start: mockStartMessaging } = require('../../app/messaging')
 const { start: mockStartProcessing } = require('../../app/processing')
 const { start: mockStartServer } = require('../../app/server')
-
+const { startMetricsPolling: mockStartMetricsPolling } = require('../../app/metrics/metrics-polling')
 const startApp = require('../../app')
 
 describe('app start', () => {
@@ -16,7 +17,8 @@ describe('app start', () => {
 
   describe.each([
     ['processing', mockStartProcessing],
-    ['messaging', mockStartMessaging]
+    ['messaging', mockStartMessaging],
+    ['metrics polling', mockStartMetricsPolling]
   ])('starts %s based on active flag', (name, startMock) => {
     test(`starts ${name} when active is true`, async () => {
       processingConfig.active = true
