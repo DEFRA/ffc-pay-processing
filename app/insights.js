@@ -1,38 +1,19 @@
-const appInsights = require('applicationinsights')
+const { useAzureMonitor } = require('@azure/monitor-opentelemetry')
 
-let client = null
+function setup () {
+  const connectionString = process.env.APPLICATIONINSIGHTS_CONNECTION_STRING
 
-const setup = () => {
-  if (process.env.APPINSIGHTS_CONNECTIONSTRING) {
-    appInsights.setup(process.env.APPINSIGHTS_CONNECTIONSTRING).start()
-    console.log('App Insights Running')
+  if (connectionString) {
+    useAzureMonitor({
+      azureMonitorExporterOptions: {
+        connectionString,
+      },
+    })
 
-    client = appInsights.defaultClient
-
-    const cloudRoleTag = client.context.keys.cloudRole
-    const appName = process.env.APPINSIGHTS_CLOUDROLE
-    if (appName) {
-      client.context.tags[cloudRoleTag] = appName
-    }
+    console.log('Azure Monitor (OpenTelemetry) Running')
   } else {
-    console.log('App Insights Not Running!')
+    console.log('Azure Monitor Not Running!')
   }
 }
 
-const trackException = (error) => {
-  if (client && error) {
-    client.trackException({ exception: error })
-  }
-}
-
-const trackTrace = (message) => {
-  if (client && message) {
-    client.trackTrace({ message })
-  }
-}
-
-module.exports = {
-  setup,
-  trackException,
-  trackTrace
-}
+module.exports = { setup }

@@ -1,26 +1,16 @@
 describe('Application Insights', () => {
   const DEFAULT_ENV = process.env
-  let applicationInsights
-  let appInsightsModule
+  let useAzureMonitor
 
   beforeEach(() => {
     jest.resetModules()
 
-    jest.mock('applicationinsights', () => ({
-      setup: jest.fn().mockReturnThis(),
-      start: jest.fn(),
-      defaultClient: {
-        context: {
-          keys: { cloudRole: 'cloudRole' },
-          tags: {}
-        },
-        trackException: jest.fn(),
-        trackTrace: jest.fn()
-      }
+    jest.mock('@azure/monitor-opentelemetry', () => ({
+      useAzureMonitor: jest.fn(),
     }))
 
-    applicationInsights = require('applicationinsights')
-    appInsightsModule = require('../../app/insights')
+    useAzureMonitor = require('@azure/monitor-opentelemetry').useAzureMonitor
+
     process.env = { ...DEFAULT_ENV }
   })
 
@@ -28,44 +18,21 @@ describe('Application Insights', () => {
     process.env = DEFAULT_ENV
   })
 
-  test('does not setup application insights if no connection string present', () => {
-    process.env.APPINSIGHTS_CONNECTIONSTRING = undefined
-    appInsightsModule.setup()
-    expect(applicationInsights.setup.mock.calls.length).toBe(0)
+  test('does not setup application insights if no connection string', () => {
+    process.env.APPLICATIONINSIGHTS_CONNECTION_STRING = undefined
+    const appInsights = require('../../app/insights')
+
+    appInsights.setup()
+
+    expect(useAzureMonitor).not.toHaveBeenCalled()
   })
 
   test('does setup application insights if connection string present', () => {
-    process.env.APPINSIGHTS_CONNECTIONSTRING = 'test-key'
-    process.env.APPINSIGHTS_CLOUDROLE = 'TestRole'
-    appInsightsModule.setup()
-    expect(applicationInsights.setup.mock.calls.length).toBe(1)
-    expect(applicationInsights.start.mock.calls.length).toBe(1)
-    expect(applicationInsights.defaultClient.context.tags.cloudRole).toBe('TestRole')
-  })
+    process.env.APPLICATIONINSIGHTS_CONNECTION_STRING = 'test-connection-string'
+    const appInsights = require('../../app/insights')
 
-  test('trackException calls defaultClient.trackException if client exists', () => {
-    process.env.APPINSIGHTS_CONNECTIONSTRING = 'test-key'
-    appInsightsModule.setup()
-    const error = new Error('Test error')
-    appInsightsModule.trackException(error)
-    expect(applicationInsights.defaultClient.trackException).toHaveBeenCalledWith({ exception: error })
-  })
+    appInsights.setup()
 
-  test('trackException does not throw if no client', () => {
-    const error = new Error('Test error')
-    appInsightsModule.trackException(error)
-  })
-
-  test('trackTrace calls defaultClient.trackTrace if client exists', () => {
-    process.env.APPINSIGHTS_CONNECTIONSTRING = 'test-key'
-    appInsightsModule.setup()
-    const message = 'Test trace'
-    appInsightsModule.trackTrace(message)
-    expect(applicationInsights.defaultClient.trackTrace).toHaveBeenCalledWith({ message })
-  })
-
-  test('trackTrace does not throw if no client', () => {
-    const message = 'Test trace'
-    appInsightsModule.trackTrace(message)
+    expect(useAzureMonitor).toHaveBeenCalledTimes(1)
   })
 })
