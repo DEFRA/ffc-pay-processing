@@ -1,18 +1,11 @@
 jest.mock('../../../app/data', () => {
-  const mockOp = {
-    gte: Symbol('gte'),
-    lt: Symbol('lt')
-  }
+  const Op = { gte: Symbol('gte'), lt: Symbol('lt') }
   return {
-    Sequelize: {
-      Op: mockOp
-    },
     sequelize: {
       query: jest.fn(),
-      QueryTypes: {
-        SELECT: 'SELECT'
-      }
-    }
+      QueryTypes: { SELECT: 'SELECT' }
+    },
+    Sequelize: { Op }
   }
 })
 jest.mock('../../../app/constants/schemes', () => ({}))
@@ -35,8 +28,6 @@ const {
   fetchHoldsData,
   mergeMetricsWithHolds
 } = require('../../../app/metrics/get-metrics-data')
-const { Op } = require('sequelize')
-
 describe('Get Metrics Data', () => {
   let mockMetricsResults
   let mockHoldsResults
@@ -205,7 +196,7 @@ describe('Get Metrics Data', () => {
       db.sequelize.query.mockResolvedValue(mockHoldsResults)
       const startDate = new Date()
       const endDate = new Date()
-      const whereClause = { received: { [Op.gte]: startDate, [Op.lt]: endDate } }
+      const whereClause = { received: { [db.Sequelize.Op.gte]: startDate, [db.Sequelize.Op.lt]: endDate } }
       const result = await fetchHoldsData(whereClause)
       expect(db.sequelize.query).toHaveBeenCalled()
       expect(result).toEqual(mockHoldsResults)
