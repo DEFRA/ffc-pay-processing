@@ -8,12 +8,14 @@ const { processManualLedgerCheckMessage } = require('./process-manual-ledger-che
 const { processXbResponseMessage } = require('./process-xb-response-message')
 const { start: startOutbox } = require('../outbound')
 const { createDiagnosticsHandler } = require('./diagnostics')
+const { processRetentionMessage } = require('./process-retention-message')
 
 let acknowledgementReceiver
 let returnReceiver
 let qualityCheckReceiver
 let manualLedgerCheckReceiver
 let xbResponseReceiver
+let retentionReceiver
 
 const recievers = []
 
@@ -54,6 +56,11 @@ const start = async () => {
   xbResponseReceiver = new MessageReceiver(messageConfig.xbResponseSubscription, xbResponseAction)
   await xbResponseReceiver.subscribe(createDiagnosticsHandler('xb-response-receiver'))
   recievers.push(xbResponseReceiver)
+
+  const retentionAction = message => processRetentionMessage(message, retentionReceiver)
+  retentionReceiver = new MessageReceiver(messageConfig.retentionSubscription, retentionAction)
+  await retentionReceiver.subscribe(createDiagnosticsHandler('retention-receiver'))
+  recievers.push(retentionReceiver)
 
   console.log('Message subscriptions active')
 }
