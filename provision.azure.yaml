@@ -76,6 +76,18 @@ resources:
             defaultMessageTimeToLive: P3650D
             lockDuration: PT5M
             maxDeliveryCount: 2000
+      - name: fcp-pds-data-retention
+        defaultMessageTimeToLive: P3650D
+        duplicateDetectionHistoryTimeWindow: PT10M30S
+        requiresDuplicateDetection: true
+        roles: 
+        - name: receiver
+        subscriptions:
+          - name: ffc-pay-processing
+            deadLetteringOnMessageExpiration: true
+            defaultMessageTimeToLive: P3650D
+            lockDuration: PT5M
+            maxDeliveryCount: 2000
       - name: ffc-pay-submit
         defaultMessageTimeToLive: P3650D
         duplicateDetectionHistoryTimeWindow: PT10M30S

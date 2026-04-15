@@ -9,7 +9,11 @@ const processRetentionMessage = async (message, receiver) => {
     console.log('Data related to agreement removed where present')
   } catch (err) {
     console.error('Unable to process retention data:', err)
-    await receiver.deadLetterMessage(message)
+    try {
+      await receiver.deadLetterMessage(message)
+    } catch (deadLetterErr) {
+      console.error('Failed to dead letter message:', deadLetterErr)
+    }
   }
 }
 
