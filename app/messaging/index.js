@@ -17,7 +17,7 @@ let manualLedgerCheckReceiver
 let xbResponseReceiver
 let retentionReceiver
 
-const recievers = []
+const receivers = []
 
 const start = async () => {
   for (let i = 0; i < messageConfig.processingSubscription.numberOfReceivers; i++) {
@@ -25,7 +25,7 @@ const start = async () => {
     const paymentAction = message => processPaymentMessage(message, paymentReceiver)
     paymentReceiver = new MessageReceiver(messageConfig.processingSubscription, paymentAction)
     await paymentReceiver.subscribe(createDiagnosticsHandler(`payment-receiver-${i + 1}`))
-    recievers.push(paymentReceiver)
+    receivers.push(paymentReceiver)
     console.info(`Receiver ${i + 1} ready to receive payment requests`)
   }
 
@@ -35,38 +35,38 @@ const start = async () => {
   const acknowledgementAction = message => processAcknowledgementMessage(message, acknowledgementReceiver)
   acknowledgementReceiver = new MessageReceiver(messageConfig.acknowledgementSubscription, acknowledgementAction)
   await acknowledgementReceiver.subscribe(createDiagnosticsHandler('acknowledgement-receiver'))
-  recievers.push(acknowledgementReceiver)
+  receivers.push(acknowledgementReceiver)
 
   const returnAction = message => processReturnMessage(message, returnReceiver)
   returnReceiver = new MessageReceiver(messageConfig.returnSubscription, returnAction)
   await returnReceiver.subscribe(createDiagnosticsHandler('return-receiver'))
-  recievers.push(returnReceiver)
+  receivers.push(returnReceiver)
 
   const qualityCheckAction = message => processQualityCheckMessage(message, qualityCheckReceiver)
   qualityCheckReceiver = new MessageReceiver(messageConfig.qcSubscription, qualityCheckAction)
   await qualityCheckReceiver.subscribe(createDiagnosticsHandler('qc-receiver'))
-  recievers.push(qualityCheckReceiver)
+  receivers.push(qualityCheckReceiver)
 
   const manualLedgerCheckAction = message => processManualLedgerCheckMessage(message, manualLedgerCheckReceiver)
   manualLedgerCheckReceiver = new MessageReceiver(messageConfig.qcManualSubscription, manualLedgerCheckAction)
   await manualLedgerCheckReceiver.subscribe(createDiagnosticsHandler('manual-ledger-receiver'))
-  recievers.push(manualLedgerCheckReceiver)
+  receivers.push(manualLedgerCheckReceiver)
 
   const xbResponseAction = message => processXbResponseMessage(message, xbResponseReceiver)
   xbResponseReceiver = new MessageReceiver(messageConfig.xbResponseSubscription, xbResponseAction)
   await xbResponseReceiver.subscribe(createDiagnosticsHandler('xb-response-receiver'))
-  recievers.push(xbResponseReceiver)
+  receivers.push(xbResponseReceiver)
 
   const retentionAction = message => processRetentionMessage(message, retentionReceiver)
   retentionReceiver = new MessageReceiver(messageConfig.retentionSubscription, retentionAction)
   await retentionReceiver.subscribe(createDiagnosticsHandler('retention-receiver'))
-  recievers.push(retentionReceiver)
+  receivers.push(retentionReceiver)
 
   console.log('Message subscriptions active')
 }
 
 const stop = async () => {
-  for (const receiver of recievers) {
+  for (const receiver of receivers) {
     await receiver.closeConnection()
   }
 }
