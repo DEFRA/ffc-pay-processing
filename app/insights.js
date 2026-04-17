@@ -16,4 +16,8 @@ function setup () {
   }
 }
 
-module.exports = { setup }
+const trackException = (error) => {}
+
+const trackTrace = (message) => {}
+
+module.exports = { setup, trackException, trackTrace }
