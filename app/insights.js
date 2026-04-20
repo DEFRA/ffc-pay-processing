@@ -16,7 +16,9 @@ function setup () {
   }
 }
 
-const trackException = (error) => {}
+const trackException = (error) => {
+  console.log('Track Exception: ', error)
+}
 
 const trackTrace = (message) => {}
 
