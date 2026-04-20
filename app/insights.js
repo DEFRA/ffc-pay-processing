@@ -20,6 +20,8 @@ const trackException = (error) => {
   console.log('Track Exception: ', error)
 }
 
-const trackTrace = (message) => {}
+const trackTrace = (message) => {
+  console.log('Track trace: ', message)
+}
 
 module.exports = { setup, trackException, trackTrace }
