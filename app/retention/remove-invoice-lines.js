@@ -2,7 +2,9 @@ const db = require('../data')
 
 const removeInvoiceLines = async (paymentRequestIds, transaction) => {
   await db.invoiceLine.destroy({
-    where: { paymentRequestId: paymentRequestIds },
+    where: {
+      paymentRequestId: { [db.Sequelize.Op.in]: paymentRequestIds }
+    },
     transaction
   })
 }

@@ -2,6 +2,11 @@ const { findCompletedPaymentRequests } = require('../../../app/retention/find-co
 const db = require('../../../app/data')
 
 jest.mock('../../../app/data', () => ({
+  Sequelize: {
+    Op: {
+      in: 'IN_OPERATOR'
+    }
+  },
   completedPaymentRequest: {
     findAll: jest.fn()
   }
@@ -27,7 +32,9 @@ describe('findCompletedPaymentRequests', () => {
     expect(db.completedPaymentRequest.findAll).toHaveBeenCalledTimes(1)
     expect(db.completedPaymentRequest.findAll).toHaveBeenCalledWith({
       attributes: ['completedPaymentRequestId'],
-      where: { paymentRequestId: paymentRequestIds },
+      where: {
+        paymentRequestId: { [db.Sequelize.Op.in]: paymentRequestIds }
+      },
       transaction: mockTransaction
     })
     expect(result).toBe(mockResult)
@@ -41,7 +48,9 @@ describe('findCompletedPaymentRequests', () => {
 
     expect(db.completedPaymentRequest.findAll).toHaveBeenCalledWith({
       attributes: ['completedPaymentRequestId'],
-      where: { paymentRequestId: paymentRequestIds },
+      where: {
+        paymentRequestId: { [db.Sequelize.Op.in]: paymentRequestIds }
+      },
       transaction: undefined
     })
     expect(result).toBe(mockResult)

@@ -2,6 +2,11 @@ const { removeSchedules } = require('../../../app/retention/remove-schedules')
 const db = require('../../../app/data')
 
 jest.mock('../../../app/data', () => ({
+  Sequelize: {
+    Op: {
+      in: 'IN_OPERATOR'
+    }
+  },
   schedule: {
     destroy: jest.fn()
   }
@@ -20,7 +25,7 @@ describe('removeSchedules', () => {
 
     expect(db.schedule.destroy).toHaveBeenCalledTimes(1)
     expect(db.schedule.destroy).toHaveBeenCalledWith({
-      where: { paymentRequestId: paymentRequestIds },
+      where: { paymentRequestId: { [db.Sequelize.Op.in]: paymentRequestIds } },
       transaction
     })
   })
@@ -29,7 +34,7 @@ describe('removeSchedules', () => {
     await removeSchedules(paymentRequestIds)
 
     expect(db.schedule.destroy).toHaveBeenCalledWith({
-      where: { paymentRequestId: paymentRequestIds },
+      where: { paymentRequestId: { [db.Sequelize.Op.in]: paymentRequestIds } },
       transaction: undefined
     })
   })

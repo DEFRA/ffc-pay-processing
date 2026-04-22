@@ -2,6 +2,11 @@ const { removeCompletedPaymentRequests } = require('../../../app/retention/remov
 const db = require('../../../app/data')
 
 jest.mock('../../../app/data', () => ({
+  Sequelize: {
+    Op: {
+      in: 'IN_OPERATOR'
+    }
+  },
   completedPaymentRequest: {
     destroy: jest.fn()
   }
@@ -20,7 +25,9 @@ describe('removeCompletedPaymentRequests', () => {
 
     expect(db.completedPaymentRequest.destroy).toHaveBeenCalledTimes(1)
     expect(db.completedPaymentRequest.destroy).toHaveBeenCalledWith({
-      where: { completedPaymentRequestId: completedPaymentRequestIds },
+      where: {
+        completedPaymentRequestId: { [db.Sequelize.Op.in]: completedPaymentRequestIds }
+      },
       transaction
     })
   })
@@ -29,7 +36,9 @@ describe('removeCompletedPaymentRequests', () => {
     await removeCompletedPaymentRequests(completedPaymentRequestIds)
 
     expect(db.completedPaymentRequest.destroy).toHaveBeenCalledWith({
-      where: { completedPaymentRequestId: completedPaymentRequestIds },
+      where: {
+        completedPaymentRequestId: { [db.Sequelize.Op.in]: completedPaymentRequestIds }
+      },
       transaction: undefined
     })
   })
