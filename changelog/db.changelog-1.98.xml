@@ -8,4 +8,9 @@
       <column name="providesAccountingValues" type="boolean" defaultValueBoolean="false" />
     </addColumn>
   </changeSet>
+  <changeSet author="John Barnard" id="3">
+    <addColumn tableName="completedPaymentRequests">
+      <column name="providesAccountingValues" type="boolean" defaultValueBoolean="false" />
+    </addColumn>
+  </changeSet>
 </databaseChangeLog>
