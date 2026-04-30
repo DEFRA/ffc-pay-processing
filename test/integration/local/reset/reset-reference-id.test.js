@@ -1,6 +1,6 @@
 const { resetDatabase, closeDatabaseConnection, savePaymentRequest } = require('../../../helpers')
 
-jest.mock('uuid')
+jest.mock('node:crypto')
 const { randomUUID } = require('node:crypto')
 
 const paymentRequest = require('../../../mocks/payment-requests/payment-request')
