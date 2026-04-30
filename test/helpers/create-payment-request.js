@@ -1,4 +1,4 @@
-const { v4: uuidv4 } = require('uuid')
+const { randomUUID } = require('node:crypto')
 const { AP } = require('../../app/constants/ledgers')
 
 const createPaymentRequest = ({
@@ -8,7 +8,7 @@ const createPaymentRequest = ({
   agreementNumber = '12345678',
   invoiceNumber = 'INV123456V002',
   paymentRequestNumber = 2,
-  referenceId = uuidv4(),
+  referenceId = randomUUID(),
   invoiceLines = [{ description: 'G00', value: 50 }, { description: 'G00', value: 50 }]
 } = {}) => {
   const paymentRequest = {
