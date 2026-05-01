@@ -1,4 +1,4 @@
-const { v4: uuidv4 } = require('uuid')
+const { randomUUID } = require('node:crypto')
 const { createSplitInvoiceNumber } = require('../invoice-number')
 
 const createSplitPaymentRequest = (paymentRequest, ledger, splitId) => {
@@ -8,7 +8,7 @@ const createSplitPaymentRequest = (paymentRequest, ledger, splitId) => {
     originalInvoiceNumber: paymentRequest.invoiceNumber,
     invoiceNumber: createSplitInvoiceNumber(paymentRequest.invoiceNumber, splitId, paymentRequest.schemeId),
     invoiceLines: [],
-    referenceId: uuidv4()
+    referenceId: randomUUID()
   }
 }
 
