@@ -1,6 +1,6 @@
 const { AP, AR } = require('../../../../app/constants/ledgers')
 const { splitToLedger } = require('../../../../app/processing/delta/assign-ledger/split-to-ledger')
-const { v4: uuidv4 } = require('uuid')
+const { randomUUID } = require('node:crypto')
 const { SFI, SFI_PILOT, LUMP_SUMS, VET_VISITS, LNR } = require('../../../../app/constants/schemes')
 
 describe('split to ledger', () => {
@@ -60,7 +60,7 @@ describe('split to ledger', () => {
   })
 
   test('creates new referenceId for split request', () => {
-    const refId = uuidv4()
+    const refId = randomUUID()
     const pr = createPaymentRequest({ schemeId: SFI, referenceId: refId })
     const updated = splitToLedger(pr, 10, AR)
 

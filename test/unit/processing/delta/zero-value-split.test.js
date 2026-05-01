@@ -1,6 +1,6 @@
 const { AP } = require('../../../../app/constants/ledgers')
 const { zeroValueSplit } = require('../../../../app/processing/delta/zero-value-split/zero-value-split')
-const { v4: uuidv4 } = require('uuid')
+const { randomUUID } = require('node:crypto')
 const { createPaymentRequest } = require('../../../helpers/create-payment-request')
 
 describe('zeroValueSplit', () => {
@@ -59,7 +59,7 @@ describe('zeroValueSplit', () => {
     const pr = createPaymentRequest({
       value: 0,
       schemeId: 1,
-      referenceId: uuidv4(),
+      referenceId: randomUUID(),
       invoiceLines: [
         { description: 'G00', value: -50 },
         { description: 'G00', value: 50 }

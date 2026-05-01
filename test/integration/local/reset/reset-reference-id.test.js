@@ -1,7 +1,7 @@
 const { resetDatabase, closeDatabaseConnection, savePaymentRequest } = require('../../../helpers')
 
-jest.mock('uuid')
-const { v4: uuidv4 } = require('uuid')
+jest.mock('node:crypto')
+const { randomUUID } = require('node:crypto')
 
 const paymentRequest = require('../../../mocks/payment-requests/payment-request')
 
@@ -16,7 +16,7 @@ let paymentRequestId
 describe('reset reference id', () => {
   beforeEach(async () => {
     jest.clearAllMocks()
-    uuidv4.mockReturnValue(UUID)
+    randomUUID.mockReturnValue(UUID)
     await resetDatabase()
     const { id } = await savePaymentRequest(paymentRequest, false)
     paymentRequestId = id
