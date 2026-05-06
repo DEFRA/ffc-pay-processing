@@ -102,4 +102,5 @@
   <include file="changelog/db.changelog-1.95.xml"/>
   <include file="changelog/db.changelog-1.96.xml"/>
   <include file="changelog/db.changelog-1.97.xml"/>
+  <include file="changelog/db.changelog-1.98.xml"/>
 </databaseChangeLog>
