@@ -1,4 +1,3 @@
-const util = require('util')
 const db = require('../data')
 const { messageConfig } = require('../config')
 const { sendMessage } = require('../messaging/send-message')
@@ -10,7 +9,7 @@ const routeDebtToRequestEditor = async (paymentRequest) => {
   const transaction = await db.sequelize.transaction()
   try {
     await sendMessage(paymentRequest, ROUTED_DEBT, messageConfig.debtTopic)
-    console.log('Payment request routed to request editor:', util.inspect(paymentRequest, false, null, true))
+    console.log('Payment request routed to request editor:', { frn: paymentRequest.frn, sbi: paymentRequest.sbi, invoiceNumber: paymentRequest.invoiceNumber })
     const holdCategoryId = await getHoldCategoryId(paymentRequest.schemeId, AWAITING_DEBT_ENRICHMENT, transaction)
     await holdAndReschedule(paymentRequest, holdCategoryId, transaction)
     await transaction.commit()

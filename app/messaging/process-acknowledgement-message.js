@@ -1,10 +1,9 @@
-const util = require('util')
 const { processAcknowledgement } = require('../acknowledgement')
 const { sendProcessingErrorEvent } = require('../event')
 
 const processAcknowledgementMessage = async (message, receiver) => {
   try {
-    console.log('Acknowledgement received:', util.inspect(message.body, false, null, true))
+    console.log('Acknowledgement received:', { frn: message.body.frn, sbi: message.body.sbi, invoiceNumber: message.body.invoiceNumber })
     await processAcknowledgement(message.body)
     console.log('Acknowledgement processed')
     await receiver.completeMessage(message)
