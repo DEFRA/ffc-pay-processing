@@ -8,6 +8,15 @@ const FUTURE_YEAR_OFFSET = 10
 const MIN_MONTH = 1
 const MAX_MONTH = 12
 const METRICS_CALCULATION_FAILED = 'Metrics calculation failed'
+const FPTT_SCHEME_NAME = 'FPTT'
+
+const flipValue = value => (value === 0 || Object.is(value, -0)) ? 0 : -value
+
+const parseMetricValue = (rawValue, schemeName) => {
+  const parsed = Number.parseInt(rawValue)
+  const normalized = Object.is(parsed, -0) ? 0 : parsed
+  return schemeName === FPTT_SCHEME_NAME ? flipValue(normalized) : normalized
+}
 
 const validatePeriod = (period) => {
   if (!VALID_PERIODS.includes(period)) {
@@ -75,15 +84,15 @@ const handleMonthInYearCalculation = async (schemeYear, month) => {
 const calculateTotals = (schemeMetrics) => {
   return schemeMetrics.reduce((acc, m) => ({
     totalPayments: acc.totalPayments + m.totalPayments,
-    totalValue: acc.totalValue + Number.parseInt(m.totalValue),
+    totalValue: acc.totalValue + parseMetricValue(m.totalValue, m.schemeName),
     pendingPayments: acc.pendingPayments + m.pendingPayments,
-    pendingValue: acc.pendingValue + Number.parseInt(m.pendingValue),
+    pendingValue: acc.pendingValue + parseMetricValue(m.pendingValue, m.schemeName),
     processedPayments: acc.processedPayments + m.processedPayments,
-    processedValue: acc.processedValue + Number.parseInt(m.processedValue),
+    processedValue: acc.processedValue + parseMetricValue(m.processedValue, m.schemeName),
     settledPayments: acc.settledPayments + m.settledPayments,
-    settledValue: acc.settledValue + Number.parseInt(m.settledValue),
+    settledValue: acc.settledValue + parseMetricValue(m.settledValue, m.schemeName),
     paymentsOnHold: acc.paymentsOnHold + m.paymentsOnHold,
-    valueOnHold: acc.valueOnHold + Number.parseInt(m.valueOnHold)
+    valueOnHold: acc.valueOnHold + parseMetricValue(m.valueOnHold, m.schemeName)
   }), {
     totalPayments: 0,
     totalValue: 0,
@@ -141,15 +150,15 @@ const mapSchemeMetrics = (schemeMetrics) => {
     schemeName: m.schemeName,
     schemeYear: m.schemeYear,
     totalPayments: m.totalPayments,
-    totalValue: Number.parseInt(m.totalValue),
+    totalValue: parseMetricValue(m.totalValue, m.schemeName),
     pendingPayments: m.pendingPayments,
-    pendingValue: Number.parseInt(m.pendingValue),
+    pendingValue: parseMetricValue(m.pendingValue, m.schemeName),
     processedPayments: m.processedPayments,
-    processedValue: Number.parseInt(m.processedValue),
+    processedValue: parseMetricValue(m.processedValue, m.schemeName),
     settledPayments: m.settledPayments,
-    settledValue: Number.parseInt(m.settledValue),
+    settledValue: parseMetricValue(m.settledValue, m.schemeName),
     paymentsOnHold: m.paymentsOnHold,
-    valueOnHold: Number.parseInt(m.valueOnHold)
+    valueOnHold: parseMetricValue(m.valueOnHold, m.schemeName)
   }))
 }
 
