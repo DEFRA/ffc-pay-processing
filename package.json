@@ -1,6 +1,6 @@
 {
   "name": "ffc-pay-processing",
-  "version": "2.55.91",
+  "version": "2.55.92",
   "description": "Payment Hub processing service",
   "homepage": "https://github.com/DEFRA/ffc-pay-processing",
   "main": "app/index.js",
