@@ -35,7 +35,8 @@ module.exports = (sequelize, DataTypes) => {
     sentToTracking: DataTypes.BOOLEAN,
     fesCode: DataTypes.STRING,
     annualValue: DataTypes.DECIMAL,
-    remmittanceDescription: DataTypes.STRING
+    remmittanceDescription: DataTypes.STRING,
+    providesAccountingValues: DataTypes.BOOLEAN
   },
   {
     tableName: 'paymentRequests',
