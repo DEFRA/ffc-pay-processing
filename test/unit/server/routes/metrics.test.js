@@ -961,4 +961,225 @@ describe('Metrics Route Handler', () => {
       expect(scheme).toHaveProperty('valueOnHold')
     })
   })
+  describe('FPTT Value Sign Flipping', () => {
+    test('should flip positive FPTT values to negative', async () => {
+      mockRequest.query.period = PERIOD_ALL
+      db.metric.findOne.mockResolvedValue({ maxDate: '2023-01-01' })
+      db.metric.findAll.mockResolvedValue([{
+        schemeName: 'FPTT',
+        schemeYear: null,
+        totalPayments: 2,
+        totalValue: '500',
+        pendingPayments: 0,
+        pendingValue: '0',
+        processedPayments: 2,
+        processedValue: '500',
+        settledPayments: 0,
+        settledValue: '0',
+        paymentsOnHold: 0,
+        valueOnHold: '0'
+      }])
+
+      await handler(mockRequest, mockH)
+
+      const response = mockH.response.mock.calls[0][0]
+      expect(response.paymentsByScheme[0].processedValue).toBe(-500)
+      expect(response.paymentsByScheme[0].totalValue).toBe(-500)
+      expect(response.totalProcessedValue).toBe(-500)
+      expect(response.totalValue).toBe(-500)
+    })
+
+    test('should flip negative FPTT values to positive', async () => {
+      mockRequest.query.period = PERIOD_ALL
+      db.metric.findOne.mockResolvedValue({ maxDate: '2023-01-01' })
+      db.metric.findAll.mockResolvedValue([{
+        schemeName: 'FPTT',
+        schemeYear: null,
+        totalPayments: 2,
+        totalValue: '-500',
+        pendingPayments: 0,
+        pendingValue: '0',
+        processedPayments: 2,
+        processedValue: '-500',
+        settledPayments: 0,
+        settledValue: '0',
+        paymentsOnHold: 0,
+        valueOnHold: '0'
+      }])
+
+      await handler(mockRequest, mockH)
+
+      const response = mockH.response.mock.calls[0][0]
+      expect(response.paymentsByScheme[0].processedValue).toBe(500)
+      expect(response.paymentsByScheme[0].totalValue).toBe(500)
+      expect(response.totalProcessedValue).toBe(500)
+      expect(response.totalValue).toBe(500)
+    })
+
+    test('should return zero (not -0) for FPTT zero string value', async () => {
+      mockRequest.query.period = PERIOD_ALL
+      db.metric.findOne.mockResolvedValue({ maxDate: '2023-01-01' })
+      db.metric.findAll.mockResolvedValue([{
+        schemeName: 'FPTT',
+        schemeYear: null,
+        totalPayments: 0,
+        totalValue: '0',
+        pendingPayments: 0,
+        pendingValue: '0',
+        processedPayments: 0,
+        processedValue: '0',
+        settledPayments: 0,
+        settledValue: '0',
+        paymentsOnHold: 0,
+        valueOnHold: '0'
+      }])
+
+      await handler(mockRequest, mockH)
+
+      const response = mockH.response.mock.calls[0][0]
+      expect(response.paymentsByScheme[0].processedValue).toBe(0)
+      expect(Object.is(response.paymentsByScheme[0].processedValue, -0)).toBe(false)
+      expect(response.totalProcessedValue).toBe(0)
+      expect(Object.is(response.totalProcessedValue, -0)).toBe(false)
+    })
+
+    test('should return zero (not -0) for FPTT signed-zero string value', async () => {
+      mockRequest.query.period = PERIOD_ALL
+      db.metric.findOne.mockResolvedValue({ maxDate: '2023-01-01' })
+      db.metric.findAll.mockResolvedValue([{
+        schemeName: 'FPTT',
+        schemeYear: null,
+        totalPayments: 0,
+        totalValue: '-0',
+        pendingPayments: 0,
+        pendingValue: '-0',
+        processedPayments: 0,
+        processedValue: '-0',
+        settledPayments: 0,
+        settledValue: '-0',
+        paymentsOnHold: 0,
+        valueOnHold: '-0'
+      }])
+
+      await handler(mockRequest, mockH)
+
+      const response = mockH.response.mock.calls[0][0]
+      expect(response.paymentsByScheme[0].processedValue).toBe(0)
+      expect(Object.is(response.paymentsByScheme[0].processedValue, -0)).toBe(false)
+      expect(response.totalProcessedValue).toBe(0)
+      expect(Object.is(response.totalProcessedValue, -0)).toBe(false)
+    })
+
+    test('should not flip values for non-FPTT schemes', async () => {
+      mockRequest.query.period = PERIOD_ALL
+      db.metric.findOne.mockResolvedValue({ maxDate: '2023-01-01' })
+      db.metric.findAll.mockResolvedValue([{
+        schemeName: 'SFI',
+        schemeYear: null,
+        totalPayments: 5,
+        totalValue: '1000',
+        pendingPayments: 0,
+        pendingValue: '0',
+        processedPayments: 5,
+        processedValue: '1000',
+        settledPayments: 0,
+        settledValue: '0',
+        paymentsOnHold: 0,
+        valueOnHold: '0'
+      }])
+
+      await handler(mockRequest, mockH)
+
+      const response = mockH.response.mock.calls[0][0]
+      expect(response.paymentsByScheme[0].processedValue).toBe(1000)
+      expect(response.totalProcessedValue).toBe(1000)
+    })
+
+    test('should flip FPTT values and leave other scheme values unchanged in mixed results', async () => {
+      mockRequest.query.period = PERIOD_ALL
+      db.metric.findOne.mockResolvedValue({ maxDate: '2023-01-01' })
+      db.metric.findAll.mockResolvedValue([
+        {
+          schemeName: 'FPTT',
+          schemeYear: null,
+          totalPayments: 2,
+          totalValue: '-300',
+          pendingPayments: 0,
+          pendingValue: '0',
+          processedPayments: 2,
+          processedValue: '-300',
+          settledPayments: 0,
+          settledValue: '0',
+          paymentsOnHold: 0,
+          valueOnHold: '0'
+        },
+        {
+          schemeName: 'SFI',
+          schemeYear: null,
+          totalPayments: 5,
+          totalValue: '1000',
+          pendingPayments: 0,
+          pendingValue: '0',
+          processedPayments: 5,
+          processedValue: '1000',
+          settledPayments: 0,
+          settledValue: '0',
+          paymentsOnHold: 0,
+          valueOnHold: '0'
+        }
+      ])
+
+      await handler(mockRequest, mockH)
+
+      const response = mockH.response.mock.calls[0][0]
+      const fptt = response.paymentsByScheme.find(s => s.schemeName === 'FPTT')
+      const sfi = response.paymentsByScheme.find(s => s.schemeName === 'SFI')
+      expect(fptt.processedValue).toBe(300)
+      expect(sfi.processedValue).toBe(1000)
+      expect(response.totalProcessedValue).toBe(1300)
+    })
+
+    test('should flip and aggregate FPTT values correctly across multiple records', async () => {
+      mockRequest.query.period = PERIOD_YTD
+      db.metric.findOne.mockResolvedValue({ maxDate: '2023-01-01' })
+      db.metric.findAll.mockResolvedValue([
+        {
+          schemeName: 'FPTT',
+          schemeYear: null,
+          totalPayments: 1,
+          totalValue: '-200',
+          pendingPayments: 0,
+          pendingValue: '0',
+          processedPayments: 1,
+          processedValue: '-200',
+          settledPayments: 0,
+          settledValue: '0',
+          paymentsOnHold: 0,
+          valueOnHold: '0'
+        },
+        {
+          schemeName: 'FPTT',
+          schemeYear: null,
+          totalPayments: 1,
+          totalValue: '-100',
+          pendingPayments: 0,
+          pendingValue: '0',
+          processedPayments: 1,
+          processedValue: '-100',
+          settledPayments: 0,
+          settledValue: '0',
+          paymentsOnHold: 0,
+          valueOnHold: '0'
+        }
+      ])
+
+      await handler(mockRequest, mockH)
+
+      // aggregateByScheme flips each record before summing: -200->200, -100->100; total = 300
+      const response = mockH.response.mock.calls[0][0]
+      const fptt = response.paymentsByScheme.find(s => s.schemeName === 'FPTT')
+      expect(fptt.processedValue).toBe(300)
+      expect(response.totalProcessedValue).toBe(300)
+    })
+  })
 })

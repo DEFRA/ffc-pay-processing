@@ -3,6 +3,7 @@
 data:
   NODE_ENV: {{ quote .Values.environment }}
   APPINSIGHTS_CLOUDROLE: {{ quote .Values.name }}
+  OTEL_SERVICE_NAME: {{ quote .Values.name }} 
   MESSAGE_QUEUE_HOST: {{ quote .Values.container.messageQueueHost }}
   PROCESSING_SUBSCRIPTION_MAX_CONCURRENT_CALLS: {{ quote .Values.container.processingSubscriptionMaxConcurrentCalls }}
   {{- if (.Values.environmentCode) }}

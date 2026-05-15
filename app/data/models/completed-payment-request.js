@@ -39,7 +39,8 @@ module.exports = (sequelize, DataTypes) => {
     claimDate: DataTypes.STRING,
     fesCode: DataTypes.STRING,
     annualValue: DataTypes.DECIMAL,
-    remmittanceDescription: DataTypes.STRING
+    remmittanceDescription: DataTypes.STRING,
+    providesAccountingValues: DataTypes.BOOLEAN
   },
   {
     tableName: 'completedPaymentRequests',
