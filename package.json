@@ -33,7 +33,7 @@
   "license": "OGL-UK-3.0",
   "dependencies": {
     "@azure/identity": "4.13.1",
-    "@azure/monitor-opentelemetry": "1.17.0",
+    "@azure/monitor-opentelemetry": "1.18.0",
     "@hapi/boom": "10.0.0",
     "@hapi/hapi": "21.4.8",
     "ffc-database": "1.0.25",
