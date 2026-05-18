@@ -52,6 +52,11 @@ const schema = Joi.object({
     topic: Joi.string().required(),
     type: Joi.string().default('subscription')
   },
+  retentionSubscription: {
+    address: Joi.string().required(),
+    topic: Joi.string().required(),
+    type: Joi.string().default('subscription')
+  },
   eventsTopic: {
     address: Joi.string().required()
   }
@@ -101,6 +106,10 @@ const config = {
     address: process.env.XBRESPONSE_SUBSCRIPTION_ADDRESS,
     topic: process.env.XBRESPONSE_TOPIC_ADDRESS
   },
+  retentionSubscription: {
+    address: process.env.RETENTION_SUBSCRIPTION_ADDRESS,
+    topic: process.env.RETENTION_TOPIC_ADDRESS
+  },
   eventsTopic: {
     address: process.env.EVENTS_TOPIC_ADDRESS
   }
@@ -124,6 +133,7 @@ const manualTopic = { ...result.value.messageQueue, ...result.value.manualTopic 
 const qcManualSubscription = { ...result.value.messageQueue, ...result.value.qcManualSubscription }
 const xbTopic = { ...result.value.messageQueue, ...result.value.xbTopic }
 const xbResponseSubscription = { ...result.value.messageQueue, ...result.value.xbResponseSubscription }
+const retentionSubscription = { ...result.value.messageQueue, ...result.value.retentionSubscription }
 const eventsTopic = { ...result.value.messageQueue, ...result.value.eventsTopic }
 
 module.exports = {
@@ -137,5 +147,6 @@ module.exports = {
   qcManualSubscription,
   xbTopic,
   xbResponseSubscription,
+  retentionSubscription,
   eventsTopic
 }

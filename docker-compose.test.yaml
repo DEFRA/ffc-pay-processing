@@ -36,6 +36,8 @@ services:
       XB_TOPIC_ADDRESS: ffc-pay-xb-test
       XBRESPONSE_TOPIC_ADDRESS: ffc-pay-xb-response-test
       XBRESPONSE_SUBSCRIPTION_ADDRESS: ffc-pay-processing
+      RETENTION_TOPIC_ADDRESS: fcp-pds-data-retention
+      RETENTION_SUBSCRIPTION_ADDRESS: ffc-pay-processing
       EVENTS_TOPIC_ADDRESS: ffc-pay-events-test
 
   ffc-pay-processing-postgres:

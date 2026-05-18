@@ -49,6 +49,8 @@ container:
   xbTopicAddress: ffc-pay-xb
   xbResponseTopicAddress: ffc-pay-xb-response
   xbResponseSubscriptionAddress: ffc-pay-processing
+  retentionTopicAddress: fcp-pds-data-retention
+  retentionSubscriptionAddress: ffc-pay-processing
   eventsTopicAddress: ffc-pay-events
   autoHoldTopUp: false
   autoHoldRecovery: false

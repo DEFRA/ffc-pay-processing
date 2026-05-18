@@ -17,6 +17,7 @@ data:
   QCMANUALCHECK_TOPIC_ADDRESS: {{ .Values.container.qcManualCheckTopicAddress }}-{{ .Values.environmentCode }}
   XB_TOPIC_ADDRESS: {{ .Values.container.xbTopicAddress }}-{{ .Values.environmentCode }}
   XBRESPONSE_TOPIC_ADDRESS: {{ .Values.container.xbResponseTopicAddress }}-{{ .Values.environmentCode }}
+  RETENTION_TOPIC_ADDRESS: {{ .Values.container.retentionTopicAddress }}-{{ .Values.environmentCode }}
   EVENTS_TOPIC_ADDRESS: {{ .Values.container.eventsTopicAddress }}-{{ .Values.environmentCode }}
   {{ else }}
   PROCESSING_TOPIC_ADDRESS: {{ quote .Values.container.processingTopicAddress }}
@@ -30,6 +31,7 @@ data:
   EVENTS_TOPIC_ADDRESS: {{ quote .Values.container.eventsTopicAddress }}
   XB_TOPIC_ADDRESS: {{ quote .Values.container.xbTopicAddress }}
   XBRESPONSE_TOPIC_ADDRESS: {{ quote .Values.container.xbResponseTopicAddress }}
+  RETENTION_TOPIC_ADDRESS: {{ quote .Values.container.retentionTopicAddress }}
   {{- end }}
   PROCESSING_SUBSCRIPTION_ADDRESS: {{ quote .Values.container.processingSubscriptionAddress }}
   ACKNOWLEDGEMENT_SUBSCRIPTION_ADDRESS: {{ quote .Values.container.acknowledgementSubscriptionAddress }}
@@ -37,6 +39,7 @@ data:
   QC_SUBSCRIPTION_ADDRESS: {{ quote .Values.container.qcSubscriptionAddress }}
   QCMANUALCHECK_SUBSCRIPTION_ADDRESS: {{ quote .Values.container.qcManualCheckSubscriptionAddress }}
   XBRESPONSE_SUBSCRIPTION_ADDRESS: {{ quote .Values.container.xbResponseSubscriptionAddress }}
+  RETENTION_SUBSCRIPTION_ADDRESS: {{ quote .Values.container.retentionSubscriptionAddress }}
   USE_MANUAL_LEDGER_CHECK: {{ quote .Values.container.useManualLedgerCheck }}
   POSTGRES_DB: {{ quote .Values.postgresService.postgresDb }}
   POSTGRES_HOST: {{ quote .Values.postgresService.postgresqlHost }}
