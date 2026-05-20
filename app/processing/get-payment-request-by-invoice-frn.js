@@ -3,7 +3,8 @@ const db = require('../data')
 const getPaymentRequestByInvoiceAndFrn = async (invoiceNumber, frn) => {
   return db.completedPaymentRequest.findOne({
     where: { invoiceNumber, frn },
-    raw: true
+    include: [{ model: db.completedInvoiceLine, as: 'invoiceLines' }],
+    raw: false
   })
 }
 
