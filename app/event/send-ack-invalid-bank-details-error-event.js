@@ -4,7 +4,7 @@ const { SOURCE } = require('../constants/source')
 const { PAYMENT_INVALID_BANK } = require('../constants/events')
 
 const sendAckInvalidBankDetailsErrorEvent = async (paymentRequest) => {
-  const { frn, sourceSystem, contractNumber, agreementNumber, batch, claimDate, value, sbi, invoiceNumber, schemeId } = paymentRequest
+  const { frn, sourceSystem, contractNumber, agreementNumber, batch, claimDate, value, sbi, invoiceNumber, schemeId, invoiceLines } = paymentRequest
   const event = {
     source: SOURCE,
     type: PAYMENT_INVALID_BANK,
@@ -19,7 +19,8 @@ const sendAckInvalidBankDetailsErrorEvent = async (paymentRequest) => {
       value,
       sbi,
       invoiceNumber,
-      schemeId
+      schemeId,
+      invoiceLines
     }
   }
   const eventPublisher = new EventPublisher(messageConfig.eventsTopic)
