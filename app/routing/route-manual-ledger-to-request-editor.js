@@ -1,4 +1,3 @@
-const util = require('util')
 const db = require('../data')
 const { messageConfig } = require('../config')
 const { sendMessage } = require('../messaging/send-message')
@@ -12,7 +11,7 @@ const routeManualLedgerToRequestEditor = async (deltaCalculationResult) => {
   try {
     const manualLedgerMessage = { paymentRequest: deltaPaymentRequest, paymentRequests: completedPaymentRequests }
     await sendMessage(manualLedgerMessage, ROUTED_LEDGER, messageConfig.manualTopic)
-    console.log('Payment request routed to request editor for manual ledger check:', util.inspect(manualLedgerMessage, false, null, true))
+    console.log('Payment request routed to request editor for manual ledger check:', { frn: manualLedgerMessage.frn, sbi: manualLedgerMessage.sbi, invoiceNumber: manualLedgerMessage.invoiceNumber })
     const holdCategoryId = await getHoldCategoryId(deltaPaymentRequest.schemeId, AWAITING_LEDGER_CHECK, transaction)
     await holdAndReschedule(deltaPaymentRequest, holdCategoryId, transaction)
     await transaction.commit()

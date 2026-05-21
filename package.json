@@ -1,6 +1,6 @@
 {
   "name": "ffc-pay-processing",
-  "version": "2.56.1",
+  "version": "2.56.2",
   "description": "Payment Hub processing service",
   "homepage": "https://github.com/DEFRA/ffc-pay-processing",
   "main": "app/index.js",
@@ -56,7 +56,7 @@
     "nodemon": "3.0.1"
   },
   "overrides": {
-    "protobufjs": "8.0.2"
+    "protobufjs": "8.2.0"
   },
   "nodemonConfig": {
     "ignore": [
