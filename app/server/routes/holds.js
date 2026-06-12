@@ -2,6 +2,8 @@ const joi = require('joi')
 const boom = require('@hapi/boom')
 const { GET, POST } = require('../../constants/methods')
 const { getHolds, addHold, addBulkHold, removeBulkHold, removeHoldById, getHoldCategories, addHoldType, editHoldType, removeHoldType } = require('../../holds')
+const { HTTP_OK } = require('../../constants/http-status-codes')
+const { OK } = require('../../constants/ok')
 
 module.exports = [
   {
@@ -21,7 +23,7 @@ module.exports = [
     method: GET,
     path: '/payment-hold-categories',
     options: {
-      handler: async (request, h) => {
+      handler: async (_request, h) => {
         const paymentHoldCategories = await getHoldCategories()
         return h.response({ paymentHoldCategories })
       }
@@ -36,13 +38,13 @@ module.exports = [
           frn: joi.number().required(),
           holdCategoryId: joi.number().required()
         }),
-        failAction: (request, h, error) => {
+        failAction: (_request, _h, error) => {
           return boom.badRequest(error)
         }
       },
       handler: async (request, h) => {
         await addHold(request.payload.frn, request.payload.holdCategoryId)
-        return h.response('ok').code(200)
+        return h.response(OK).code(HTTP_OK)
       }
     }
   },
@@ -52,7 +54,7 @@ module.exports = [
     options: {
       handler: async (request, h) => {
         await addBulkHold(request.payload.data, request.payload.holdCategoryId)
-        return h.response('ok').code(200)
+        return h.response(OK).code(HTTP_OK)
       }
     }
   },
@@ -64,13 +66,13 @@ module.exports = [
         payload: joi.object({
           holdId: joi.number().required()
         }),
-        failAction: (request, h, error) => {
+        failAction: (_request, _h, error) => {
           return boom.badRequest(error)
         }
       },
       handler: async (request, h) => {
         await removeHoldById(request.payload.holdId)
-        return h.response('ok').code(200)
+        return h.response(OK).code(HTTP_OK)
       }
     }
   },
@@ -80,7 +82,7 @@ module.exports = [
     options: {
       handler: async (request, h) => {
         await removeBulkHold(request.payload.data, request.payload.holdCategoryId)
-        return h.response('ok').code(200)
+        return h.response(OK).code(HTTP_OK)
       }
     }
   },
@@ -93,13 +95,13 @@ module.exports = [
           categoryName: joi.string().required(),
           schemeId: joi.number().required()
         }),
-        failAction: (request, h, error) => {
+        failAction: (_request, _h, error) => {
           return boom.badRequest(error)
         }
       },
       handler: async (request, h) => {
         await addHoldType(request.payload.categoryName, request.payload.schemeId)
-        return h.response('ok').code(200)
+        return h.response(OK).code(HTTP_OK)
       }
     }
   },
@@ -112,13 +114,13 @@ module.exports = [
           categoryName: joi.string().required(),
           holdCategoryId: joi.number().required()
         }),
-        failAction: (request, h, error) => {
+        failAction: (_request, _h, error) => {
           return boom.badRequest(error)
         }
       },
       handler: async (request, h) => {
         await editHoldType(request.payload.categoryName, request.payload.holdCategoryId)
-        return h.response('ok').code(200)
+        return h.response(OK).code(HTTP_OK)
       }
     }
   },
@@ -130,13 +132,13 @@ module.exports = [
         payload: joi.object({
           holdCategoryId: joi.number().required()
         }),
-        failAction: (request, h, error) => {
+        failAction: (_request, _h, error) => {
           return boom.badRequest(error)
         }
       },
       handler: async (request, h) => {
         await removeHoldType(request.payload.holdCategoryId)
-        return h.response('ok').code(200)
+        return h.response(OK).code(HTTP_OK)
       }
     }
   }
