@@ -1,6 +1,5 @@
 jest.mock('../../../../../app/holds')
-const { getHolds: mockGetHolds, addHold: mockAddHold, removeHoldById: mockRemoveHoldById, getHoldCategories: mockGetHoldCategories } = require('../../../../../app/holds')
-
+const { getHolds: mockGetHolds, addHold: mockAddHold, removeHoldById: mockRemoveHoldById, getHoldCategories: mockGetHoldCategories, addHoldType: mockAddHoldType, editHoldType: mockEditHoldType, removeHoldType: mockRemoveHoldType } = require('../../../../../app/holds')
 const hold = require('../../../../mocks/holds/hold')
 const holdCategory = require('../../../../mocks/holds/hold-category')
 
@@ -253,6 +252,205 @@ describe('holds routes', () => {
       url: '/remove-payment-hold',
       payload: {
         holdId
+      }
+    }
+
+    const result = await server.inject(options)
+    expect(result.statusCode).toBe(500)
+  })
+
+  // add-hold-type
+  test('POST /add-hold-type should add hold type for category and scheme', async () => {
+    const options = {
+      method: POST,
+      url: '/add-hold-type',
+      payload: {
+        categoryName: 'Test Category',
+        schemeId: 2
+      }
+    }
+
+    await server.inject(options)
+    expect(mockAddHoldType).toHaveBeenCalledWith('Test Category', 2)
+  })
+
+  test('POST /add-hold-type returns 200 if hold type added', async () => {
+    const options = {
+      method: POST,
+      url: '/add-hold-type',
+      payload: {
+        categoryName: 'Test Category',
+        schemeId: 2
+      }
+    }
+
+    const result = await server.inject(options)
+    expect(result.statusCode).toBe(200)
+  })
+
+  test.each([
+    false,
+    true,
+    undefined,
+    null,
+    ''
+  ])('POST /add-hold-type returns 400 if categoryName is %p', async (categoryName) => {
+    const options = {
+      method: POST,
+      url: '/add-hold-type',
+      payload: {
+        categoryName,
+        schemeId: 2
+      }
+    }
+
+    const result = await server.inject(options)
+    expect(result.statusCode).toBe(400)
+  })
+
+  test.each([
+    'abc',
+    false,
+    true,
+    undefined,
+    null,
+    ''
+  ])('POST /add-hold-type returns 400 if schemeId is %p', async (schemeId) => {
+    const options = {
+      method: POST,
+      url: '/add-hold-type',
+      payload: {
+        categoryName: 'Test Category',
+        schemeId
+      }
+    }
+
+    const result = await server.inject(options)
+    expect(result.statusCode).toBe(400)
+  })
+
+  test('POST /edit-hold-type should edit hold type', async () => {
+    const options = {
+      method: POST,
+      url: '/edit-hold-type',
+      payload: {
+        categoryName: 'Edited Category',
+        holdCategoryId: 3
+      }
+    }
+
+    await server.inject(options)
+    expect(mockEditHoldType).toHaveBeenCalledWith('Edited Category', 3)
+  })
+
+  test('POST /edit-hold-type returns 200 if hold type edited', async () => {
+    const options = {
+      method: POST,
+      url: '/edit-hold-type',
+      payload: {
+        categoryName: 'Edited Category',
+        holdCategoryId: 3
+      }
+    }
+
+    const result = await server.inject(options)
+    expect(result.statusCode).toBe(200)
+  })
+
+  test.each([
+    false,
+    true,
+    undefined,
+    null,
+    ''
+  ])('POST /edit-hold-type returns 400 if categoryName is %p', async (categoryName) => {
+    const options = {
+      method: POST,
+      url: '/edit-hold-type',
+      payload: {
+        categoryName,
+        holdCategoryId: 3
+      }
+    }
+
+    const result = await server.inject(options)
+    expect(result.statusCode).toBe(400)
+  })
+
+  test.each([
+    'abc',
+    false,
+    true,
+    undefined,
+    null,
+    ''
+  ])('POST /edit-hold-type returns 400 if holdCategoryId is %p', async (holdCategoryId) => {
+    const options = {
+      method: POST,
+      url: '/edit-hold-type',
+      payload: {
+        categoryName: 'Edited Category',
+        holdCategoryId
+      }
+    }
+
+    const result = await server.inject(options)
+    expect(result.statusCode).toBe(400)
+  })
+
+  test('POST /remove-hold-type should remove hold type for holdCategoryId', async () => {
+    const options = {
+      method: POST,
+      url: '/remove-hold-type',
+      payload: {
+        holdCategoryId: 5
+      }
+    }
+
+    await server.inject(options)
+    expect(mockRemoveHoldType).toHaveBeenCalledWith(5)
+  })
+
+  test('POST /remove-hold-type returns 200 if hold type removed', async () => {
+    const options = {
+      method: POST,
+      url: '/remove-hold-type',
+      payload: {
+        holdCategoryId: 5
+      }
+    }
+
+    const result = await server.inject(options)
+    expect(result.statusCode).toBe(200)
+  })
+
+  test.each([
+    'abc',
+    false,
+    true,
+    undefined,
+    null,
+    ''
+  ])('POST /remove-hold-type returns 400 if holdCategoryId is %p', async (holdCategoryId) => {
+    const options = {
+      method: POST,
+      url: '/remove-hold-type',
+      payload: {
+        holdCategoryId
+      }
+    }
+
+    const result = await server.inject(options)
+    expect(result.statusCode).toBe(400)
+  })
+
+  test('POST /remove-hold-type returns 500 if removal throws', async () => {
+    mockRemoveHoldType.mockRejectedValue(new Error('Test error'))
+    const options = {
+      method: POST,
+      url: '/remove-hold-type',
+      payload: {
+        holdCategoryId: 5
       }
     }
 

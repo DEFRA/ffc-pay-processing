@@ -1,0 +1,28 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext" xmlns:pro="http://www.liquibase.org/xml/ns/pro" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-3.9.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.9.xsd">
+  <changeSet author="Sam Plackett" id="1">
+    <tagDatabase tag="v2.1.0" />
+  </changeSet>
+  <changeSet id="2" author="Sam Plackett" dbms="postgresql">
+    <sql splitStatements="false" stripComments="false">
+      <![CDATA[
+        SELECT setval(
+          (
+            SELECT seq.oid::regclass
+            FROM pg_class seq
+            JOIN pg_depend dep ON dep.objid = seq.oid
+            JOIN pg_attribute attr ON attr.attrelid = dep.refobjid AND attr.attnum = dep.refobjsubid
+            WHERE seq.relkind = 'S'
+              AND attr.attrelid = 'public."holdCategories"'::regclass
+              AND attr.attname = 'holdCategoryId'
+            LIMIT 1
+          ),
+          (
+            SELECT COALESCE(MAX("holdCategoryId"),0) FROM "holdCategories"
+          ),
+          true
+        );
+      ]]>
+    </sql>
+  </changeSet>
+</databaseChangeLog>

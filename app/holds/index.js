@@ -7,6 +7,9 @@ const { addBulkHold } = require('./add-bulk-hold')
 const { removeBulkHold } = require('./remove-bulk-hold')
 const { removeHoldById } = require('./remove-hold-by-id')
 const { removeHoldByFrn } = require('./remove-hold-by-frn')
+const { addHoldType } = require('./add-hold-type')
+const { editHoldType } = require('./edit-hold-type')
+const { removeHoldType } = require('./remove-hold-type')
 
 module.exports = {
   getHoldCategoryId,
@@ -14,8 +17,11 @@ module.exports = {
   getHoldCategories,
   getSchemeId,
   addHold,
+  addHoldType,
   addBulkHold,
+  editHoldType,
   removeBulkHold,
   removeHoldById,
-  removeHoldByFrn
+  removeHoldByFrn,
+  removeHoldType
 }
