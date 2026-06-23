@@ -55,4 +55,5 @@ data:
   PAYMENT_PUBLISHING_INTERVAL: {{ quote .Values.container.paymentPublishingInterval }}
   POSTGRES_LOGGING: {{ quote .Values.postgresService.logging }}
   PROCESSING_ACTIVE: {{ quote .Values.container.processingActive }}
+  AZURE_LOG_LEVEL: {{ quote .Values.container.azureLogLevel }}
 {{- end -}}
