@@ -60,6 +60,7 @@ container:
   paymentPublishingInterval: 1000
   processingActive: true
   processingSubscriptionMaxConcurrentCalls: 1
+  azureLogLevel: error
 
 postgresService:
   postgresDb: ffc_pay_processing
