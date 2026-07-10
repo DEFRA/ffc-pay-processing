@@ -1,4 +1,4 @@
-const { getClosureCount, getClosures, addClosure, addBulkClosure, removeClosureById } = require('../../closures')
+const { getClosureCount, getClosures, addClosure, addBulkClosure, removeClosureByFRNAndAgreement } = require('../../closures')
 const joi = require('joi')
 const boom = require('@hapi/boom')
 
@@ -50,14 +50,15 @@ module.exports = [{
   options: {
     validate: {
       payload: joi.object({
-        closedId: joi.number().required()
+        frn: joi.number().required(),
+        agreementNumber: joi.string().required()
       }),
       failAction: (request, h, error) => {
         return boom.badRequest(error)
       }
     },
     handler: async (request, h) => {
-      await removeClosureById(request.payload.closedId)
+      await removeClosureByFRNAndAgreement(request.payload.frn, request.payload.agreementNumber)
       return h.response('ok').code(200)
     }
   }
