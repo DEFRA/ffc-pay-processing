@@ -20,6 +20,7 @@ container:
   xbResponseTopicAddress: ffc-pay-xb-response
   xbResponseSubscriptionAddress: ffc-pay-processing
   eventsTopicAddress: ffc-pay-events
+  returnResponseTopicAddress: ffc-pay-return-response
 secretProviderClass:
   azure:
     keyvaultName: PRDFFCINFKV1001

@@ -20,6 +20,7 @@ data:
   XBRESPONSE_TOPIC_ADDRESS: {{ .Values.container.xbResponseTopicAddress }}-{{ .Values.environmentCode }}
   RETENTION_TOPIC_ADDRESS: {{ .Values.container.retentionTopicAddress }}-{{ .Values.environmentCode }}
   EVENTS_TOPIC_ADDRESS: {{ .Values.container.eventsTopicAddress }}-{{ .Values.environmentCode }}
+  RETURN_RESPONSE_TOPIC_ADDRESS: {{ .Values.container.returnResponseTopicAddress }}-{{ .Values.environmentCode }}
   {{ else }}
   PROCESSING_TOPIC_ADDRESS: {{ quote .Values.container.processingTopicAddress }}
   PAYMENTSUBMIT_TOPIC_ADDRESS: {{ quote .Values.container.paymentSubmitTopicAddress }}
@@ -33,6 +34,7 @@ data:
   XB_TOPIC_ADDRESS: {{ quote .Values.container.xbTopicAddress }}
   XBRESPONSE_TOPIC_ADDRESS: {{ quote .Values.container.xbResponseTopicAddress }}
   RETENTION_TOPIC_ADDRESS: {{ quote .Values.container.retentionTopicAddress }}
+  RETURN_RESPONSE_TOPIC_ADDRESS: {{ .Values.container.returnResponseTopicAddress }}
   {{- end }}
   PROCESSING_SUBSCRIPTION_ADDRESS: {{ quote .Values.container.processingSubscriptionAddress }}
   ACKNOWLEDGEMENT_SUBSCRIPTION_ADDRESS: {{ quote .Values.container.acknowledgementSubscriptionAddress }}

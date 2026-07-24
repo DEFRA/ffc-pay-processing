@@ -1,4 +1,5 @@
 const mockPublishEvent = jest.fn()
+const mockSendReturnResponse = jest.fn()
 
 const MockEventPublisher = jest.fn().mockImplementation(() => {
   return {
@@ -15,6 +16,10 @@ const { getPaymentRequestByInvoiceAndFrn } = require('../../../app/processing/ge
 
 jest.mock('../../../app/config')
 const { messageConfig } = require('../../../app/config')
+
+jest.mock('../../../app/messaging/send-return-response', () => ({
+  sendReturnResponse: mockSendReturnResponse
+}))
 
 const { PAYMENT_SETTLEMENT_UNMATCHED, PAYMENT_SETTLEMENT_UNSETTLED, PAYMENT_SETTLED } = require('../../../app/constants/events')
 const { SOURCE } = require('../../../app/constants/source')
@@ -91,6 +96,19 @@ describe('V2 acknowledgement error event', () => {
     test('should include payment request data for matched settlement', async () => {
       await sendProcessingReturnEvent(settlement)
       expect(mockPublishEvent.mock.calls[0][0].data).toEqual(paymentRequest)
+    })
+  })
+
+  describe('sendReturnResponse invocation', () => {
+    test('should call sendReturnResponse when settlement is matched (no error)', async () => {
+      await sendProcessingReturnEvent(settlement, false)
+      expect(mockSendReturnResponse).toHaveBeenCalledTimes(1)
+      expect(mockSendReturnResponse).toHaveBeenCalledWith(paymentRequest, PAYMENT_SETTLED)
+    })
+
+    test('should NOT call sendReturnResponse when there is an error', async () => {
+      await sendProcessingReturnEvent(settlement, true)
+      expect(mockSendReturnResponse).not.toHaveBeenCalled()
     })
   })
 })
