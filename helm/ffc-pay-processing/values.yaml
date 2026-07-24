@@ -52,6 +52,7 @@ container:
   retentionTopicAddress: fcp-pds-data-retention
   retentionSubscriptionAddress: ffc-pay-processing
   eventsTopicAddress: ffc-pay-events
+  returnResponseTopicAddress: ffc-pay-return-response
   autoHoldTopUp: false
   autoHoldRecovery: false
   handleSchemeClosures: true

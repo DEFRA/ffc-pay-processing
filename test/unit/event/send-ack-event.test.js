@@ -1,4 +1,5 @@
 const mockPublishEvent = jest.fn()
+const mockSendReturnResponse = jest.fn()
 
 const MockEventPublisher = jest.fn().mockImplementation(() => {
   return {
@@ -18,6 +19,10 @@ const { getPaymentRequestByInvoiceAndFrn } = require('../../../app/processing/ge
 jest.mock('../../../app/config')
 const { messageConfig } = require('../../../app/config')
 
+jest.mock('../../../app/messaging/send-return-response', () => ({
+  sendReturnResponse: mockSendReturnResponse
+}))
+
 const { PAYMENT_ACKNOWLEDGED } = require('../../../app/constants/events')
 const { SOURCE } = require('../../../app/constants/source')
 
@@ -32,6 +37,7 @@ describe('V2 ack event', () => {
     acknowledgement = structuredClone(require('../../mocks/acknowledgement'))
 
     getPaymentRequestByInvoiceAndFrn.mockResolvedValue(paymentRequest)
+    mockSendReturnResponse.mockResolvedValue()
 
     messageConfig.eventsTopic = 'v2-events'
   })
@@ -58,5 +64,10 @@ describe('V2 ack event', () => {
   test('should include payment request in event data', async () => {
     await sendAckEvent(acknowledgement)
     expect(mockPublishEvent.mock.calls[0][0].data).toEqual(paymentRequest)
+  })
+
+  test('should call sendReturnResponse with paymentRequest and PAYMENT_ACKNOWLEDGED event type', async () => {
+    await sendAckEvent(acknowledgement)
+    expect(mockSendReturnResponse).toHaveBeenCalledWith(paymentRequest, PAYMENT_ACKNOWLEDGED)
   })
 })

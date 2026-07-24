@@ -4,6 +4,7 @@ const { getPaymentRequestByInvoiceAndFrn } = require('../processing/get-payment-
 const { UNKNOWN } = require('../constants/unknown')
 const { SOURCE } = require('../constants/source')
 const { PAYMENT_SETTLED, PAYMENT_SETTLEMENT_UNMATCHED, PAYMENT_SETTLEMENT_UNSETTLED } = require('../constants/events')
+const { sendReturnResponse } = require('../messaging/send-return-response')
 
 const sendProcessingReturnEvent = async (message, isError = false) => {
   const invoiceNumber = message.invoiceNumber ?? UNKNOWN
@@ -25,6 +26,7 @@ const raiseCompletedReturnEvent = async (invoiceNumber, frn) => {
   }
   const eventPublisher = new EventPublisher(messageConfig.eventsTopic)
   await eventPublisher.publishEvent(event)
+  await sendReturnResponse(paymentRequest, PAYMENT_SETTLED)
 }
 
 const raiseErrorEvent = async (invoiceNumber, frn, settled) => {

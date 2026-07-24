@@ -20,3 +20,4 @@ container:
   xbResponseTopicAddress: queue:ffc-pay-xb-response
   xbResponseSubscriptionAddress: ffc-pay-processing
   eventsTopicAddress: queue:ffc-pay-events
+  returnResponseTopicAddress: queue:ffc-pay-return-response
