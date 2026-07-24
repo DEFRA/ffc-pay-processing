@@ -39,6 +39,7 @@ services:
       RETENTION_TOPIC_ADDRESS: fcp-pds-data-retention
       RETENTION_SUBSCRIPTION_ADDRESS: ffc-pay-processing
       EVENTS_TOPIC_ADDRESS: ffc-pay-events-test
+      RETURN_RESPONSE_TOPIC_ADDRESS: ffc-pay-return-response-test
 
   ffc-pay-processing-postgres:
     volumes:

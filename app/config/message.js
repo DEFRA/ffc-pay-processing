@@ -59,8 +59,12 @@ const schema = Joi.object({
   },
   eventsTopic: {
     address: Joi.string().required()
+  },
+  returnResponseTopic: {
+    address: Joi.string().required()
   }
 })
+
 const config = {
   messageQueue: {
     host: process.env.MESSAGE_QUEUE_HOST,
@@ -72,7 +76,7 @@ const config = {
   processingSubscription: {
     address: process.env.PROCESSING_SUBSCRIPTION_ADDRESS,
     topic: process.env.PROCESSING_TOPIC_ADDRESS,
-    maxConcurrentCalls: process.env.PROCESSING_SUBSCRIPTION_MAX_CONCURRENT_CALLS ? parseInt(process.env.PROCESSING_SUBSCRIPTION_MAX_CONCURRENT_CALLS) : undefined
+    maxConcurrentCalls: process.env.PROCESSING_SUBSCRIPTION_MAX_CONCURRENT_CALLS ? Number.parseInt(process.env.PROCESSING_SUBSCRIPTION_MAX_CONCURRENT_CALLS) : undefined
   },
   acknowledgementSubscription: {
     address: process.env.ACKNOWLEDGEMENT_SUBSCRIPTION_ADDRESS,
@@ -112,6 +116,9 @@ const config = {
   },
   eventsTopic: {
     address: process.env.EVENTS_TOPIC_ADDRESS
+  },
+  returnResponseTopic: {
+    address: process.env.RETURN_RESPONSE_TOPIC_ADDRESS
   }
 }
 
@@ -135,6 +142,7 @@ const xbTopic = { ...result.value.messageQueue, ...result.value.xbTopic }
 const xbResponseSubscription = { ...result.value.messageQueue, ...result.value.xbResponseSubscription }
 const retentionSubscription = { ...result.value.messageQueue, ...result.value.retentionSubscription }
 const eventsTopic = { ...result.value.messageQueue, ...result.value.eventsTopic }
+const returnResponseTopic = { ...result.value.messageQueue, ...result.value.returnResponseTopic }
 
 module.exports = {
   processingSubscription,
@@ -148,5 +156,6 @@ module.exports = {
   xbTopic,
   xbResponseSubscription,
   retentionSubscription,
-  eventsTopic
+  eventsTopic,
+  returnResponseTopic
 }

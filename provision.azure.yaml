@@ -112,3 +112,19 @@ resources:
         requiresDuplicateDetection: true
         roles: 
         - name: sender
+      - name: ffc-pay-return-response
+        defaultMessageTimeToLive: P3650D
+        duplicateDetectionHistoryTimeWindow: PT10M30S
+        requiresDuplicateDetection: true
+        roles: 
+        - name: sender
+        subscriptions:
+        - name: ffc-ahwr
+          deadLetteringOnMessageExpiration: false
+          defaultMessageTimeToLive: P3650D
+          lockDuration: PT5M
+          maxDeliveryCount: 2000
+          filters:
+          - name: AHWR
+            type: CorrelationFilter
+            label: AHWR
