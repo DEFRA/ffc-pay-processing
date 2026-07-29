@@ -1,5 +1,5 @@
 const {
-  SFI, SFI_PILOT, LUMP_SUMS, VET_VISITS, CS, BPS, SFI23, DELINKED, SFI_EXPANDED, FPTT
+  SFI, SFI_PILOT, LUMP_SUMS, VET_VISITS, CS, BPS, SFI23, DELINKED, SFI_EXPANDED, FPTT, WMP
 } = require('../../../../../app/constants/schemes')
 
 const sfiMap = require('../../../../../app/processing/account-codes/maps/sfi')
@@ -9,7 +9,7 @@ const csMap = require('../../../../../app/processing/account-codes/maps/cs')
 const bpsMap = require('../../../../../app/processing/account-codes/maps/bps')
 const delinkedMap = require('../../../../../app/processing/account-codes/maps/delinked')
 const fpttMap = require('../../../../../app/processing/account-codes/maps/fptt')
-
+const wmpMap = require('../../../../../app/processing/account-codes/maps/wmp')
 const { getMap } = require('../../../../../app/processing/account-codes/maps/get-map')
 
 describe('get map', () => {
@@ -23,7 +23,8 @@ describe('get map', () => {
     [SFI23, sfiMap],
     [DELINKED, delinkedMap],
     [SFI_EXPANDED, sfiMap],
-    [FPTT, fpttMap]
+    [FPTT, fpttMap],
+    [WMP, wmpMap]
   ])('should return correct map for scheme %s', (scheme, expectedMap) => {
     expect(getMap(scheme)).toStrictEqual(expectedMap)
   })
