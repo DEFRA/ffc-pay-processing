@@ -10,7 +10,8 @@ const {
   SFI_EXPANDED,
   COHT_REVENUE,
   COHT_CAPITAL,
-  FPTT
+  FPTT,
+  WMP
 } = require('../../../constants/schemes')
 
 const sfi = require('./sfi')
@@ -22,6 +23,7 @@ const delinked = require('./delinked')
 const cohtr = require('./cohtr')
 const cohtc = require('./cohtc')
 const fptt = require('./fptt')
+const wmp = require('./wmp')
 
 const schemeMap = new Map([
   [SFI, sfi],
@@ -35,7 +37,8 @@ const schemeMap = new Map([
   [DELINKED, delinked],
   [COHT_REVENUE, cohtr],
   [COHT_CAPITAL, cohtc],
-  [FPTT, fptt]
+  [FPTT, fptt],
+  [WMP, wmp]
 ])
 
 const getMap = (schemeId) => {
