@@ -32,7 +32,6 @@ module.exports = (sequelize, DataTypes) => {
     exchangeRate: DataTypes.STRING,
     eventDate: DataTypes.STRING,
     claimDate: DataTypes.STRING,
-    sentToTracking: DataTypes.BOOLEAN,
     fesCode: DataTypes.STRING,
     annualValue: DataTypes.DECIMAL,
     remmittanceDescription: DataTypes.STRING,
