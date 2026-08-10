@@ -15,6 +15,7 @@ const sendProcessingAckErrorEvent = async (acknowledgement) => {
       ...paymentRequest
     }
   }
+  console.log(event)
   const eventPublisher = new EventPublisher(messageConfig.eventsTopic)
   await eventPublisher.publishEvent(event)
 }
