@@ -13,8 +13,6 @@ const processInvalid = async (paymentRequest, acknowledgement) => {
     const holdCategoryName = getHoldCategoryName(acknowledgement.message)
     const holdCategoryId = await getHoldCategoryId(schemeId, holdCategoryName, transaction)
     await holdAndReschedule(paymentRequestId, holdCategoryId, frn, transaction)
-    console.log(holdCategoryName)
-    console.log(acknowledgement)
     await sendAcknowledgementErrorEvent(holdCategoryName, acknowledgement, paymentRequest)
 
     await transaction.commit()
