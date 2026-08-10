@@ -39,10 +39,20 @@ describe('getPaymentRequestByInvoiceAndFrn', () => {
     )
   })
 
-  test('should return the result of the query', async () => {
-    const paymentRequest = structuredClone(require('../../mocks/payment-requests/payment-request'))
-    db.completedPaymentRequest.findOne.mockResolvedValue(paymentRequest)
+  test('should return the plain result of the query', async () => {
+    const paymentRequest = structuredClone(
+      require('../../mocks/payment-requests/payment-request')
+    )
+
+    const sequelizePaymentRequest = {
+      get: jest.fn().mockReturnValue(paymentRequest)
+    }
+
+    db.completedPaymentRequest.findOne.mockResolvedValue(sequelizePaymentRequest)
+
     const result = await getPaymentRequestByInvoiceAndFrn(INVOICE_NUMBER, FRN)
+
+    expect(sequelizePaymentRequest.get).toHaveBeenCalledWith({ plain: true })
     expect(result).toEqual(paymentRequest)
   })
 })
