@@ -100,6 +100,7 @@ describe('removeAgreementData', () => {
       retentionData.frn,
       retentionData.schemeId,
       retentionData.usesContractNumber,
+      retentionData.pillar,
       transaction
     )
     expect(transaction.commit).toHaveBeenCalledTimes(1)
@@ -140,6 +141,7 @@ describe('removeAgreementData', () => {
       retentionData.frn,
       retentionData.schemeId,
       retentionData.usesContractNumber,
+      retentionData.pillar,
       transaction
     )
     expect(findCompletedPaymentRequests).toHaveBeenCalledWith(
@@ -210,6 +212,22 @@ describe('removeAgreementData', () => {
     )
     expect(transaction.commit).toHaveBeenCalledTimes(1)
     expect(transaction.rollback).not.toHaveBeenCalled()
+  })
+
+  test('passes pillar through to findPaymentRequests for manual scheme retention data', async () => {
+    findPaymentRequests.mockResolvedValue([])
+    removeFRNAgreementClosed.mockResolvedValue()
+
+    await removeAgreementData({ ...retentionData, schemeId: 8, pillar: 'SFI23' })
+
+    expect(findPaymentRequests).toHaveBeenCalledWith(
+      retentionData.agreementNumber,
+      retentionData.frn,
+      8,
+      retentionData.usesContractNumber,
+      'SFI23',
+      transaction
+    )
   })
 
   test('rolls back transaction and throws error if any step fails', async () => {
