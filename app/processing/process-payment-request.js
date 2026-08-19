@@ -1,4 +1,4 @@
-const { MANUAL, ES, IMPS, FC, BPS, FPTT } = require('../constants/schemes')
+const { MANUAL, ES, IMPS, FC, BPS, FPTT, WMP } = require('../constants/schemes')
 const { completePaymentRequests } = require('./complete-payment-requests')
 const { isCrossBorder } = require('./is-cross-border')
 const { transformPaymentRequest } = require('./transform-payment-request')
@@ -16,7 +16,7 @@ const { isAgreementClosed } = require('./is-agreement-closed')
 const { suppressARPaymentRequests } = require('./suppress-ar-payment-requests')
 const config = require('../config/processing')
 
-const noCalculationsRequired = schemeId => [MANUAL, ES, IMPS, FC, FPTT].includes(schemeId)
+const noCalculationsRequired = schemeId => [MANUAL, ES, IMPS, FC, FPTT, WMP].includes(schemeId)
 
 const isBPSCrossBorder = paymentRequest => {
   return (
