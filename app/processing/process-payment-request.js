@@ -80,7 +80,7 @@ const finalizePayment = async (scheduleId, completedPaymentRequests) => {
   await completePaymentRequests(scheduleId, completedPaymentRequests)
 }
 
-const processPaymentRequest = async scheduledPaymentRequest => {
+const processPaymentRequest = async (scheduledPaymentRequest) => {
   const { scheduleId, paymentRequest } = scheduledPaymentRequest
 
   if (noCalculationsRequired(paymentRequest.schemeId)) {
