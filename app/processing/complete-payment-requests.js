@@ -3,18 +3,22 @@ const { zeroValueSplit } = require('../processing/delta/zero-value-split')
 const { sendZeroValueEvent } = require('../event')
 const { sanitizeInvoiceLine } = require('../helpers/sanitize-invoice-line')
 
-const handleScheduleUpdate = async (schedule, transaction) => {
-  if (schedule.completed !== null) {
-    return false
-  }
-  await db.schedule.update(
-    { completed: new Date() },
+const handleScheduleUpdate = async (scheduleId, transaction) => {
+  const [updatedRows] = await db.schedule.update(
     {
-      where: { scheduleId: schedule.scheduleId },
+      completed: new Date()
+    },
+    {
+      where: {
+        scheduleId,
+        started: { [db.Sequelize.Op.ne]: null },
+        completed: { [db.Sequelize.Op.eq]: null }
+      },
       transaction
     }
   )
-  return true
+
+  return updatedRows === 1
 }
 
 const processInvoiceLines = async (
@@ -160,10 +164,9 @@ const processMultipleRequests = async (paymentRequests, transaction) => {
 
 const completePaymentRequests = async (scheduleId, paymentRequests) => {
   const transaction = await db.sequelize.transaction()
-
+  console.log(`Scheduled payment request ${scheduleId} ready to be completed`)
   try {
-    const schedule = await db.schedule.findByPk(scheduleId, { transaction })
-    const shouldProcess = await handleScheduleUpdate(schedule, transaction)
+    const shouldProcess = await handleScheduleUpdate(scheduleId, transaction)
 
     if (shouldProcess) {
       if (
@@ -174,6 +177,8 @@ const completePaymentRequests = async (scheduleId, paymentRequests) => {
       } else {
         await processMultipleRequests(paymentRequests, transaction)
       }
+    } else {
+      console.log(`Schedule ${scheduleId} has already been completed or not started, skipping processing`)
     }
 
     await transaction.commit()
