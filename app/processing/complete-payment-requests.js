@@ -11,7 +11,6 @@ const handleScheduleUpdate = async (scheduleId, transaction) => {
     {
       where: {
         scheduleId,
-        started: { [db.Sequelize.Op.ne]: null },
         completed: { [db.Sequelize.Op.eq]: null }
       },
       transaction
@@ -178,7 +177,7 @@ const completePaymentRequests = async (scheduleId, paymentRequests) => {
         await processMultipleRequests(paymentRequests, transaction)
       }
     } else {
-      console.log(`Schedule ${scheduleId} has already been completed or not started, skipping processing`)
+      console.log(`Schedule ${scheduleId} has already been completed, skipping processing`)
     }
 
     await transaction.commit()
