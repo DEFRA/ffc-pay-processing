@@ -1,5 +1,6 @@
 module.exports = {
-  DUPLICATE_PAYMENT: 'uk.gov.defra.ffc.pay.warning.duplicate.payment',
+  DUPLICATE_PAYMENT: 'uk.gov.defra.ffc.pay.payment.duplicate',
+  DUPLICATE_PAYMENT_WARNING: 'uk.gov.defra.ffc.pay.warning.duplicate.payment',
   HOLD_PREFIX: 'uk.gov.defra.ffc.pay.hold',
   PAYMENT_ACKNOWLEDGED: 'uk.gov.defra.ffc.pay.payment.acknowledged',
   PAYMENT_DAX_REJECTED: 'uk.gov.defra.ffc.pay.warning.payment.dax.rejected',
