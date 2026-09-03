@@ -36,12 +36,12 @@
       <column name="paymentRequestId"/>
     </createIndex>
 
-    <createIndex indexName="idx_completed_invoice_lines_payment_request"
+    <createIndex indexName="idx_completed_invoice_lines_payment_request_lookup"
                  tableName="completedInvoiceLines">
       <column name="completedPaymentRequestId"/>
     </createIndex>
 
-    <createIndex indexName="idx_outbox_completed_payment_request"
+    <createIndex indexName="idx_outbox_completed_payment_request_lookup"
                  tableName="outbox">
       <column name="completedPaymentRequestId"/>
     </createIndex>
