@@ -3,7 +3,11 @@ const { sendProcessingErrorEvent } = require('../event')
 
 const processReturnMessage = async (message, receiver) => {
   try {
-    console.log('Return data received:', { frn: message.body.frn, sbi: message.body.sbi, invoiceNumber: message.body.invoiceNumber })
+    console.log('Return data received:', {
+      frn: message.body.frn,
+      ...(message.body.sbi != null && { sbi: message.body.sbi }),
+      invoiceNumber: message.body.invoiceNumber
+    })
 
     const settlementCompleted = await processSettlement(message.body)
 
