@@ -9,6 +9,9 @@ const { saveInvoiceLines: mockSaveInvoiceLines } = require('../../../../app/inbo
 jest.mock('../../../../app/inbound/create-schedule')
 const { createSchedule: mockCreateSchedule } = require('../../../../app/inbound/create-schedule')
 
+jest.mock('../../../../app/event/send-duplicate-payment-event')
+const { sendDuplicatePaymentEvent: mockSendDuplicatePaymentEvent } = require('../../../../app/event/send-duplicate-payment-event')
+
 const db = require('../../../../app/data')
 
 const transactionSpy = jest.spyOn(db.sequelize, 'transaction')
@@ -40,6 +43,18 @@ describe('save payment request', () => {
     await savePaymentRequest(paymentRequest)
     const savedPaymentRequest = await db.paymentRequest.findOne({ where: { invoiceNumber: paymentRequest.invoiceNumber } })
     expect(savedPaymentRequest).toBeNull()
+  })
+
+  test('should send duplicate payment event if already exists', async () => {
+    const referenceId = '70cb0f07-e0cf-449c-86e8-0344f2c6cc6c'
+    mockGetExistingPaymentRequest.mockResolvedValue({ ...paymentRequest, referenceId })
+    await savePaymentRequest(paymentRequest)
+    expect(mockSendDuplicatePaymentEvent).toHaveBeenCalledWith(paymentRequest, referenceId)
+  })
+
+  test('should not send duplicate payment event if does not already exist', async () => {
+    await savePaymentRequest(paymentRequest)
+    expect(mockSendDuplicatePaymentEvent).not.toHaveBeenCalled()
   })
 
   test('should save invoice lines', async () => {
