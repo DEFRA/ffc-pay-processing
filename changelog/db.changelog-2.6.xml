@@ -26,6 +26,16 @@
       <column name="schemeId"/>
     </createIndex>
 
+    <createIndex indexName="idx_invoice_lines_payment_request_lookup"
+                 tableName="invoiceLines">
+      <column name="paymentRequestId"/>
+    </createIndex>
+
+    <createIndex indexName="idx_schedule_payment_request_lookup"
+                 tableName="schedule">
+      <column name="paymentRequestId"/>
+    </createIndex>
+
     <createIndex indexName="idx_completed_invoice_lines_payment_request"
                  tableName="completedInvoiceLines">
       <column name="completedPaymentRequestId"/>
@@ -34,11 +44,6 @@
     <createIndex indexName="idx_outbox_completed_payment_request"
                  tableName="outbox">
       <column name="completedPaymentRequestId"/>
-    </createIndex>
-
-    <createIndex indexName="idx_invoice_lines_payment_request"
-                 tableName="invoiceLines">
-      <column name="paymentRequestId"/>
     </createIndex>
   </changeSet>
 
