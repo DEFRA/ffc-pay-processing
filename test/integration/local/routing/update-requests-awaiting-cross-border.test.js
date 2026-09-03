@@ -32,14 +32,20 @@ describe('update requests awaiting cross border', () => {
   test('should invalidate invoice lines from cross border payment request', async () => {
     const { id } = await savePaymentRequest(paymentRequest)
     await updateRequestsAwaitingCrossBorder(paymentRequest)
-    const updatedInvoiceLines = await db.invoiceLine.findAll({ where: { paymentRequestId: id } })
+    const updatedInvoiceLines = await db.invoiceLine.findAll({
+      where: { paymentRequestId: id },
+      order: [['invoiceLineId', 'ASC']]
+    })
     expect(updatedInvoiceLines[0].invalid).toBe(true)
   })
 
   test('should add new valid invoice lines from cross border payment request', async () => {
     const { id } = await savePaymentRequest(paymentRequest)
     await updateRequestsAwaitingCrossBorder(paymentRequest)
-    const updatedInvoiceLines = await db.invoiceLine.findAll({ where: { paymentRequestId: id } })
+    const updatedInvoiceLines = await db.invoiceLine.findAll({
+      where: { paymentRequestId: id },
+      order: [['invoiceLineId', 'ASC']]
+    })
     expect(updatedInvoiceLines[1].invalid).toBe(false)
   })
 

@@ -1,0 +1,45 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext" xmlns:pro="http://www.liquibase.org/xml/ns/pro" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-3.9.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.9.xsd">
+  <changeSet author="Sam Plackett" id="1">
+    <tagDatabase tag="v2.6.0" />
+  </changeSet>
+
+  <changeSet author="Sam Plackett" id="2">
+    <createIndex indexName="idx_frn_agreement_closed_lookup"
+                 tableName="frnAgreementClosed">
+      <column name="agreementNumber"/>
+      <column name="frn"/>
+      <column name="schemeId"/>
+    </createIndex>
+
+    <createIndex indexName="idx_payment_requests_agreement_lookup"
+                 tableName="paymentRequests">
+      <column name="agreementNumber"/>
+      <column name="frn"/>
+      <column name="schemeId"/>
+    </createIndex>
+
+    <createIndex indexName="idx_payment_requests_contract_lookup"
+                 tableName="paymentRequests">
+      <column name="contractNumber"/>
+      <column name="frn"/>
+      <column name="schemeId"/>
+    </createIndex>
+
+    <createIndex indexName="idx_invoice_lines_payment_request_lookup"
+                 tableName="invoiceLines">
+      <column name="paymentRequestId"/>
+    </createIndex>
+
+    <createIndex indexName="idx_completed_invoice_lines_payment_request_lookup"
+                 tableName="completedInvoiceLines">
+      <column name="completedPaymentRequestId"/>
+    </createIndex>
+
+    <createIndex indexName="idx_outbox_completed_payment_request_lookup"
+                 tableName="outbox">
+      <column name="completedPaymentRequestId"/>
+    </createIndex>
+  </changeSet>
+
+</databaseChangeLog>
