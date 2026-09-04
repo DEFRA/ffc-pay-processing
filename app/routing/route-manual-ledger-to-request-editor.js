@@ -10,8 +10,13 @@ const routeManualLedgerToRequestEditor = async (deltaCalculationResult) => {
   const { deltaPaymentRequest, completedPaymentRequests } = deltaCalculationResult
   try {
     const manualLedgerMessage = { paymentRequest: deltaPaymentRequest, paymentRequests: completedPaymentRequests }
+    const paymentRequest = manualLedgerMessage.paymentRequest
     await sendMessage(manualLedgerMessage, ROUTED_LEDGER, messageConfig.manualTopic)
-    console.log('Payment request routed to request editor for manual ledger check:', { frn: manualLedgerMessage.frn, sbi: manualLedgerMessage.sbi, invoiceNumber: manualLedgerMessage.invoiceNumber })
+    console.log('Payment request routed to request editor for manual ledger check:', {
+      frn: paymentRequest.frn,
+      ...(paymentRequest.sbi != null && { sbi: paymentRequest.sbi }),
+      invoiceNumber: paymentRequest.invoiceNumber
+    })
     const holdCategoryId = await getHoldCategoryId(deltaPaymentRequest.schemeId, AWAITING_LEDGER_CHECK, transaction)
     await holdAndReschedule(deltaPaymentRequest, holdCategoryId, transaction)
     await transaction.commit()

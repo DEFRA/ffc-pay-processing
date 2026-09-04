@@ -3,7 +3,11 @@ const { sendProcessingErrorEvent } = require('../event')
 
 const processAcknowledgementMessage = async (message, receiver) => {
   try {
-    console.log('Acknowledgement received:', { frn: message.body.frn, sbi: message.body.sbi, invoiceNumber: message.body.invoiceNumber })
+    console.log('Acknowledgement received:', {
+      frn: message.body.frn,
+      ...(message.body.sbi != null && { sbi: message.body.sbi }),
+      invoiceNumber: message.body.invoiceNumber
+    })
     await processAcknowledgement(message.body)
     console.log('Acknowledgement processed')
     await receiver.completeMessage(message)
