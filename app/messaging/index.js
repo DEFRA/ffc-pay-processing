@@ -20,7 +20,7 @@ const createAndSubscribeReceiver = async (config, action, name) => {
   const receiver = createReceiver(sbClient, config)
   receivers.push(receiver)
 
-  await subscribeReceiver(receiver, action, createDiagnosticsHandler(name), config)
+  subscribeReceiver(receiver, action, createDiagnosticsHandler(name), config)
 }
 
 const start = async () => {

@@ -1,7 +1,5 @@
 const retry = async (fn, retries = 5, interval = 500, exponential = false) => {
-  let attempt = 0
-
-  while (attempt <= retries) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       return await fn()
     } catch (err) {
@@ -9,9 +7,11 @@ const retry = async (fn, retries = 5, interval = 500, exponential = false) => {
         throw err
       }
 
-      const delay = exponential ? interval * Math.pow(2, attempt) : interval
+      const delay = exponential
+        ? interval * (2 ** attempt)
+        : interval
+
       await new Promise(resolve => setTimeout(resolve, delay))
-      attempt++
     }
   }
 }
