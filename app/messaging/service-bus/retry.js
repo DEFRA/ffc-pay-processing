@@ -4,7 +4,7 @@ const retry = async (fn, retries = 5, interval = 500, exponential = false) => {
       return await fn()
     } catch (err) {
       if (attempt === retries) {
-        throw err
+        return Promise.reject(err)
       }
 
       const delay = exponential
