@@ -9,11 +9,8 @@ const {
 } = require('../../../helpers')
 
 const mockSendMessage = jest.fn()
-jest.mock('ffc-messaging', () => ({
-  MessageSender: jest.fn(() => ({
-    sendMessage: mockSendMessage,
-    closeConnection: jest.fn()
-  }))
+jest.mock('../../../../app/messaging/send-message', () => ({
+  sendMessage: (...args) => mockSendMessage(...args)
 }))
 
 const mockPublishEvent = jest.fn().mockResolvedValue()
@@ -33,7 +30,7 @@ const { processingConfig } = require('../../../../app/config')
 const db = require('../../../../app/data')
 const { processPaymentRequests } = require('../../../../app/processing/process-payment-requests')
 const { FUTURE_DATE } = require('../../../mocks/values/future-date')
-const { ROUTED_DEBT } = require('../../../../app/constants/messages')
+const { ROUTED_DEBT, ROUTED_LEDGER } = require('../../../../app/constants/messages')
 
 let paymentRequest
 
@@ -87,9 +84,11 @@ describe('process payment requests', () => {
       const recoveryRequest = createAdjustmentPaymentRequest(paymentRequest, RECOVERY)
       await saveSchedule(inProgressSchedule, recoveryRequest)
       await processPaymentRequests()
-      expect(mockSendMessage).toHaveBeenCalledWith(expect.objectContaining({
-        type: expect.stringContaining(`${ROUTED_DEBT}`)
-      }))
+      expect(mockSendMessage).toHaveBeenCalledWith(
+        expect.objectContaining({ invoiceNumber: recoveryRequest.invoiceNumber }),
+        ROUTED_DEBT,
+        expect.any(Object)
+      )
     })
 
     test('does not route if recovery with debt data', async () => {
@@ -122,7 +121,11 @@ describe('process payment requests', () => {
       await processPaymentRequests()
       const holds = await db.autoHold.findAll({ where: { frn: paymentRequest.frn, closed: null } })
       expect(holds.length).toBe(1)
-      expect(mockSendMessage).toBeCalled()
+      expect(mockSendMessage).toHaveBeenCalledWith(
+        expect.objectContaining({ paymentRequest: expect.objectContaining({ invoiceNumber: recoveryRequest.invoiceNumber }) }),
+        ROUTED_LEDGER,
+        expect.any(Object)
+      )
     })
 
     test('does not process manual ledger if useManualLedgerCheck is false', async () => {
@@ -167,7 +170,11 @@ describe('process payment requests', () => {
       recoveryRequest.debtType = IRREGULAR
       await saveSchedule(inProgressSchedule, recoveryRequest)
       await processPaymentRequests()
-      expect(mockSendMessage).toBeCalled()
+      expect(mockSendMessage).toHaveBeenCalledWith(
+        expect.objectContaining({ paymentRequest: expect.objectContaining({ invoiceNumber: recoveryRequest.invoiceNumber }) }),
+        ROUTED_LEDGER,
+        expect.any(Object)
+      )
     })
   })
 })
