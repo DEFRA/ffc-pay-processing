@@ -1,19 +1,16 @@
 const retry = async (fn, retries = 5, interval = 500, exponential = false) => {
-  for (let attempt = 0; attempt <= retries; attempt++) {
+  let attempt = 0
+  while (true) {
     try {
       return await fn()
     } catch (err) {
-      if (attempt === retries) {
+      if (attempt >= retries) {
         throw err
       }
-
-      const delay = exponential
-        ? interval * (2 ** attempt)
-        : interval
-
+      const delay = exponential ? interval * (2 ** attempt) : interval
       await new Promise(resolve => setTimeout(resolve, delay))
+      attempt++
     }
   }
 }
-
 module.exports = { retry }
