@@ -1,4 +1,9 @@
-jest.mock('ffc-messaging')
+jest.mock('../../../app/messaging/service-bus', () => ({
+  createServiceBusClient: jest.fn(),
+  createReceiver: jest.fn(),
+  subscribeReceiver: jest.fn(),
+  closeSenders: jest.fn()
+}))
 jest.mock('../../../app/outbound', () => ({
   start: jest.fn()
 }))
@@ -13,24 +18,27 @@ jest.mock('../../../app/messaging/process-manual-ledger-check-message')
 jest.mock('../../../app/messaging/process-xb-response-message')
 jest.mock('../../../app/messaging/process-retention-message')
 
-const { MessageReceiver } = require('ffc-messaging')
+const { createServiceBusClient, createReceiver, subscribeReceiver, closeSenders } = require('../../../app/messaging/service-bus')
 const messaging = require('../../../app/messaging')
 const { createDiagnosticsHandler } = require('../../../app/messaging/diagnostics')
 const { start: startOutbox } = require('../../../app/outbound')
 const { messageConfig } = require('../../../app/config')
 
 describe('Messaging module', () => {
-  let subscribeMock, closeConnectionMock
+  let closeReceiverMock
+  let closeClientMock
 
   beforeEach(() => {
-    subscribeMock = jest.fn()
-    closeConnectionMock = jest.fn()
-    MessageReceiver.mockImplementation((config, action) => ({
-      config,
-      action,
-      subscribe: subscribeMock,
-      closeConnection: closeConnectionMock
-    }))
+    jest.clearAllMocks()
+    closeReceiverMock = jest.fn()
+    closeClientMock = jest.fn()
+
+    createServiceBusClient.mockReturnValue({
+      close: closeClientMock
+    })
+    createReceiver.mockReturnValue({
+      close: closeReceiverMock
+    })
     createDiagnosticsHandler.mockImplementation(name => jest.fn())
     startOutbox.mockResolvedValue()
   })
@@ -39,12 +47,14 @@ describe('Messaging module', () => {
     jest.resetAllMocks()
   })
 
-  test('start creates the correct number of payment receivers and subscribes all receivers', async () => {
+  test('start creates the correct number of clients, receivers and subscriptions', async () => {
     await messaging.start()
 
-    expect(MessageReceiver).toHaveBeenCalledTimes(
-      messageConfig.processingSubscription.numberOfReceivers + 6
-    )
+    const totalReceivers = messageConfig.processingSubscription.numberOfReceivers + 6
+
+    expect(createServiceBusClient).toHaveBeenCalledTimes(totalReceivers)
+    expect(createReceiver).toHaveBeenCalledTimes(totalReceivers)
+    expect(subscribeReceiver).toHaveBeenCalledTimes(totalReceivers)
 
     for (let i = 0; i < messageConfig.processingSubscription.numberOfReceivers; i++) {
       expect(createDiagnosticsHandler).toHaveBeenCalledWith(`payment-receiver-${i + 1}`)
@@ -57,55 +67,45 @@ describe('Messaging module', () => {
     expect(createDiagnosticsHandler).toHaveBeenCalledWith('xb-response-receiver')
     expect(createDiagnosticsHandler).toHaveBeenCalledWith('retention-receiver')
 
-    expect(subscribeMock).toHaveBeenCalledTimes(
-      messageConfig.processingSubscription.numberOfReceivers + 6
-    )
-
     expect(startOutbox).toHaveBeenCalled()
   })
 
-  test('stop calls closeConnection on all receivers', async () => {
+  test('stop closes all receivers, clients and senders', async () => {
     await messaging.start()
     await messaging.stop()
 
-    const totalReceivers =
-      messageConfig.processingSubscription.numberOfReceivers + 6
-    expect(closeConnectionMock).toHaveBeenCalledTimes(totalReceivers)
+    const totalReceivers = messageConfig.processingSubscription.numberOfReceivers + 6
+    expect(closeReceiverMock).toHaveBeenCalledTimes(totalReceivers)
+    expect(closeClientMock).toHaveBeenCalledTimes(totalReceivers)
+    expect(closeSenders).toHaveBeenCalled()
   })
 
-  test('each MessageReceiver is constructed with correct config and action', async () => {
+  test('each receiver is created with correct config', async () => {
     await messaging.start()
 
-    const calls = MessageReceiver.mock.calls
-    expect(calls).toHaveLength(messageConfig.processingSubscription.numberOfReceivers + 6)
+    const receiverCalls = createReceiver.mock.calls
+    expect(receiverCalls).toHaveLength(messageConfig.processingSubscription.numberOfReceivers + 6)
 
     for (let i = 0; i < messageConfig.processingSubscription.numberOfReceivers; i++) {
-      expect(calls[i][0]).toBe(messageConfig.processingSubscription)
-      expect(typeof calls[i][1]).toBe('function')
+      expect(receiverCalls[i][1]).toBe(messageConfig.processingSubscription)
     }
 
-    expect(calls[messageConfig.processingSubscription.numberOfReceivers][0])
+    expect(receiverCalls[messageConfig.processingSubscription.numberOfReceivers][1])
       .toBe(messageConfig.acknowledgementSubscription)
-    expect(typeof calls[messageConfig.processingSubscription.numberOfReceivers][1]).toBe('function')
 
-    expect(calls[messageConfig.processingSubscription.numberOfReceivers + 1][0])
+    expect(receiverCalls[messageConfig.processingSubscription.numberOfReceivers + 1][1])
       .toBe(messageConfig.returnSubscription)
-    expect(typeof calls[messageConfig.processingSubscription.numberOfReceivers + 1][1]).toBe('function')
 
-    expect(calls[messageConfig.processingSubscription.numberOfReceivers + 2][0])
+    expect(receiverCalls[messageConfig.processingSubscription.numberOfReceivers + 2][1])
       .toBe(messageConfig.qcSubscription)
-    expect(typeof calls[messageConfig.processingSubscription.numberOfReceivers + 2][1]).toBe('function')
 
-    expect(calls[messageConfig.processingSubscription.numberOfReceivers + 3][0])
+    expect(receiverCalls[messageConfig.processingSubscription.numberOfReceivers + 3][1])
       .toBe(messageConfig.qcManualSubscription)
-    expect(typeof calls[messageConfig.processingSubscription.numberOfReceivers + 3][1]).toBe('function')
 
-    expect(calls[messageConfig.processingSubscription.numberOfReceivers + 4][0])
+    expect(receiverCalls[messageConfig.processingSubscription.numberOfReceivers + 4][1])
       .toBe(messageConfig.xbResponseSubscription)
-    expect(typeof calls[messageConfig.processingSubscription.numberOfReceivers + 4][1]).toBe('function')
 
-    expect(calls[messageConfig.processingSubscription.numberOfReceivers + 5][0])
+    expect(receiverCalls[messageConfig.processingSubscription.numberOfReceivers + 5][1])
       .toBe(messageConfig.retentionSubscription)
-    expect(typeof calls[messageConfig.processingSubscription.numberOfReceivers + 5][1]).toBe('function')
   })
 })
