@@ -1,5 +1,7 @@
-const { ES, FC, IMPS } = require('../constants/schemes')
-const { GENESIS, GLOS, IMPS: IMPS_SOURCE } = require('../constants/source-systems')
+const { getSchemeIds, getSourceSystems } = require('ffc-pay-schemes')
+
+const { ES, FC, IMPS } = getSchemeIds()
+const { GENESIS, GLOS, IMPS: IMPS_SOURCE } = getSourceSystems()
 
 const getSettlementFilter = (settlement) => {
   switch (settlement.sourceSystem) {

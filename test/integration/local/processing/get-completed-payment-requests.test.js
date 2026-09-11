@@ -1,12 +1,28 @@
+const { getSchemeIds } = require('ffc-pay-schemes')
+
 const { resetDatabase, closeDatabaseConnection, savePaymentRequest } = require('../../../helpers')
-const { CS } = require('../../../../app/constants/schemes')
+const { CS } = getSchemeIds()
 const { getCompletedPaymentRequests } = require('../../../../app/processing/get-completed-payment-requests')
 
 let paymentRequest
 
 describe('get completed payment requests', () => {
   beforeEach(async () => {
-    await resetDatabase()
+        try {
+      await resetDatabase()
+    } catch (error) {
+      console.error({
+        message: error.message,
+        name: error.name,
+        parentMessage: error.parent?.message,
+        originalMessage: error.original?.message,
+        detail: error.parent?.detail,
+        constraint: error.parent?.constraint,
+        table: error.parent?.table
+      })
+
+      throw error
+    }
     paymentRequest = structuredClone(require('../../../mocks/payment-requests/payment-request'))
   })
 

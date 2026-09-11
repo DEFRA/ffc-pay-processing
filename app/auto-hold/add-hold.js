@@ -1,7 +1,9 @@
+const { getSchemeIds } = require('ffc-pay-schemes')
 const db = require('../data')
 const { ADDED } = require('../constants/hold-statuses')
 const { sendHoldEvent } = require('../event')
-const { BPS } = require('../constants/schemes')
+
+const { BPS } = getSchemeIds()
 
 const addHold = async (deltaPaymentRequest, autoHoldCategoryId, transaction) => {
   const { frn, marketingYear, agreementNumber, contractNumber, schemeId } = deltaPaymentRequest

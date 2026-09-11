@@ -1,6 +1,8 @@
+const { getSourceSystems } = require('ffc-pay-schemes')
 const settlement = require('./settlement')
-const { IMPS } = require('../../../app/constants/source-systems')
 const { AGREEMENT_NUMBER } = require('../values/agreement-number')
+
+const { IMPS } = getSourceSystems()
 
 module.exports = {
   ...settlement,

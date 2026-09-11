@@ -12,7 +12,21 @@ const { getExistingHold } = require('../../../../app/reschedule/get-existing-hol
 describe('get existing hold', () => {
   beforeEach(async () => {
     jest.clearAllMocks()
-    await resetDatabase()
+        try {
+      await resetDatabase()
+    } catch (error) {
+      console.error({
+        message: error.message,
+        name: error.name,
+        parentMessage: error.parent?.message,
+        originalMessage: error.original?.message,
+        detail: error.parent?.detail,
+        constraint: error.parent?.constraint,
+        table: error.parent?.table
+      })
+
+      throw error
+    }
     await db.hold.create(hold)
   })
 

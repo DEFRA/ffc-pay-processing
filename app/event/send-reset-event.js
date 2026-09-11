@@ -1,5 +1,5 @@
-const { messageConfig } = require('../config')
 const { EventPublisher } = require('ffc-pay-event-publisher')
+const { messageConfig } = require('../config')
 const { PAYMENT_RESET } = require('../constants/events')
 const { SOURCE } = require('../constants/source')
 

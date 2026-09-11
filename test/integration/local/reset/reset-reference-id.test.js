@@ -17,7 +17,21 @@ describe('reset reference id', () => {
   beforeEach(async () => {
     jest.clearAllMocks()
     randomUUID.mockReturnValue(UUID)
-    await resetDatabase()
+        try {
+      await resetDatabase()
+    } catch (error) {
+      console.error({
+        message: error.message,
+        name: error.name,
+        parentMessage: error.parent?.message,
+        originalMessage: error.original?.message,
+        detail: error.parent?.detail,
+        constraint: error.parent?.constraint,
+        table: error.parent?.table
+      })
+
+      throw error
+    }
     const { id } = await savePaymentRequest(paymentRequest, false)
     paymentRequestId = id
   })

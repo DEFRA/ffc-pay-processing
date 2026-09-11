@@ -1,4 +1,5 @@
 const moment = require('moment')
+const { getSchemeIds } = require('ffc-pay-schemes')
 
 const { resetDatabase, closeDatabaseConnection, saveSchedule, savePaymentRequest } = require('../../../helpers')
 
@@ -7,7 +8,7 @@ const newSchedule = require('../../../mocks/schedules/new')
 const futureSchedule = require('../../../mocks/schedules/future')
 const completedSchedule = require('../../../mocks/schedules/completed')
 
-const { SFI_PILOT, SFI } = require('../../../../app/constants/schemes')
+const { SFI_PILOT, SFI } = getSchemeIds()
 
 const db = require('../../../../app/data')
 const { processingConfig } = require('../../../../app/config')
@@ -20,7 +21,21 @@ let hold
 
 describe('get payment requests', () => {
   beforeEach(async () => {
-    await resetDatabase()
+        try {
+      await resetDatabase()
+    } catch (error) {
+      console.error({
+        message: error.message,
+        name: error.name,
+        parentMessage: error.parent?.message,
+        originalMessage: error.original?.message,
+        detail: error.parent?.detail,
+        constraint: error.parent?.constraint,
+        table: error.parent?.table
+      })
+
+      throw error
+    }
 
     paymentRequest = JSON.parse(JSON.stringify(require('../../../mocks/payment-requests/payment-request')))
 

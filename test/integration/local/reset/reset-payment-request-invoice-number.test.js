@@ -13,7 +13,21 @@ const { resetPaymentRequestByInvoiceNumber } = require('../../../../app/reset/re
 describe('reset payment requests by invoice number', () => {
   beforeEach(async () => {
     jest.clearAllMocks()
-    await resetDatabase()
+        try {
+      await resetDatabase()
+    } catch (error) {
+      console.error({
+        message: error.message,
+        name: error.name,
+        parentMessage: error.parent?.message,
+        originalMessage: error.original?.message,
+        detail: error.parent?.detail,
+        constraint: error.parent?.constraint,
+        table: error.parent?.table
+      })
+
+      throw error
+    }
   })
 
   test('should reset payment requests if matched by invoice number and payment has completed processing', async () => {

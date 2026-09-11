@@ -31,7 +31,21 @@ let manualLedgerCheckResult
 describe('update requests awaiting manual ledger check', () => {
   beforeEach(async () => {
     jest.clearAllMocks()
-    await resetDatabase()
+        try {
+      await resetDatabase()
+    } catch (error) {
+      console.error({
+        message: error.message,
+        name: error.name,
+        parentMessage: error.parent?.message,
+        originalMessage: error.original?.message,
+        detail: error.parent?.detail,
+        constraint: error.parent?.constraint,
+        table: error.parent?.table
+      })
+
+      throw error
+    }
 
     paymentRequest = JSON.parse(JSON.stringify(require('../../../mocks/payment-requests/payment-request')))
     schedule.scheduleId = 1

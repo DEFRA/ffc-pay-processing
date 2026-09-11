@@ -1,6 +1,7 @@
+const { getSchemeIds } = require('ffc-pay-schemes')
 const { resetDatabase, closeDatabaseConnection } = require('../../../helpers')
 
-const { SFI } = require('../../../../app/constants/schemes')
+const { SFI } = getSchemeIds()
 
 const db = require('../../../../app/data')
 
@@ -9,7 +10,21 @@ const { updateScheme } = require('../../../../app/schemes/update-scheme')
 describe('update scheme', () => {
   beforeEach(async () => {
     jest.clearAllMocks()
-    await resetDatabase()
+        try {
+      await resetDatabase()
+    } catch (error) {
+      console.error({
+        message: error.message,
+        name: error.name,
+        parentMessage: error.parent?.message,
+        originalMessage: error.original?.message,
+        detail: error.parent?.detail,
+        constraint: error.parent?.constraint,
+        table: error.parent?.table
+      })
+
+      throw error
+    }
   })
 
   test('should set scheme to active if active is true', async () => {

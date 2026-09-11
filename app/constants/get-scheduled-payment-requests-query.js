@@ -1,4 +1,6 @@
-const { BPS } = require('./schemes')
+const { getSchemeIds } = require('ffc-pay-schemes')
+
+const { BPS } = getSchemeIds()
 
 module.exports = `
   WITH "plannedSchedules" AS (
