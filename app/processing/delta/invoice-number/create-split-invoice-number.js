@@ -1,4 +1,4 @@
-const { SFI, LUMP_SUMS, SFI_PILOT, SFI23, DELINKED, SFI_EXPANDED } = require('../../../constants/schemes')
+const { SFI, LUMP_SUMS, SFI_PILOT, SFI23, DELINKED, SFI_EXPANDED, SFI26 } = require('../../../constants/schemes')
 const { createDefaultInvoiceNumber } = require('./create-default-invoice-number')
 const { createSitiAgriInvoiceNumber } = require('./create-siti-agri-invoice-number')
 
@@ -10,6 +10,7 @@ const createSplitInvoiceNumber = (invoiceNumber, splitId, schemeId) => {
     case SFI23:
     case DELINKED:
     case SFI_EXPANDED:
+    case SFI26:
       return createSitiAgriInvoiceNumber(invoiceNumber, splitId)
     default:
       return createDefaultInvoiceNumber(invoiceNumber, splitId)

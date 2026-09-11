@@ -1,0 +1,87 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext" xmlns:pro="http://www.liquibase.org/xml/ns/pro" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-3.9.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.9.xsd">
+  <changeSet author="Alistair Wishart" id="1">
+    <tagDatabase tag="v2.8.0" />
+  </changeSet>
+
+  <changeSet author="Alistair Wishart" id="2">
+    <insert tableName="autoHoldCategories">
+      <column name="autoHoldCategoryId" value="148" />
+      <column name="schemeId" value="19" />
+      <column name="name" value="Manual ledger hold" />
+    </insert>
+    <insert tableName="autoHoldCategories">
+      <column name="autoHoldCategoryId" value="149" />
+      <column name="schemeId" value="19" />
+      <column name="name" value="Awaiting debt enrichment" />
+    </insert>
+
+
+    <insert tableName="holdCategories">
+      <column name="holdCategoryId" value="193" />
+      <column name="schemeId" value="19" />
+      <column name="name" value="Accelerated payment" />
+    </insert>
+    <insert tableName="holdCategories">
+      <column name="holdCategoryId" value="194" />
+      <column name="schemeId" value="19" />
+      <column name="name" value="Bank account anomaly" />
+    </insert>
+    <insert tableName="holdCategories">
+      <column name="holdCategoryId" value="195" />
+      <column name="schemeId" value="19" />
+      <column name="name" value="Bridging payments" />
+    </insert>
+    <insert tableName="holdCategories">
+      <column name="holdCategoryId" value="196" />
+      <column name="schemeId" value="19" />
+      <column name="name" value="DAX rejection" />
+    </insert>
+    <insert tableName="holdCategories">
+      <column name="holdCategoryId" value="197" />
+      <column name="schemeId" value="19" />
+      <column name="name" value="Ex-gratia" />
+    </insert>
+    <insert tableName="holdCategories">
+      <column name="holdCategoryId" value="198" />
+      <column name="schemeId" value="19" />
+      <column name="name" value="Hardship case" />
+    </insert>
+    <insert tableName="holdCategories">
+      <column name="holdCategoryId" value="199" />
+      <column name="schemeId" value="19" />
+      <column name="name" value="Manual payment" />
+    </insert>
+    <insert tableName="holdCategories">
+      <column name="holdCategoryId" value="200" />
+      <column name="schemeId" value="19" />
+      <column name="name" value="Non-payable" />
+    </insert>
+    <insert tableName="holdCategories">
+      <column name="holdCategoryId" value="201" />
+      <column name="schemeId" value="19" />
+      <column name="name" value="Other admin" />
+    </insert>
+    <insert tableName="holdCategories">
+      <column name="holdCategoryId" value="202" />
+      <column name="schemeId" value="19" />
+      <column name="name" value="Partial recovery process" />
+    </insert>
+    <insert tableName="holdCategories">
+      <column name="holdCategoryId" value="203" />
+      <column name="schemeId" value="19" />
+      <column name="name" value="Recovery" />
+    </insert>
+    <insert tableName="holdCategories">
+      <column name="holdCategoryId" value="204" />
+      <column name="schemeId" value="19" />
+      <column name="name" value="Top up" />
+    </insert>
+    <insert tableName="holdCategories">
+      <column name="holdCategoryId" value="205" />
+      <column name="schemeId" value="19" />
+      <column name="name" value="Withdrawal" />
+    </insert>
+
+  </changeSet>
+</databaseChangeLog>
