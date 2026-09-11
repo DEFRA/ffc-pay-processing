@@ -8,7 +8,7 @@ const { getScheduleId } = require('../../../../app/routing/get-schedule-id')
 describe('get schedule id', () => {
   beforeEach(async () => {
     jest.clearAllMocks()
-        try {
+    try {
       await resetDatabase()
     } catch (error) {
       console.error({

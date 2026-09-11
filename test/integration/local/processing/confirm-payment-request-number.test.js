@@ -8,7 +8,7 @@ let paymentRequest
 
 describe('confirm payment request number', () => {
   beforeEach(async () => {
-        try {
+    try {
       await resetDatabase()
     } catch (error) {
       console.error({

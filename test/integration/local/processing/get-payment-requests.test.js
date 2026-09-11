@@ -21,7 +21,7 @@ let hold
 
 describe('get payment requests', () => {
   beforeEach(async () => {
-        try {
+    try {
       await resetDatabase()
     } catch (error) {
       console.error({

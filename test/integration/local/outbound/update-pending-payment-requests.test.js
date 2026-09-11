@@ -12,7 +12,7 @@ let paymentRequests
 describe('get pending payment requests', () => {
   beforeEach(async () => {
     jest.clearAllMocks()
-        try {
+    try {
       await resetDatabase()
     } catch (error) {
       console.error({

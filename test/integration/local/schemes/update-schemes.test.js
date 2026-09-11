@@ -10,7 +10,7 @@ const { updateScheme } = require('../../../../app/schemes/update-scheme')
 describe('update scheme', () => {
   beforeEach(async () => {
     jest.clearAllMocks()
-        try {
+    try {
       await resetDatabase()
     } catch (error) {
       console.error({

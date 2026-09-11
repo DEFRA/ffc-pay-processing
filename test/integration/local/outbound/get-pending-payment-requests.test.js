@@ -13,7 +13,7 @@ describe('get pending payment requests', () => {
   beforeEach(async () => {
     jest.clearAllMocks()
     mockRemoveNullProperties.mockReturnValue(paymentRequest)
-        try {
+    try {
       await resetDatabase()
     } catch (error) {
       console.error({

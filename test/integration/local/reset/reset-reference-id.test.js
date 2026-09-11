@@ -17,7 +17,7 @@ describe('reset reference id', () => {
   beforeEach(async () => {
     jest.clearAllMocks()
     randomUUID.mockReturnValue(UUID)
-        try {
+    try {
       await resetDatabase()
     } catch (error) {
       console.error({

@@ -7,7 +7,7 @@ const { getExistingPaymentRequest } = require('../../../../app/inbound/get-exist
 describe('get existing payment request', () => {
   beforeEach(async () => {
     jest.clearAllMocks()
-        try {
+    try {
       await resetDatabase()
     } catch (error) {
       console.error({

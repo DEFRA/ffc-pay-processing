@@ -9,7 +9,7 @@ const { getExistingSchedule } = require('../../../../app/reschedule/get-existing
 describe('get existing schedule', () => {
   beforeEach(async () => {
     jest.clearAllMocks()
-        try {
+    try {
       await resetDatabase()
     } catch (error) {
       console.error({

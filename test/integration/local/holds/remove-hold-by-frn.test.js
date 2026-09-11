@@ -47,7 +47,7 @@ describe('remove hold by frn', () => {
   })
 
   test('should not send hold removed event if open hold does not exist', async () => {
-        try {
+    try {
       await resetDatabase()
     } catch (error) {
       console.error({

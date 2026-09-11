@@ -11,7 +11,7 @@ let paymentRequestId
 describe('invalidate payment requests', () => {
   beforeEach(async () => {
     jest.clearAllMocks()
-        try {
+    try {
       await resetDatabase()
     } catch (error) {
       console.error({

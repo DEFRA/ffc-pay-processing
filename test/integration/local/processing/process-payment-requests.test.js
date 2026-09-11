@@ -42,7 +42,7 @@ describe('process payment requests', () => {
     jest.clearAllMocks()
     processingConfig.useManualLedgerCheck = false
     processingConfig.handleSchemeClosures = false
-        try {
+    try {
       await resetDatabase()
     } catch (error) {
       console.error({

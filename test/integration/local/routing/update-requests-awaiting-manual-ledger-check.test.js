@@ -31,7 +31,7 @@ let manualLedgerCheckResult
 describe('update requests awaiting manual ledger check', () => {
   beforeEach(async () => {
     jest.clearAllMocks()
-        try {
+    try {
       await resetDatabase()
     } catch (error) {
       console.error({

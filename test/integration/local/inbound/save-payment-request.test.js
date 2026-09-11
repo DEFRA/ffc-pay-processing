@@ -23,7 +23,7 @@ const { savePaymentRequest } = require('../../../../app/inbound/save-payment-req
 describe('save payment request', () => {
   beforeEach(async () => {
     jest.clearAllMocks()
-        try {
+    try {
       await resetDatabase()
     } catch (error) {
       console.error({

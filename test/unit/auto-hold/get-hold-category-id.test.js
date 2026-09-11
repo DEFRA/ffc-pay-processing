@@ -5,7 +5,7 @@ const { getHoldCategoryId } = require('../../../app/auto-hold/get-hold-category-
 describe('get hold category id', () => {
   beforeEach(async () => {
     jest.clearAllMocks()
-        try {
+    try {
       await resetDatabase()
     } catch (error) {
       console.error({

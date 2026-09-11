@@ -16,7 +16,7 @@ const { prepareForReprocessing } = require('../../../../app/routing/prepare-for-
 describe('prepare for reprocessing', () => {
   beforeEach(async () => {
     jest.clearAllMocks()
-        try {
+    try {
       await resetDatabase()
     } catch (error) {
       console.error({

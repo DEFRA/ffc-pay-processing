@@ -14,7 +14,7 @@ let paymentRequest
 describe('update requests awaiting debt data', () => {
   beforeEach(async () => {
     jest.clearAllMocks()
-        try {
+    try {
       await resetDatabase()
     } catch (error) {
       console.error({
