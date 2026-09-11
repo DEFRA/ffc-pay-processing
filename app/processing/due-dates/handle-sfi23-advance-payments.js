@@ -1,5 +1,7 @@
+const { getSchemeIds } = require('ffc-pay-schemes')
 const { AP } = require('../../constants/ledgers')
-const { SFI23 } = require('../../constants/schemes')
+
+const { SFI23 } = getSchemeIds()
 
 const handleSFI23AdvancePayments = (paymentRequests, previousPaymentRequests, paymentSchedule) => {
   const advancePayment = previousPaymentRequests?.find(x => x.paymentRequestNumber === 0)

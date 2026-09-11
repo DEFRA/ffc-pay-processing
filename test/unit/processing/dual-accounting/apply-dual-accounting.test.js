@@ -1,50 +1,63 @@
-jest.mock('../../../../app/processing/dual-accounting/bps')
-const { applyBPSDualAccounting: mockApplyBPSDualAccounting } = require('../../../../app/processing/dual-accounting/bps')
+jest.mock('ffc-pay-schemes', () => ({
+  getSchemeIds: jest.fn(() => ({
+    BPS: 6,
+    CS: 5
+  }))
+}))
 
-jest.mock('../../../../app/processing/dual-accounting/cs')
-const { applyCSDualAccounting: mockApplyCSDualAccounting } = require('../../../../app/processing/dual-accounting/cs')
+jest.mock('../../../../app/processing/dual-accounting/bps', () => ({
+  applyBPSDualAccounting: jest.fn()
+}))
 
-const bpsPaymentRequest = require('../../../mocks/payment-requests/bps')
-const csPaymentRequest = require('../../../mocks/payment-requests/cs')
-const sfiPaymentRequest = require('../../../mocks/payment-requests/sfi')
+jest.mock('../../../../app/processing/dual-accounting/cs', () => ({
+  applyCSDualAccounting: jest.fn()
+}))
 
-const { applyDualAccounting } = require('../../../../app/processing/dual-accounting')
+const { applyBPSDualAccounting } = require('../../../../app/processing/dual-accounting/bps')
+const { applyCSDualAccounting } = require('../../../../app/processing/dual-accounting/cs')
+const { applyDualAccounting } = require('../../../../app/processing/dual-accounting/apply-dual-accounting')
 
 describe('applyDualAccounting', () => {
+  const previousPaymentRequests = [{ referenceId: 'previous' }]
+
   beforeEach(() => {
     jest.clearAllMocks()
   })
 
-  const testCases = [
-    { name: 'BPS', request: bpsPaymentRequest, mockFn: mockApplyBPSDualAccounting },
-    { name: 'CS', request: csPaymentRequest, mockFn: mockApplyCSDualAccounting }
-  ]
+  test('applies BPS dual accounting for a BPS payment request', () => {
+    const paymentRequest = { schemeId: 6 }
 
-  testCases.forEach(({ name, request, mockFn }) => {
-    describe(`${name} scheme`, () => {
-      let paymentRequest, previousPaymentRequests
+    applyDualAccounting(paymentRequest, previousPaymentRequests)
 
-      beforeEach(() => {
-        paymentRequest = request
-        previousPaymentRequests = [request]
-        applyDualAccounting(paymentRequest, previousPaymentRequests)
-      })
-
-      test(`should call ${name} dual accounting`, () => {
-        expect(mockFn).toHaveBeenCalledTimes(1)
-      })
-
-      test(`should call ${name} dual accounting with current and previous payment requests`, () => {
-        expect(mockFn).toHaveBeenCalledWith(paymentRequest, previousPaymentRequests)
-      })
-    })
+    expect(applyBPSDualAccounting).toHaveBeenCalledWith(
+      paymentRequest,
+      previousPaymentRequests
+    )
+    expect(applyCSDualAccounting).not.toHaveBeenCalled()
   })
 
-  test('should not apply dual accounting for other schemes', () => {
-    const paymentRequest = sfiPaymentRequest
-    const previousPaymentRequests = [sfiPaymentRequest]
+  test('applies CS dual accounting for a CS payment request', () => {
+    const paymentRequest = { schemeId: 5 }
+
     applyDualAccounting(paymentRequest, previousPaymentRequests)
-    expect(mockApplyBPSDualAccounting).not.toHaveBeenCalled()
-    expect(mockApplyCSDualAccounting).not.toHaveBeenCalled()
+
+    expect(applyCSDualAccounting).toHaveBeenCalledWith(
+      paymentRequest,
+      previousPaymentRequests
+    )
+    expect(applyBPSDualAccounting).not.toHaveBeenCalled()
+  })
+
+  test('returns the payment request unchanged for other schemes', () => {
+    const paymentRequest = { schemeId: 12 }
+
+    const result = applyDualAccounting(
+      paymentRequest,
+      previousPaymentRequests
+    )
+
+    expect(result).toBe(paymentRequest)
+    expect(applyBPSDualAccounting).not.toHaveBeenCalled()
+    expect(applyCSDualAccounting).not.toHaveBeenCalled()
   })
 })

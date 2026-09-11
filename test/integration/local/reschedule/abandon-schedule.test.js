@@ -11,7 +11,21 @@ const { abandonSchedule } = require('../../../../app/reschedule/abandon-schedule
 describe('abandon schedule', () => {
   beforeEach(async () => {
     jest.clearAllMocks()
-    await resetDatabase()
+    try {
+      await resetDatabase()
+    } catch (error) {
+      console.error({
+        message: error.message,
+        name: error.name,
+        parentMessage: error.parent?.message,
+        originalMessage: error.original?.message,
+        detail: error.parent?.detail,
+        constraint: error.parent?.constraint,
+        table: error.parent?.table
+      })
+
+      throw error
+    }
   })
 
   test('should abandon schedule by removing started date', async () => {

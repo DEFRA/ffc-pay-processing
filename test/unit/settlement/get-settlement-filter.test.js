@@ -1,43 +1,73 @@
+jest.mock('ffc-pay-schemes', () => ({
+  getSchemeIds: jest.fn(() => ({
+    ES: 'ES',
+    FC: 'FC',
+    IMPS: 'IMPS'
+  })),
+  getSourceSystems: jest.fn(() => ({
+    GENESIS: 'GENESIS',
+    GLOS: 'GLOS',
+    IMPS: 'IMPS'
+  }))
+}))
+
 const settlement = require('../../mocks/settlements/settlement')
 const esSettlement = require('../../mocks/settlements/es')
 const fcSettlement = require('../../mocks/settlements/fc')
 const impsSettlement = require('../../mocks/settlements/imps')
 
-const { ES, FC, IMPS } = require('../../../app/constants/schemes')
-
+const { getSchemeIds } = require('ffc-pay-schemes')
 const { getSettlementFilter } = require('../../../app/settlement/get-settlement-filter')
 
+const { ES, FC, IMPS } = getSchemeIds()
+
 describe('get settlement filter', () => {
-  test('should return default filter if source system is not Genesis, GLOS or IMPS', () => {
-    const filter = getSettlementFilter(settlement)
-    expect(filter).toEqual({
-      invoiceNumber: settlement.invoiceNumber
+  test('returns the default filter for an unsupported source system', () => {
+    const paymentSettlement = {
+      ...settlement,
+      sourceSystem: 'UNKNOWN'
+    }
+
+    expect(getSettlementFilter(paymentSettlement)).toEqual({
+      invoiceNumber: paymentSettlement.invoiceNumber
     })
   })
 
-  test('should return ES filter if source system is Genesis', () => {
-    const filter = getSettlementFilter(esSettlement)
-    expect(filter).toEqual({
+  test('returns the ES filter for Genesis settlements', () => {
+    const paymentSettlement = {
+      ...esSettlement,
+      sourceSystem: 'GENESIS'
+    }
+
+    expect(getSettlementFilter(paymentSettlement)).toEqual({
       schemeId: ES,
-      agreementNumber: esSettlement.transactionNumber
+      agreementNumber: paymentSettlement.transactionNumber
     })
   })
 
-  test('should return FC filter if source system is GLOS', () => {
-    const filter = getSettlementFilter(fcSettlement)
-    expect(filter).toEqual({
+  test('returns the FC filter for GLOS settlements', () => {
+    const paymentSettlement = {
+      ...fcSettlement,
+      sourceSystem: 'GLOS'
+    }
+
+    expect(getSettlementFilter(paymentSettlement)).toEqual({
       schemeId: FC,
-      frn: fcSettlement.frn,
-      contractNumber: fcSettlement.claimNumber,
-      agreementNumber: fcSettlement.agreementNumber
+      frn: paymentSettlement.frn,
+      contractNumber: paymentSettlement.claimNumber,
+      agreementNumber: paymentSettlement.agreementNumber
     })
   })
 
-  test('should return IMPS filter if source system is IMPS', () => {
-    const filter = getSettlementFilter(impsSettlement)
-    expect(filter).toEqual({
+  test('returns the IMPS filter for IMPS settlements', () => {
+    const paymentSettlement = {
+      ...impsSettlement,
+      sourceSystem: 'IMPS'
+    }
+
+    expect(getSettlementFilter(paymentSettlement)).toEqual({
       schemeId: IMPS,
-      invoiceNumber: impsSettlement.transactionNumber
+      invoiceNumber: paymentSettlement.transactionNumber
     })
   })
 })

@@ -1,11 +1,12 @@
 const moment = require('moment')
+const { getSchemeIds } = require('ffc-pay-schemes')
 
 const { resetDatabase, savePaymentRequest } = require('../../../helpers')
 
 const db = require('../../../../app/data')
 
 const { updateSettlementStatus } = require('../../../../app/settlement/update-settlement-status')
-const { BPS } = require('../../../../app/constants/schemes')
+const { BPS } = getSchemeIds()
 const { EUR } = require('../../../../app/constants/currency')
 
 let settlement
@@ -14,7 +15,22 @@ let paymentRequest
 describe('update settlement status', () => {
   beforeEach(async () => {
     jest.clearAllMocks()
-    await resetDatabase()
+
+    try {
+      await resetDatabase()
+    } catch (error) {
+      console.error({
+        message: error.message,
+        name: error.name,
+        parentMessage: error.parent?.message,
+        originalMessage: error.original?.message,
+        detail: error.parent?.detail,
+        constraint: error.parent?.constraint,
+        table: error.parent?.table
+      })
+
+      throw error
+    }
 
     settlement = structuredClone(require('../../../mocks/settlements/settlement'))
     paymentRequest = structuredClone(require('../../../mocks/payment-requests/payment-request'))

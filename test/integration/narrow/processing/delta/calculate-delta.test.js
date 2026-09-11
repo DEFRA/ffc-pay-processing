@@ -1,10 +1,11 @@
+const { getSchemeIds } = require('ffc-pay-schemes')
 const { SCHEME_CODE, MEASURE_4_SCHEME_CODE, MEASURE_8_SCHEME_CODE, MEASURE_11_SCHEME_CODE, MEASURE_15_SCHEME_CODE } = require('../../../../mocks/values/scheme-code')
 
 const { DRD10, EXQ00, DRD01 } = require('../../../../../app/constants/domestic-fund-codes')
 const { ERD14 } = require('../../../../../app/constants/eu-fund-codes')
 const { AP, AR } = require('../../../../../app/constants/ledgers')
 const { G00 } = require('../../../../../app/constants/line-codes')
-const { CS } = require('../../../../../app/constants/schemes')
+const { CS } = getSchemeIds()
 
 const { calculateDelta } = require('../../../../../app/processing/delta/calculate-delta')
 

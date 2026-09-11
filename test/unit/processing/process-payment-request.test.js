@@ -1,41 +1,98 @@
+const { getSchemeIds } = require('ffc-pay-schemes')
+
+jest.mock('../../../app/config/processing', () => ({
+  handleSchemeClosures: true
+}))
+
+jest.mock('../../../app/processing/complete-payment-requests', () => ({
+  completePaymentRequests: jest.fn()
+}))
+
+jest.mock('../../../app/processing/is-cross-border', () => ({
+  isCrossBorder: jest.fn()
+}))
+
+jest.mock('../../../app/processing/transform-payment-request', () => ({
+  transformPaymentRequest: jest.fn()
+}))
+
+jest.mock('../../../app/auto-hold', () => ({
+  applyAutoHold: jest.fn()
+}))
+
+jest.mock('../../../app/processing/requires-debt-data', () => ({
+  requiresDebtData: jest.fn()
+}))
+
+jest.mock('../../../app/routing', () => ({
+  routeDebtToRequestEditor: jest.fn(),
+  routeManualLedgerToRequestEditor: jest.fn(),
+  routeToCrossBorder: jest.fn()
+}))
+
+jest.mock('../../../app/event', () => ({
+  sendProcessingRouteEvent: jest.fn()
+}))
+
+jest.mock('../../../app/processing/requires-manual-ledger-check', () => ({
+  requiresManualLedgerCheck: jest.fn()
+}))
+
+jest.mock('../../../app/processing/account-codes', () => ({
+  mapAccountCodes: jest.fn()
+}))
+
+jest.mock('../../../app/processing/is-agreement-closed', () => ({
+  isAgreementClosed: jest.fn()
+}))
+
+jest.mock('../../../app/processing/suppress-ar-payment-requests', () => ({
+  suppressARPaymentRequests: jest.fn()
+}))
+
 const { processPaymentRequest } = require('../../../app/processing/process-payment-request')
-const { MANUAL, ES, IMPS, FC, BPS } = require('../../../app/constants/schemes')
+const { MANUAL, ES, IMPS, FC, BPS } = getSchemeIds()
 const { completePaymentRequests } = require('../../../app/processing/complete-payment-requests')
 const { isCrossBorder } = require('../../../app/processing/is-cross-border')
 const { transformPaymentRequest } = require('../../../app/processing/transform-payment-request')
 const { applyAutoHold } = require('../../../app/auto-hold')
 const { requiresDebtData } = require('../../../app/processing/requires-debt-data')
-const { routeDebtToRequestEditor, routeManualLedgerToRequestEditor, routeToCrossBorder } = require('../../../app/routing')
+const {
+  routeDebtToRequestEditor,
+  routeManualLedgerToRequestEditor,
+  routeToCrossBorder
+} = require('../../../app/routing')
 const { sendProcessingRouteEvent } = require('../../../app/event')
 const { requiresManualLedgerCheck } = require('../../../app/processing/requires-manual-ledger-check')
 const { mapAccountCodes } = require('../../../app/processing/account-codes')
 const { isAgreementClosed } = require('../../../app/processing/is-agreement-closed')
 const { suppressARPaymentRequests } = require('../../../app/processing/suppress-ar-payment-requests')
 
-jest.mock('../../../app/processing/complete-payment-requests')
-jest.mock('../../../app/processing/is-cross-border')
-jest.mock('../../../app/processing/transform-payment-request')
-jest.mock('../../../app/auto-hold')
-jest.mock('../../../app/processing/requires-debt-data')
-jest.mock('../../../app/routing')
-jest.mock('../../../app/event')
-jest.mock('../../../app/processing/requires-manual-ledger-check')
-jest.mock('../../../app/processing/account-codes')
-jest.mock('../../../app/processing/is-agreement-closed')
-jest.mock('../../../app/processing/suppress-ar-payment-requests')
-
 describe('processPaymentRequest', () => {
   let paymentRequest
   let scheduledPaymentRequest
+
   const scheduleId = 'schedule-123'
 
   beforeEach(() => {
     jest.clearAllMocks()
-    paymentRequest = structuredClone(require('../../mocks/payment-requests/payment-request'))
-    scheduledPaymentRequest = { paymentRequest, scheduleId }
+
+    paymentRequest = structuredClone(
+      require('../../mocks/payment-requests/payment-request')
+    )
+
+    scheduledPaymentRequest = {
+      paymentRequest,
+      scheduleId
+    }
 
     isCrossBorder.mockReturnValue(false)
-    transformPaymentRequest.mockResolvedValue({ deltaPaymentRequest: paymentRequest, completedPaymentRequests: [paymentRequest] })
+
+    transformPaymentRequest.mockResolvedValue({
+      deltaPaymentRequest: paymentRequest,
+      completedPaymentRequests: [paymentRequest]
+    })
+
     applyAutoHold.mockResolvedValue(false)
     requiresDebtData.mockReturnValue(false)
     requiresManualLedgerCheck.mockResolvedValue(false)
@@ -44,27 +101,36 @@ describe('processPaymentRequest', () => {
   })
 
   test.each([MANUAL, ES, IMPS, FC])(
-    '%s payments should complete payment request without further processing',
+    '%s payments complete without further processing',
     async scheme => {
       paymentRequest.schemeId = scheme
+
       await processPaymentRequest(scheduledPaymentRequest)
-      expect(completePaymentRequests).toHaveBeenCalledWith(scheduleId, [paymentRequest])
+
+      expect(completePaymentRequests).toHaveBeenCalledWith(
+        scheduleId,
+        [paymentRequest]
+      )
       expect(transformPaymentRequest).not.toHaveBeenCalled()
     }
   )
 
-  test('BPS cross-border payments should be handled correctly', async () => {
+  test('handles BPS cross-border payments', async () => {
     paymentRequest.schemeId = BPS
     isCrossBorder.mockReturnValue(true)
 
     await processPaymentRequest(scheduledPaymentRequest)
 
-    expect(sendProcessingRouteEvent).toHaveBeenCalledWith(paymentRequest, 'cross-border', 'request')
+    expect(sendProcessingRouteEvent).toHaveBeenCalledWith(
+      paymentRequest,
+      'cross-border',
+      'request'
+    )
     expect(routeToCrossBorder).toHaveBeenCalledWith(paymentRequest)
     expect(transformPaymentRequest).not.toHaveBeenCalled()
   })
 
-  test('non-manual, non-cross-border payments should transform and complete correctly', async () => {
+  test('transforms and completes standard payments', async () => {
     paymentRequest.schemeId = 'OTHER_SCHEME'
 
     await processPaymentRequest(scheduledPaymentRequest)
@@ -73,21 +139,25 @@ describe('processPaymentRequest', () => {
     expect(isAgreementClosed).toHaveBeenCalledWith(paymentRequest)
     expect(applyAutoHold).toHaveBeenCalledWith([paymentRequest])
     expect(mapAccountCodes).toHaveBeenCalledWith(paymentRequest)
-    expect(completePaymentRequests).toHaveBeenCalledWith(scheduleId, [paymentRequest])
+    expect(completePaymentRequests).toHaveBeenCalledWith(
+      scheduleId,
+      [paymentRequest]
+    )
   })
 
-  test('should handle agreement closure correctly', async () => {
+  test('suppresses AR payments when the agreement is closed', async () => {
     paymentRequest.schemeId = 'OTHER_SCHEME'
     isAgreementClosed.mockResolvedValue(true)
 
     await processPaymentRequest(scheduledPaymentRequest)
 
-    expect(isAgreementClosed).toHaveBeenCalledWith(paymentRequest)
-    expect(suppressARPaymentRequests).toHaveBeenCalledWith(paymentRequest, [paymentRequest])
-    expect(paymentRequest).toBeDefined()
+    expect(suppressARPaymentRequests).toHaveBeenCalledWith(
+      paymentRequest,
+      [paymentRequest]
+    )
   })
 
-  test('should apply auto hold and exit early', async () => {
+  test('applies an auto hold and exits early', async () => {
     paymentRequest.schemeId = 'OTHER_SCHEME'
     applyAutoHold.mockResolvedValue(true)
 
@@ -97,140 +167,118 @@ describe('processPaymentRequest', () => {
     expect(completePaymentRequests).not.toHaveBeenCalled()
   })
 
-  test('should handle debt data when required', async () => {
+  test('routes payments requiring debt data', async () => {
     paymentRequest.schemeId = 'OTHER_SCHEME'
     requiresDebtData.mockReturnValue(true)
 
     await processPaymentRequest(scheduledPaymentRequest)
 
     expect(requiresDebtData).toHaveBeenCalledWith([paymentRequest])
-    expect(sendProcessingRouteEvent).toHaveBeenCalledWith(paymentRequest, 'debt', 'request')
+    expect(sendProcessingRouteEvent).toHaveBeenCalledWith(
+      paymentRequest,
+      'debt',
+      'request'
+    )
     expect(routeDebtToRequestEditor).toHaveBeenCalledWith(paymentRequest)
     expect(completePaymentRequests).not.toHaveBeenCalled()
   })
 
-  test('should handle manual ledger check when required', async () => {
+  test('routes payments requiring a manual ledger check', async () => {
     paymentRequest.schemeId = 'OTHER_SCHEME'
-    transformPaymentRequest.mockResolvedValue({ deltaPaymentRequest: paymentRequest, completedPaymentRequests: [paymentRequest] })
     requiresManualLedgerCheck.mockResolvedValue(true)
+
+    const transformedPayment = {
+      deltaPaymentRequest: paymentRequest,
+      completedPaymentRequests: [paymentRequest]
+    }
+
+    transformPaymentRequest.mockResolvedValue(transformedPayment)
 
     await processPaymentRequest(scheduledPaymentRequest)
 
     expect(requiresManualLedgerCheck).toHaveBeenCalledWith(paymentRequest)
-    expect(sendProcessingRouteEvent).toHaveBeenCalledWith(paymentRequest, 'manual-ledger', 'request')
-    expect(routeManualLedgerToRequestEditor).toHaveBeenCalledWith({ deltaPaymentRequest: paymentRequest, completedPaymentRequests: [paymentRequest] })
+    expect(sendProcessingRouteEvent).toHaveBeenCalledWith(
+      paymentRequest,
+      'manual-ledger',
+      'request'
+    )
+    expect(routeManualLedgerToRequestEditor).toHaveBeenCalledWith(
+      transformedPayment
+    )
     expect(completePaymentRequests).not.toHaveBeenCalled()
   })
 
-  test('should map account codes and complete payment requests when all conditions are met', async () => {
+  test('maps account codes and completes eligible payments', async () => {
     paymentRequest.schemeId = 'OTHER_SCHEME'
 
     await processPaymentRequest(scheduledPaymentRequest)
 
     expect(mapAccountCodes).toHaveBeenCalledWith(paymentRequest)
-    expect(completePaymentRequests).toHaveBeenCalledWith(scheduleId, [paymentRequest])
+    expect(completePaymentRequests).toHaveBeenCalledWith(
+      scheduleId,
+      [paymentRequest]
+    )
   })
 
-  describe('new fields: fesCode, annualValue, remmittanceDescription, and generic STRING handling', () => {
-    test('should pass new string fields through transform and complete unchanged', async () => {
-      paymentRequest.schemeId = 'OTHER_SCHEME'
-      paymentRequest.genericStringField = 'GENERIC-STRING'
-      paymentRequest.fesCode = 'FES123'
-      paymentRequest.annualValue = '1234.56'
-      paymentRequest.remmittanceDescription = 'Quarterly remittance'
-
-      transformPaymentRequest.mockResolvedValue({
-        deltaPaymentRequest: paymentRequest,
-        completedPaymentRequests: [paymentRequest]
+  describe('additional payment fields', () => {
+    test('preserves additional fields through processing', async () => {
+      Object.assign(paymentRequest, {
+        schemeId: 'OTHER_SCHEME',
+        genericStringField: 'GENERIC-STRING',
+        fesCode: 'FES123',
+        annualValue: '1234.56',
+        remmittanceDescription: 'Quarterly remittance'
       })
 
       await processPaymentRequest(scheduledPaymentRequest)
 
-      expect(transformPaymentRequest).toHaveBeenCalledWith(
-        expect.objectContaining({
-          genericStringField: 'GENERIC-STRING',
-          fesCode: 'FES123',
-          annualValue: '1234.56',
-          remmittanceDescription: 'Quarterly remittance'
-        })
-      )
+      const expectedFields = expect.objectContaining({
+        genericStringField: 'GENERIC-STRING',
+        fesCode: 'FES123',
+        annualValue: '1234.56',
+        remmittanceDescription: 'Quarterly remittance'
+      })
 
-      expect(mapAccountCodes).toHaveBeenCalledWith(
-        expect.objectContaining({
-          genericStringField: 'GENERIC-STRING',
-          fesCode: 'FES123',
-          annualValue: '1234.56',
-          remmittanceDescription: 'Quarterly remittance'
-        })
-      )
-
+      expect(transformPaymentRequest).toHaveBeenCalledWith(expectedFields)
+      expect(mapAccountCodes).toHaveBeenCalledWith(expectedFields)
       expect(completePaymentRequests).toHaveBeenCalledWith(
         scheduleId,
-        [
-          expect.objectContaining({
-            genericStringField: 'GENERIC-STRING',
-            fesCode: 'FES123',
-            annualValue: '1234.56',
-            remmittanceDescription: 'Quarterly remittance'
-          })
-        ]
+        [expectedFields]
       )
     })
 
-    test('should handle missing optional fields gracefully (undefined values)', async () => {
-      paymentRequest.schemeId = 'OTHER_SCHEME'
-      paymentRequest.genericStringField = undefined
-      paymentRequest.fesCode = undefined
-      paymentRequest.annualValue = undefined
-      paymentRequest.remmittanceDescription = undefined
-
-      transformPaymentRequest.mockResolvedValue({
-        deltaPaymentRequest: paymentRequest,
-        completedPaymentRequests: [paymentRequest]
+    test('handles missing optional fields', async () => {
+      Object.assign(paymentRequest, {
+        schemeId: 'OTHER_SCHEME',
+        genericStringField: undefined,
+        fesCode: undefined,
+        annualValue: undefined,
+        remmittanceDescription: undefined
       })
 
       await processPaymentRequest(scheduledPaymentRequest)
 
-      expect(transformPaymentRequest).toHaveBeenCalledWith(
-        expect.objectContaining({
-          genericStringField: undefined,
-          fesCode: undefined,
-          annualValue: undefined,
-          remmittanceDescription: undefined
-        })
-      )
+      const expectedFields = expect.objectContaining({
+        genericStringField: undefined,
+        fesCode: undefined,
+        annualValue: undefined,
+        remmittanceDescription: undefined
+      })
 
-      expect(mapAccountCodes).toHaveBeenCalledWith(
-        expect.objectContaining({
-          genericStringField: undefined,
-          fesCode: undefined,
-          annualValue: undefined,
-          remmittanceDescription: undefined
-        })
-      )
-
+      expect(transformPaymentRequest).toHaveBeenCalledWith(expectedFields)
+      expect(mapAccountCodes).toHaveBeenCalledWith(expectedFields)
       expect(completePaymentRequests).toHaveBeenCalledWith(
         scheduleId,
-        [
-          expect.objectContaining({
-            genericStringField: undefined,
-            fesCode: undefined,
-            annualValue: undefined,
-            remmittanceDescription: undefined
-          })
-        ]
+        [expectedFields]
       )
     })
 
-    test('should retain DECIMAL precision for annualValue through processing', async () => {
-      paymentRequest.schemeId = 'OTHER_SCHEME'
-      paymentRequest.annualValue = '9876543210.123456789'
-      paymentRequest.fesCode = 'FES-PRECISION'
-      paymentRequest.remmittanceDescription = 'Precision test'
-
-      transformPaymentRequest.mockResolvedValue({
-        deltaPaymentRequest: paymentRequest,
-        completedPaymentRequests: [paymentRequest]
+    test('preserves annual value precision', async () => {
+      Object.assign(paymentRequest, {
+        schemeId: 'OTHER_SCHEME',
+        annualValue: '9876543210.123456789',
+        fesCode: 'FES-PRECISION',
+        remmittanceDescription: 'Precision test'
       })
 
       await processPaymentRequest(scheduledPaymentRequest)
@@ -240,34 +288,22 @@ describe('processPaymentRequest', () => {
           annualValue: '9876543210.123456789'
         })
       )
-
       expect(mapAccountCodes).toHaveBeenCalledWith(
         expect.objectContaining({
           annualValue: '9876543210.123456789'
         })
       )
-
-      expect(completePaymentRequests).toHaveBeenCalledWith(
-        scheduleId,
-        [
-          expect.objectContaining({
-            annualValue: '9876543210.123456789'
-          })
-        ]
-      )
     })
 
-    test('should route correctly when manual ledger check is required, still preserving new fields', async () => {
-      paymentRequest.schemeId = 'OTHER_SCHEME'
-      paymentRequest.fesCode = 'FES-LEDGER'
-      paymentRequest.annualValue = '100.00'
-      paymentRequest.remmittanceDescription = 'Manual ledger flow'
-      paymentRequest.genericStringField = 'SOME-STRING'
-
-      transformPaymentRequest.mockResolvedValue({
-        deltaPaymentRequest: paymentRequest,
-        completedPaymentRequests: [paymentRequest]
+    test('preserves additional fields when routing to manual ledger', async () => {
+      Object.assign(paymentRequest, {
+        schemeId: 'OTHER_SCHEME',
+        fesCode: 'FES-LEDGER',
+        annualValue: '100.00',
+        remmittanceDescription: 'Manual ledger flow',
+        genericStringField: 'SOME-STRING'
       })
+
       requiresManualLedgerCheck.mockResolvedValue(true)
 
       await processPaymentRequest(scheduledPaymentRequest)

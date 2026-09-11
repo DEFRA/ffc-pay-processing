@@ -1,4 +1,10 @@
-const { CS } = require('../../../../app/constants/schemes')
+jest.mock('ffc-pay-schemes', () => ({
+  getSchemeIds: jest.fn(() => ({
+    CS: 5
+  }))
+}))
+const { getSchemeIds } = require('ffc-pay-schemes')
+const { CS } = getSchemeIds()
 const { DRD00, DRD10, EXQ00, DRD01, DRD05 } = require('../../../../app/constants/domestic-fund-codes')
 const capitalSchemes = require('../../../../app/constants/capital-schemes')
 
