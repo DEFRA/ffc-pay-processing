@@ -11,7 +11,8 @@ const {
   COHT_REVENUE,
   COHT_CAPITAL,
   FPTT,
-  WMP
+  WMP,
+  SFI26
 } = require('../../../constants/schemes')
 
 const sfi = require('./sfi')
@@ -38,7 +39,8 @@ const schemeMap = new Map([
   [COHT_REVENUE, cohtr],
   [COHT_CAPITAL, cohtc],
   [FPTT, fptt],
-  [WMP, wmp]
+  [WMP, wmp],
+  [SFI26, sfi]
 ])
 
 const getMap = (schemeId) => {
