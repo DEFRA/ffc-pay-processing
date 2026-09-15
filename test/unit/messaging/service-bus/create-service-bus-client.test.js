@@ -98,4 +98,23 @@ describe('createServiceBusClient', () => {
       }
     })
   })
+
+  test('strips null or undefined retry options so SDK defaults are used', () => {
+    const config = {
+      connectionString: 'test-connection-string',
+      maxRetries: 5,
+      retryDelayInMs: null,
+      maxRetryDelayInMs: undefined,
+      retryMode: 'Fixed'
+    }
+
+    createServiceBusClient(config)
+
+    expect(ServiceBusClient).toHaveBeenCalledWith('test-connection-string', {
+      retryOptions: {
+        maxRetries: 5,
+        retryMode: 'Fixed'
+      }
+    })
+  })
 })

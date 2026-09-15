@@ -20,16 +20,22 @@ const getCredentials = (config) => {
 }
 
 const buildRetryOptions = (config) => {
-  if (!config.maxRetries && !config.retryDelayInMs && !config.maxRetryDelayInMs && !config.retryMode) {
-    return undefined
+  const retryOptions = {}
+
+  if (config.maxRetries != null) {
+    retryOptions.maxRetries = config.maxRetries
+  }
+  if (config.retryDelayInMs != null) {
+    retryOptions.retryDelayInMs = config.retryDelayInMs
+  }
+  if (config.maxRetryDelayInMs != null) {
+    retryOptions.maxRetryDelayInMs = config.maxRetryDelayInMs
+  }
+  if (config.retryMode != null) {
+    retryOptions.retryMode = config.retryMode
   }
 
-  return {
-    maxRetries: config.maxRetries,
-    retryDelayInMs: config.retryDelayInMs,
-    maxRetryDelayInMs: config.maxRetryDelayInMs,
-    retryMode: config.retryMode
-  }
+  return Object.keys(retryOptions).length ? retryOptions : undefined
 }
 
 const createServiceBusClient = (config) => {
