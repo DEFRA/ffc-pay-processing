@@ -131,13 +131,13 @@ describe('processPaymentRequest', () => {
     expect(completePaymentRequests).toHaveBeenCalledWith(scheduleId, [paymentRequest])
   })
 
-  describe('new fields: fesCode, annualValue, remmittanceDescription, and generic STRING handling', () => {
+  describe('new fields: fesCode, annualValue, remittanceDescription, and generic STRING handling', () => {
     test('should pass new string fields through transform and complete unchanged', async () => {
       paymentRequest.schemeId = 'OTHER_SCHEME'
       paymentRequest.genericStringField = 'GENERIC-STRING'
       paymentRequest.fesCode = 'FES123'
       paymentRequest.annualValue = '1234.56'
-      paymentRequest.remmittanceDescription = 'Quarterly remittance'
+      paymentRequest.remittanceDescription = 'Quarterly remittance'
 
       transformPaymentRequest.mockResolvedValue({
         deltaPaymentRequest: paymentRequest,
@@ -151,7 +151,7 @@ describe('processPaymentRequest', () => {
           genericStringField: 'GENERIC-STRING',
           fesCode: 'FES123',
           annualValue: '1234.56',
-          remmittanceDescription: 'Quarterly remittance'
+          remittanceDescription: 'Quarterly remittance'
         })
       )
 
@@ -160,7 +160,7 @@ describe('processPaymentRequest', () => {
           genericStringField: 'GENERIC-STRING',
           fesCode: 'FES123',
           annualValue: '1234.56',
-          remmittanceDescription: 'Quarterly remittance'
+          remittanceDescription: 'Quarterly remittance'
         })
       )
 
@@ -171,7 +171,7 @@ describe('processPaymentRequest', () => {
             genericStringField: 'GENERIC-STRING',
             fesCode: 'FES123',
             annualValue: '1234.56',
-            remmittanceDescription: 'Quarterly remittance'
+            remittanceDescription: 'Quarterly remittance'
           })
         ]
       )
@@ -182,7 +182,7 @@ describe('processPaymentRequest', () => {
       paymentRequest.genericStringField = undefined
       paymentRequest.fesCode = undefined
       paymentRequest.annualValue = undefined
-      paymentRequest.remmittanceDescription = undefined
+      paymentRequest.remittanceDescription = undefined
 
       transformPaymentRequest.mockResolvedValue({
         deltaPaymentRequest: paymentRequest,
@@ -196,7 +196,7 @@ describe('processPaymentRequest', () => {
           genericStringField: undefined,
           fesCode: undefined,
           annualValue: undefined,
-          remmittanceDescription: undefined
+          remittanceDescription: undefined
         })
       )
 
@@ -205,7 +205,7 @@ describe('processPaymentRequest', () => {
           genericStringField: undefined,
           fesCode: undefined,
           annualValue: undefined,
-          remmittanceDescription: undefined
+          remittanceDescription: undefined
         })
       )
 
@@ -216,7 +216,7 @@ describe('processPaymentRequest', () => {
             genericStringField: undefined,
             fesCode: undefined,
             annualValue: undefined,
-            remmittanceDescription: undefined
+            remittanceDescription: undefined
           })
         ]
       )
@@ -226,7 +226,7 @@ describe('processPaymentRequest', () => {
       paymentRequest.schemeId = 'OTHER_SCHEME'
       paymentRequest.annualValue = '9876543210.123456789'
       paymentRequest.fesCode = 'FES-PRECISION'
-      paymentRequest.remmittanceDescription = 'Precision test'
+      paymentRequest.remittanceDescription = 'Precision test'
 
       transformPaymentRequest.mockResolvedValue({
         deltaPaymentRequest: paymentRequest,
@@ -261,7 +261,7 @@ describe('processPaymentRequest', () => {
       paymentRequest.schemeId = 'OTHER_SCHEME'
       paymentRequest.fesCode = 'FES-LEDGER'
       paymentRequest.annualValue = '100.00'
-      paymentRequest.remmittanceDescription = 'Manual ledger flow'
+      paymentRequest.remittanceDescription = 'Manual ledger flow'
       paymentRequest.genericStringField = 'SOME-STRING'
 
       transformPaymentRequest.mockResolvedValue({
@@ -277,14 +277,14 @@ describe('processPaymentRequest', () => {
           deltaPaymentRequest: expect.objectContaining({
             fesCode: 'FES-LEDGER',
             annualValue: '100.00',
-            remmittanceDescription: 'Manual ledger flow',
+            remittanceDescription: 'Manual ledger flow',
             genericStringField: 'SOME-STRING'
           }),
           completedPaymentRequests: [
             expect.objectContaining({
               fesCode: 'FES-LEDGER',
               annualValue: '100.00',
-              remmittanceDescription: 'Manual ledger flow',
+              remittanceDescription: 'Manual ledger flow',
               genericStringField: 'SOME-STRING'
             })
           ]

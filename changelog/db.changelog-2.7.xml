@@ -21,4 +21,5 @@
       oldColumnName="remmittanceDescription"
       newColumnName="remittanceDescription" />
   </changeSet>
+
 </databaseChangeLog>
