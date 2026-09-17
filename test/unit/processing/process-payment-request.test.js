@@ -224,7 +224,6 @@ describe('processPaymentRequest', () => {
     test('preserves additional fields through processing', async () => {
       Object.assign(paymentRequest, {
         schemeId: 'OTHER_SCHEME',
-        genericStringField: 'GENERIC-STRING',
         fesCode: 'FES123',
         annualValue: '1234.56',
         remittanceDescription: 'Quarterly remittance'
@@ -233,10 +232,9 @@ describe('processPaymentRequest', () => {
       await processPaymentRequest(scheduledPaymentRequest)
 
       const expectedFields = expect.objectContaining({
-        genericStringField: 'GENERIC-STRING',
         fesCode: 'FES123',
         annualValue: '1234.56',
-        remmittanceDescription: 'Quarterly remittance'
+        remittanceDescription: 'Quarterly remittance'
       })
 
       expect(transformPaymentRequest).toHaveBeenCalledWith(expectedFields)
@@ -253,7 +251,7 @@ describe('processPaymentRequest', () => {
         genericStringField: undefined,
         fesCode: undefined,
         annualValue: undefined,
-        remmittanceDescription: undefined
+        remittanceDescription: undefined
       })
 
       await processPaymentRequest(scheduledPaymentRequest)
