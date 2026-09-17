@@ -4,7 +4,11 @@ const { sendProcessingErrorEvent } = require('../event')
 const processPaymentMessage = async (message, receiver) => {
   try {
     const paymentRequest = message.body
-    console.log('Payment request received:', { frn: paymentRequest.frn, sbi: paymentRequest.sbi, invoiceNumber: paymentRequest.invoiceNumber })
+    console.log('Payment request received:', {
+      frn: paymentRequest.frn,
+      ...(paymentRequest.sbi != null && { sbi: paymentRequest.sbi }),
+      invoiceNumber: paymentRequest.invoiceNumber
+    })
     await savePaymentRequest(paymentRequest)
     await receiver.completeMessage(message)
   } catch (err) {

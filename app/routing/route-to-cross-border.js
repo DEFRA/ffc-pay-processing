@@ -9,7 +9,11 @@ const routeToCrossBorder = async (paymentRequest) => {
   const transaction = await db.sequelize.transaction()
   try {
     await sendMessage(paymentRequest, CROSS_BORDER, messageConfig.xbTopic)
-    console.log('Payment request routed to Cross Border:', { frn: paymentRequest.frn, sbi: paymentRequest.sbi, invoiceNumber: paymentRequest.invoiceNumber })
+    console.log('Payment request routed to Cross Border:', {
+      frn: paymentRequest.frn,
+      ...(paymentRequest.sbi != null && { sbi: paymentRequest.sbi }),
+      invoiceNumber: paymentRequest.invoiceNumber
+    })
     const holdCategoryId = await getHoldCategoryId(paymentRequest.schemeId, CROSS_BORDER_HOLD, transaction)
     await holdAndReschedule(paymentRequest, holdCategoryId, transaction)
     await transaction.commit()

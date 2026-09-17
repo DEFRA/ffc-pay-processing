@@ -9,7 +9,11 @@ const routeDebtToRequestEditor = async (paymentRequest) => {
   const transaction = await db.sequelize.transaction()
   try {
     await sendMessage(paymentRequest, ROUTED_DEBT, messageConfig.debtTopic)
-    console.log('Payment request routed to request editor:', { frn: paymentRequest.frn, sbi: paymentRequest.sbi, invoiceNumber: paymentRequest.invoiceNumber })
+    console.log('Payment request routed to request editor:', {
+      frn: paymentRequest.frn,
+      ...(paymentRequest.sbi != null && { sbi: paymentRequest.sbi }),
+      invoiceNumber: paymentRequest.invoiceNumber
+    })
     const holdCategoryId = await getHoldCategoryId(paymentRequest.schemeId, AWAITING_DEBT_ENRICHMENT, transaction)
     await holdAndReschedule(paymentRequest, holdCategoryId, transaction)
     await transaction.commit()

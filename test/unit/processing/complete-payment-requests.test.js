@@ -13,20 +13,16 @@ describe('completePaymentRequests', () => {
   beforeEach(() => {
     jest.clearAllMocks()
 
-    // Mock transaction
     mockTransaction = {
       commit: jest.fn(),
       rollback: jest.fn()
     }
-    db.sequelize.transaction.mockResolvedValue(mockTransaction)
 
-    // Mock database models
+    db.sequelize = {
+      transaction: jest.fn().mockResolvedValue(mockTransaction)
+    }
+
     db.schedule = {
-      findByPk: jest.fn().mockResolvedValue({
-        scheduleId: 1,
-        completed: null,
-        active: true
-      }),
       update: jest.fn().mockResolvedValue([1])
     }
 
@@ -42,6 +38,13 @@ describe('completePaymentRequests', () => {
 
     db.outbox = {
       create: jest.fn().mockResolvedValue({ outboxId: 1 })
+    }
+
+    db.Sequelize = {
+      Op: {
+        ne: Symbol('ne'),
+        eq: Symbol('eq')
+      }
     }
 
     sendZeroValueEvent.mockResolvedValue()
@@ -70,6 +73,7 @@ describe('completePaymentRequests', () => {
 
     await completePaymentRequests(1, [paymentRequest])
 
+    expect(db.schedule.update).toHaveBeenCalledTimes(1)
     expect(db.completedPaymentRequest.create).toHaveBeenCalled()
     expect(sanitizeInvoiceLine).toHaveBeenCalledTimes(2)
     expect(db.outbox.create).toHaveBeenCalled()
@@ -82,21 +86,31 @@ describe('completePaymentRequests', () => {
         invoiceNumber: 'SITI1234',
         value: 100,
         invoiceLines: [{ value: 100, dataValues: { value: 100 } }],
-        dataValues: { invoiceNumber: 'SITI1234', value: 100, invoiceLines: [{ value: 100 }] }
+        dataValues: {
+          invoiceNumber: 'SITI1234',
+          value: 100,
+          invoiceLines: [{ value: 100 }]
+        }
       },
       {
         invoiceNumber: 'SITI5678',
         value: 200,
         invoiceLines: [{ value: 200, dataValues: { value: 200 } }],
-        dataValues: { invoiceNumber: 'SITI5678', value: 200, invoiceLines: [{ value: 200 }] }
+        dataValues: {
+          invoiceNumber: 'SITI5678',
+          value: 200,
+          invoiceLines: [{ value: 200 }]
+        }
       }
     ]
 
     await completePaymentRequests(1, requests)
 
+    expect(db.schedule.update).toHaveBeenCalledTimes(1)
     expect(db.completedPaymentRequest.create).toHaveBeenCalledTimes(2)
     expect(sanitizeInvoiceLine).toHaveBeenCalledTimes(2)
     expect(db.outbox.create).toHaveBeenCalledTimes(2)
+    expect(mockTransaction.commit).toHaveBeenCalled()
   })
 
   test('should handle transaction rollback on error', async () => {
@@ -106,10 +120,15 @@ describe('completePaymentRequests', () => {
       invoiceNumber: 'SITI1234',
       value: 100,
       invoiceLines: [{ value: 100, dataValues: { value: 100 } }],
-      dataValues: { invoiceNumber: 'SITI1234', value: 100, invoiceLines: [{ value: 100 }] }
+      dataValues: {
+        invoiceNumber: 'SITI1234',
+        value: 100,
+        invoiceLines: [{ value: 100 }]
+      }
     }
 
     await expect(completePaymentRequests(1, [paymentRequest])).rejects.toThrow('Test error')
+    expect(db.schedule.update).toHaveBeenCalledTimes(1)
     expect(mockTransaction.rollback).toHaveBeenCalled()
   })
 
@@ -118,28 +137,42 @@ describe('completePaymentRequests', () => {
       invoiceNumber: 'SITI1234',
       value: 0,
       invoiceLines: [{ value: 0, dataValues: { value: 0 } }],
-      dataValues: { invoiceNumber: 'SITI1234', value: 0, invoiceLines: [{ value: 0 }] }
+      dataValues: {
+        invoiceNumber: 'SITI1234',
+        value: 0,
+        invoiceLines: [{ value: 0 }]
+      }
     }
 
     await completePaymentRequests(1, [paymentRequest])
 
+    expect(db.schedule.update).toHaveBeenCalledTimes(1)
     expect(sendZeroValueEvent).toHaveBeenCalled()
     expect(sanitizeInvoiceLine).not.toHaveBeenCalled()
     expect(db.outbox.create).not.toHaveBeenCalled()
     expect(mockTransaction.commit).toHaveBeenCalled()
   })
 
-  test('should not process if schedule is completed', async () => {
-    db.schedule.findByPk.mockResolvedValue({
-      scheduleId: 1,
-      completed: new Date(),
-      active: true
-    })
+  test('should skip processing when schedule update affects zero rows', async () => {
+    db.schedule.update.mockResolvedValue([0])
 
-    await completePaymentRequests(1, [])
+    const paymentRequest = {
+      invoiceNumber: 'SITI1234',
+      value: 100,
+      invoiceLines: [{ value: 100, dataValues: { value: 100 } }],
+      dataValues: {
+        invoiceNumber: 'SITI1234',
+        value: 100,
+        invoiceLines: [{ value: 100 }]
+      }
+    }
 
+    await completePaymentRequests(1, [paymentRequest])
+
+    expect(db.schedule.update).toHaveBeenCalledTimes(1)
     expect(db.completedPaymentRequest.create).not.toHaveBeenCalled()
     expect(sanitizeInvoiceLine).not.toHaveBeenCalled()
+    expect(db.outbox.create).not.toHaveBeenCalled()
     expect(mockTransaction.commit).toHaveBeenCalled()
   })
 
@@ -151,7 +184,7 @@ describe('completePaymentRequests', () => {
       claimDate: '2025-01-31',
       fesCode: 'FES-ABC',
       annualValue: '9999.99',
-      remmittanceDescription: 'Quarterly reconciliation',
+      remittanceDescription: 'Quarterly reconciliation',
       invoiceLines: [
         { value: 123.45, dataValues: { value: 123.45 } }
       ],
@@ -162,7 +195,7 @@ describe('completePaymentRequests', () => {
         claimDate: '2025-01-31',
         fesCode: 'FES-ABC',
         annualValue: '9999.99',
-        remmittanceDescription: 'Quarterly reconciliation',
+        remittanceDescription: 'Quarterly reconciliation',
         invoiceLines: [{ value: 123.45 }]
       }
     }
@@ -175,14 +208,11 @@ describe('completePaymentRequests', () => {
     expect(createdPayload).toEqual(expect.objectContaining({
       invoiceNumber: 'SITI9999',
       paymentRequestNumber: 2,
-      value: 123.45
-    }))
-
-    expect(createdPayload).toEqual(expect.objectContaining({
+      value: 123.45,
       claimDate: '2025-01-31',
       fesCode: 'FES-ABC',
       annualValue: '9999.99',
-      remmittanceDescription: 'Quarterly reconciliation'
+      remittanceDescription: 'Quarterly reconciliation'
     }))
 
     expect(sanitizeInvoiceLine).toHaveBeenCalledTimes(1)
@@ -214,7 +244,7 @@ describe('completePaymentRequests', () => {
     expect(createdPayload.claimDate).toBeUndefined()
     expect(createdPayload.fesCode).toBeUndefined()
     expect(createdPayload.annualValue).toBeUndefined()
-    expect(createdPayload.remmittanceDescription).toBeUndefined()
+    expect(createdPayload.remittanceDescription).toBeUndefined()
 
     expect(sanitizeInvoiceLine).toHaveBeenCalledTimes(1)
     expect(db.outbox.create).toHaveBeenCalledTimes(1)
@@ -229,7 +259,7 @@ describe('completePaymentRequests', () => {
       claimDate: '2025-02-15',
       fesCode: 'FES-ZERO',
       annualValue: '0.00',
-      remmittanceDescription: 'Zero-value adjustment',
+      remittanceDescription: 'Zero-value adjustment',
       invoiceLines: [
         { value: 0, dataValues: { value: 0 } }
       ],
@@ -240,7 +270,7 @@ describe('completePaymentRequests', () => {
         claimDate: '2025-02-15',
         fesCode: 'FES-ZERO',
         annualValue: '0.00',
-        remmittanceDescription: 'Zero-value adjustment',
+        remittanceDescription: 'Zero-value adjustment',
         invoiceLines: [{ value: 0 }]
       }
     }
@@ -261,7 +291,7 @@ describe('completePaymentRequests', () => {
       claimDate: '2025-02-15',
       fesCode: 'FES-ZERO',
       annualValue: '0.00',
-      remmittanceDescription: 'Zero-value adjustment'
+      remittanceDescription: 'Zero-value adjustment'
     }))
   })
 
@@ -288,8 +318,14 @@ describe('completePaymentRequests', () => {
     await completePaymentRequests(1, [paymentRequest])
 
     expect(sanitizeInvoiceLine).toHaveBeenCalledTimes(2)
-    expect(sanitizeInvoiceLine).toHaveBeenNthCalledWith(1, expect.objectContaining({ value: 100, description: '100€' }))
-    expect(sanitizeInvoiceLine).toHaveBeenNthCalledWith(2, expect.objectContaining({ value: 200, description: '200€' }))
+    expect(sanitizeInvoiceLine).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ value: 100, description: '100€' })
+    )
+    expect(sanitizeInvoiceLine).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ value: 200, description: '200€' })
+    )
   })
 
   test('should not sanitize zero-value invoice lines', async () => {
@@ -315,6 +351,8 @@ describe('completePaymentRequests', () => {
     await completePaymentRequests(1, [paymentRequest])
 
     expect(sanitizeInvoiceLine).toHaveBeenCalledTimes(1)
-    expect(sanitizeInvoiceLine).toHaveBeenCalledWith(expect.objectContaining({ value: 100, description: 'Non-zero€' }))
+    expect(sanitizeInvoiceLine).toHaveBeenCalledWith(
+      expect.objectContaining({ value: 100, description: 'Non-zero€' })
+    )
   })
 })
