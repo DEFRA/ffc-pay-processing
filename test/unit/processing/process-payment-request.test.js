@@ -227,7 +227,7 @@ describe('processPaymentRequest', () => {
         genericStringField: 'GENERIC-STRING',
         fesCode: 'FES123',
         annualValue: '1234.56',
-        remmittanceDescription: 'Quarterly remittance'
+        remittanceDescription: 'Quarterly remittance'
       })
 
       await processPaymentRequest(scheduledPaymentRequest)
@@ -262,7 +262,7 @@ describe('processPaymentRequest', () => {
         genericStringField: undefined,
         fesCode: undefined,
         annualValue: undefined,
-        remmittanceDescription: undefined
+        remittanceDescription: undefined
       })
 
       expect(transformPaymentRequest).toHaveBeenCalledWith(expectedFields)
@@ -278,7 +278,7 @@ describe('processPaymentRequest', () => {
         schemeId: 'OTHER_SCHEME',
         annualValue: '9876543210.123456789',
         fesCode: 'FES-PRECISION',
-        remmittanceDescription: 'Precision test'
+        remittanceDescription: 'Precision test'
       })
 
       await processPaymentRequest(scheduledPaymentRequest)
@@ -300,7 +300,7 @@ describe('processPaymentRequest', () => {
         schemeId: 'OTHER_SCHEME',
         fesCode: 'FES-LEDGER',
         annualValue: '100.00',
-        remmittanceDescription: 'Manual ledger flow',
+        remittanceDescription: 'Manual ledger flow',
         genericStringField: 'SOME-STRING'
       })
 
@@ -313,14 +313,14 @@ describe('processPaymentRequest', () => {
           deltaPaymentRequest: expect.objectContaining({
             fesCode: 'FES-LEDGER',
             annualValue: '100.00',
-            remmittanceDescription: 'Manual ledger flow',
+            remittanceDescription: 'Manual ledger flow',
             genericStringField: 'SOME-STRING'
           }),
           completedPaymentRequests: [
             expect.objectContaining({
               fesCode: 'FES-LEDGER',
               annualValue: '100.00',
-              remmittanceDescription: 'Manual ledger flow',
+              remittanceDescription: 'Manual ledger flow',
               genericStringField: 'SOME-STRING'
             })
           ]
