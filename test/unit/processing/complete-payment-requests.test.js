@@ -184,7 +184,7 @@ describe('completePaymentRequests', () => {
       claimDate: '2025-01-31',
       fesCode: 'FES-ABC',
       annualValue: '9999.99',
-      remmittanceDescription: 'Quarterly reconciliation',
+      remittanceDescription: 'Quarterly reconciliation',
       invoiceLines: [
         { value: 123.45, dataValues: { value: 123.45 } }
       ],
@@ -195,7 +195,7 @@ describe('completePaymentRequests', () => {
         claimDate: '2025-01-31',
         fesCode: 'FES-ABC',
         annualValue: '9999.99',
-        remmittanceDescription: 'Quarterly reconciliation',
+        remittanceDescription: 'Quarterly reconciliation',
         invoiceLines: [{ value: 123.45 }]
       }
     }
@@ -212,7 +212,7 @@ describe('completePaymentRequests', () => {
       claimDate: '2025-01-31',
       fesCode: 'FES-ABC',
       annualValue: '9999.99',
-      remmittanceDescription: 'Quarterly reconciliation'
+      remittanceDescription: 'Quarterly reconciliation'
     }))
 
     expect(sanitizeInvoiceLine).toHaveBeenCalledTimes(1)
@@ -244,7 +244,7 @@ describe('completePaymentRequests', () => {
     expect(createdPayload.claimDate).toBeUndefined()
     expect(createdPayload.fesCode).toBeUndefined()
     expect(createdPayload.annualValue).toBeUndefined()
-    expect(createdPayload.remmittanceDescription).toBeUndefined()
+    expect(createdPayload.remittanceDescription).toBeUndefined()
 
     expect(sanitizeInvoiceLine).toHaveBeenCalledTimes(1)
     expect(db.outbox.create).toHaveBeenCalledTimes(1)
@@ -259,7 +259,7 @@ describe('completePaymentRequests', () => {
       claimDate: '2025-02-15',
       fesCode: 'FES-ZERO',
       annualValue: '0.00',
-      remmittanceDescription: 'Zero-value adjustment',
+      remittanceDescription: 'Zero-value adjustment',
       invoiceLines: [
         { value: 0, dataValues: { value: 0 } }
       ],
@@ -270,7 +270,7 @@ describe('completePaymentRequests', () => {
         claimDate: '2025-02-15',
         fesCode: 'FES-ZERO',
         annualValue: '0.00',
-        remmittanceDescription: 'Zero-value adjustment',
+        remittanceDescription: 'Zero-value adjustment',
         invoiceLines: [{ value: 0 }]
       }
     }
@@ -291,7 +291,7 @@ describe('completePaymentRequests', () => {
       claimDate: '2025-02-15',
       fesCode: 'FES-ZERO',
       annualValue: '0.00',
-      remmittanceDescription: 'Zero-value adjustment'
+      remittanceDescription: 'Zero-value adjustment'
     }))
   })
 
