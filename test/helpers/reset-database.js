@@ -13,13 +13,13 @@ const cohtCapital = require('../mocks/schemes/coht-capital')
 const cohtRevenue = require('../mocks/schemes/coht-revenue')
 const fptt = require('../mocks/schemes/fptt')
 const wmp = require('../mocks/schemes/wmp')
-const { sfiHoldCategory, sfiPilotHoldCategory, manualLedgerHoldCategory, debtEnrichmentHoldCategory, sfiAutoHoldCategory, sfiPilotAutoHoldCategory, manualLedgerAutoHoldCategory, debtEnrichmentAutoHoldCategory } = require('../mocks/holds/hold-category')
+const { sfiHoldCategory, sfiPilotHoldCategory, manualLedgerHoldCategory, debtEnrichmentHoldCategory, sfiAutoHoldCategory, sfiPilotAutoHoldCategory, manualLedgerAutoHoldCategory, debtEnrichmentAutoHoldCategory, bpsAutoHoldCategory } = require('../mocks/holds/hold-category')
 
 const resetDatabase = async () => {
   await db.sequelize.truncate({ cascade: true })
   await db.scheme.bulkCreate([sfi, sfip, lumpSums, vetVisits, cs, bps, manual, sfi23, delinked, sfiExpanded, cohtRevenue, cohtCapital, fptt, wmp])
   await db.holdCategory.bulkCreate([sfiHoldCategory, sfiPilotHoldCategory, manualLedgerHoldCategory, debtEnrichmentHoldCategory])
-  await db.autoHoldCategory.bulkCreate([sfiAutoHoldCategory, sfiPilotAutoHoldCategory, manualLedgerAutoHoldCategory, debtEnrichmentAutoHoldCategory])
+  await db.autoHoldCategory.bulkCreate([sfiAutoHoldCategory, sfiPilotAutoHoldCategory, manualLedgerAutoHoldCategory, debtEnrichmentAutoHoldCategory, bpsAutoHoldCategory])
 }
 
 module.exports = {

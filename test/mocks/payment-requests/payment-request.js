@@ -1,6 +1,5 @@
+const { getSchemeIds, getSourceSystems } = require('ffc-pay-schemes')
 const { CORRELATION_ID } = require('../values/correlation-id')
-const { SFI } = require('../../../app/constants/schemes')
-const { SOURCE_SYSTEM } = require('../values/source-system')
 const { BATCH } = require('../values/batch')
 const { DELIVERY_BODY_RPA } = require('../values/delivery-body')
 const { INVOICE_NUMBER } = require('../values/invoice-number')
@@ -16,6 +15,9 @@ const { Q4 } = require('../../../app/constants/schedules')
 const { DUE_DATE } = require('../values/due-date')
 const { AP } = require('../../../app/constants/ledgers')
 const invoiceLine = require('./invoice-line')
+
+const { SFI } = getSchemeIds()
+const { SFI: SOURCE_SYSTEM } = getSourceSystems()
 
 module.exports = {
   correlationId: CORRELATION_ID,

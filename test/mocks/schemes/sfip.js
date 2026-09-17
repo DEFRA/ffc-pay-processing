@@ -1,5 +1,7 @@
-const { SFI_PILOT } = require('../../../app/constants/schemes')
+const { getSchemeIds } = require('ffc-pay-schemes')
 const scheme = require('./scheme')
+
+const { SFI_PILOT } = getSchemeIds()
 
 module.exports = {
   ...scheme,

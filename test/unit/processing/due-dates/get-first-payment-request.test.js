@@ -1,81 +1,134 @@
-const { createAdjustmentPaymentRequest } = require('../../../helpers')
-
-const { RECOVERY } = require('../../../../app/constants/adjustment-types')
-const { Q3, Q4, Q1 } = require('../../../../app/constants/schedules')
-const { SFI23 } = require('../../../../app/constants/schemes')
+jest.mock('ffc-pay-schemes', () => ({
+  getSchemeIds: jest.fn(() => ({
+    SFI23: 12
+  }))
+}))
 
 const { getFirstPaymentRequest } = require('../../../../app/processing/due-dates/get-first-payment-request')
 
-let previousPaymentRequest
-let previousPaymentRequests
-let paymentRequest
-let paymentRequests
+describe('getFirstPaymentRequest', () => {
+  test('returns the previous PR1 for non-SFI23 schemes', () => {
+    const firstPaymentRequest = {
+      paymentRequestNumber: 1,
+      schemeId: 1,
+      schedule: 'Q1',
+      dueDate: '01/04/2024'
+    }
 
-describe('get first payment request', () => {
-  beforeEach(() => {
-    jest.clearAllMocks()
+    const result = getFirstPaymentRequest(
+      [{ schemeId: 1 }],
+      [firstPaymentRequest]
+    )
 
-    previousPaymentRequest = structuredClone(require('../../../mocks/payment-requests/payment-request'))
-    previousPaymentRequests = [previousPaymentRequest]
-    paymentRequest = createAdjustmentPaymentRequest(previousPaymentRequest, RECOVERY)
-    paymentRequests = [paymentRequest]
+    expect(result).toBe(firstPaymentRequest)
   })
 
-  test('should return payment request 1 if not SFI 23', () => {
-    const result = getFirstPaymentRequest(paymentRequests, previousPaymentRequests)
-    expect(result.schedule).toBe(previousPaymentRequest.schedule)
-    expect(result.dueDate).toBe(previousPaymentRequest.dueDate)
-  })
+  test('returns undefined for a non-SFI23 scheme when there is no previous PR1', () => {
+    const result = getFirstPaymentRequest(
+      [{ schemeId: 1 }],
+      [{ paymentRequestNumber: 2 }]
+    )
 
-  test('should return undefined if no first payment request and not SFI 23', () => {
-    const result = getFirstPaymentRequest(paymentRequests, [])
     expect(result).toBeUndefined()
   })
 
-  test('should return current payment request due date and schedule if SFI 23 and payment request number 1', () => {
-    previousPaymentRequest.paymentRequestNumber = 0
-    previousPaymentRequest.schedule = Q1
-    previousPaymentRequest.dueDate = '01/10/2023'
-    previousPaymentRequest.schemeId = SFI23
-    paymentRequest.schemeId = SFI23
-    paymentRequest.paymentRequestNumber = 1
+  test('returns the current payment request schedule for SFI23 PR1', () => {
+    const paymentRequest = {
+      schemeId: 12,
+      paymentRequestNumber: 1,
+      schedule: 'Q1',
+      dueDate: '01/04/2023'
+    }
 
-    const result = getFirstPaymentRequest(paymentRequests, previousPaymentRequests)
-    expect(result.schedule).toBe(paymentRequest.schedule)
-    expect(result.dueDate).toBe(paymentRequest.dueDate)
+    const result = getFirstPaymentRequest([paymentRequest], [])
+
+    expect(result).toEqual({
+      schedule: 'Q1',
+      dueDate: '01/04/2023'
+    })
   })
 
-  test('should return current original unedited due date and schedule if SFI 23 and has advance payment scheduled in 2023 which is not settled, and not payment request 1', () => {
-    previousPaymentRequest.schedule = Q3
-    previousPaymentRequest.dueDate = '01/10/2023'
-    previousPaymentRequest.schemeId = SFI23
-    paymentRequest.schemeId = SFI23
-    const advancePaymentRequest = structuredClone(previousPaymentRequest)
-    advancePaymentRequest.paymentRequestNumber = 0
-    paymentRequest.paymentRequestNumber = 2
+  test('returns the previous PR1 for SFI23 when there is no advance payment', () => {
+    const firstPaymentRequest = {
+      paymentRequestNumber: 1,
+      schedule: 'Q1',
+      dueDate: '01/04/2023'
+    }
 
-    const result = getFirstPaymentRequest(paymentRequests, [...previousPaymentRequests, advancePaymentRequest])
-    expect(result.schedule).toBe(Q4)
-    expect(result.dueDate).toBe(paymentRequest.dueDate)
+    const result = getFirstPaymentRequest(
+      [{ schemeId: 12, paymentRequestNumber: 2 }],
+      [firstPaymentRequest]
+    )
+
+    expect(result).toBe(firstPaymentRequest)
   })
 
-  test('should return first payment request due date and schedule if has advance payment not scheduled in 2023 and not payment request 1', () => {
-    previousPaymentRequest.schedule = Q3
-    previousPaymentRequest.dueDate = '01/10/2024'
-    previousPaymentRequest.schemeId = SFI23
-    paymentRequest.schemeId = SFI23
-    const advancePaymentRequest = structuredClone(previousPaymentRequest)
-    advancePaymentRequest.paymentRequestNumber = 0
-    paymentRequest.paymentRequestNumber = 2
+  test('restores the full schedule when an unsettled 2023 advance payment exists', () => {
+    const firstPaymentRequest = {
+      paymentRequestNumber: 1,
+      schedule: 'Q1',
+      dueDate: '01/04/2023'
+    }
 
-    const result = getFirstPaymentRequest(paymentRequests, [...previousPaymentRequests, advancePaymentRequest])
-    expect(result.schedule).toBe(previousPaymentRequest.schedule)
-    expect(result.dueDate).toBe(previousPaymentRequest.dueDate)
+    const advancePayment = {
+      paymentRequestNumber: 0,
+      settledValue: 0,
+      dueDate: '01/01/2023'
+    }
+
+    const result = getFirstPaymentRequest(
+      [{
+        schemeId: 12,
+        paymentRequestNumber: 2,
+        dueDate: '01/04/2023'
+      }],
+      [firstPaymentRequest, advancePayment]
+    )
+
+    expect(result).toEqual({
+      schedule: 'Q4',
+      dueDate: '01/04/2023'
+    })
   })
 
-  test('should return undefined if no first payment request or advance for SFI 23', () => {
-    paymentRequest.schemeId = SFI23
-    const result = getFirstPaymentRequest(paymentRequests, [])
-    expect(result).toBeUndefined()
+  test('returns the previous PR1 when the advance payment is settled', () => {
+    const firstPaymentRequest = {
+      paymentRequestNumber: 1,
+      schedule: 'Q1',
+      dueDate: '01/04/2023'
+    }
+
+    const advancePayment = {
+      paymentRequestNumber: 0,
+      settledValue: 100,
+      dueDate: '01/01/2023'
+    }
+
+    const result = getFirstPaymentRequest(
+      [{ schemeId: 12, paymentRequestNumber: 2 }],
+      [firstPaymentRequest, advancePayment]
+    )
+
+    expect(result).toBe(firstPaymentRequest)
+  })
+
+  test('returns the previous PR1 when the advance payment is not from 2023', () => {
+    const firstPaymentRequest = {
+      paymentRequestNumber: 1,
+      schedule: 'Q1',
+      dueDate: '01/04/2024'
+    }
+
+    const advancePayment = {
+      paymentRequestNumber: 0,
+      dueDate: '01/01/2024'
+    }
+
+    const result = getFirstPaymentRequest(
+      [{ schemeId: 12, paymentRequestNumber: 2 }],
+      [firstPaymentRequest, advancePayment]
+    )
+
+    expect(result).toBe(firstPaymentRequest)
   })
 })

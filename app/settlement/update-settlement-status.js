@@ -1,6 +1,8 @@
+const { getSchemeIds } = require('ffc-pay-schemes')
 const { GBP } = require('../constants/currency')
-const { BPS } = require('../constants/schemes')
 const db = require('../data')
+
+const { BPS } = getSchemeIds()
 
 const updateSettlementStatus = async (settlement, filter) => {
   const completedPaymentRequest = await db.completedPaymentRequest.findOne({

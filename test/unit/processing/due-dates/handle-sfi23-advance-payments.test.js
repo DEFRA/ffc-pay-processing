@@ -1,11 +1,13 @@
+const { getSchemeIds } = require('ffc-pay-schemes')
 const { createAdjustmentPaymentRequest } = require('../../../helpers')
 
+const { SFI23, SFI } = getSchemeIds()
 const { RECOVERY } = require('../../../../app/constants/adjustment-types')
-const { SFI23, SFI } = require('../../../../app/constants/schemes')
 const { Q1, Q3 } = require('../../../../app/constants/schedules')
-
-const { handleSFI23AdvancePayments } = require('../../../../app/processing/due-dates/handle-sfi23-advance-payments')
 const { AR } = require('../../../../app/constants/ledgers')
+const {
+  handleSFI23AdvancePayments
+} = require('../../../../app/processing/due-dates/handle-sfi23-advance-payments')
 
 let advancePaymentRequest
 let previousPaymentRequest
@@ -14,69 +16,130 @@ let paymentRequest
 let paymentRequests
 let paymentSchedule
 
-describe('handle sfi 23 advance payments', () => {
+describe('handle SFI23 advance payments', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
-
-    previousPaymentRequest = JSON.parse(JSON.stringify(require('../../../mocks/payment-requests/payment-request')))
+    previousPaymentRequest = structuredClone(
+      require('../../../mocks/payment-requests/payment-request')
+    )
     previousPaymentRequest.schemeId = SFI23
-    advancePaymentRequest = { ...previousPaymentRequest, paymentRequestNumber: 0, schedule: Q1 }
-    previousPaymentRequests = [previousPaymentRequest, advancePaymentRequest]
-    paymentRequest = createAdjustmentPaymentRequest(previousPaymentRequest, RECOVERY)
+
+    advancePaymentRequest = {
+      ...structuredClone(previousPaymentRequest),
+      paymentRequestNumber: 0,
+      schedule: Q1
+    }
+
+    previousPaymentRequests = [
+      previousPaymentRequest,
+      advancePaymentRequest
+    ]
+
+    paymentRequest = createAdjustmentPaymentRequest(
+      previousPaymentRequest,
+      RECOVERY
+    )
     paymentRequest.paymentRequestNumber = 1
     paymentRequests = [paymentRequest]
 
-    paymentSchedule = JSON.parse(JSON.stringify(require('../../../mocks/payment-schedule')))
+    paymentSchedule = structuredClone(
+      require('../../../mocks/payment-schedule')
+    )
   })
 
-  test('should update first payment request for SFI 23 to Q3 if existing schedule begins with Q', () => {
-    handleSFI23AdvancePayments(paymentRequests, previousPaymentRequests, paymentSchedule)
+  test('updates a Q schedule to Q3', () => {
+    handleSFI23AdvancePayments(
+      paymentRequests,
+      previousPaymentRequests,
+      paymentSchedule
+    )
+
     expect(paymentRequests[0].schedule).toBe(Q3)
   })
 
-  test('should update first payment request for SFI 23 to T3 if existing schedule begins with T', () => {
+  test('updates a T schedule to T3', () => {
     paymentRequest.schedule = 'T4'
-    handleSFI23AdvancePayments(paymentRequests, previousPaymentRequests, paymentSchedule)
+
+    handleSFI23AdvancePayments(
+      paymentRequests,
+      previousPaymentRequests,
+      paymentSchedule
+    )
+
     expect(paymentRequests[0].schedule).toBe('T3')
   })
 
-  test('should update first payment request for SFI 23 with due date of second instalment', () => {
-    handleSFI23AdvancePayments(paymentRequests, previousPaymentRequests, paymentSchedule)
+  test('sets the due date to the second instalment due date', () => {
+    handleSFI23AdvancePayments(
+      paymentRequests,
+      previousPaymentRequests,
+      paymentSchedule
+    )
+
     expect(paymentRequests[0].dueDate).toBe(paymentSchedule[1].dueDate)
   })
 
-  test('should not change payment requests if not SFI 23', () => {
+  test('does not change payment requests for a non-SFI23 scheme', () => {
     paymentRequest.schemeId = SFI
-    const originalPaymentRequests = JSON.parse(JSON.stringify(paymentRequests))
-    handleSFI23AdvancePayments(paymentRequests, previousPaymentRequests, paymentSchedule)
-    expect(paymentRequests).toStrictEqual(originalPaymentRequests)
+    const originalPaymentRequests = structuredClone(paymentRequests)
+
+    handleSFI23AdvancePayments(
+      paymentRequests,
+      previousPaymentRequests,
+      paymentSchedule
+    )
+
+    expect(paymentRequests).toEqual(originalPaymentRequests)
   })
 
-  test('should not change payment requests if not payment request 1', () => {
+  test('does not change payment requests when processing a request other than PR1', () => {
     paymentRequest.paymentRequestNumber = 2
-    const originalPaymentRequests = JSON.parse(JSON.stringify(paymentRequests))
-    handleSFI23AdvancePayments(paymentRequests, previousPaymentRequests, paymentSchedule)
-    expect(paymentRequests).toStrictEqual(originalPaymentRequests)
+    const originalPaymentRequests = structuredClone(paymentRequests)
+
+    handleSFI23AdvancePayments(
+      paymentRequests,
+      previousPaymentRequests,
+      paymentSchedule
+    )
+
+    expect(paymentRequests).toEqual(originalPaymentRequests)
   })
 
-  test('should not change payment requests if no advance payment', () => {
+  test('does not change payment requests when there is no advance payment', () => {
     previousPaymentRequests = [previousPaymentRequest]
-    const originalPaymentRequests = JSON.parse(JSON.stringify(paymentRequests))
-    handleSFI23AdvancePayments(paymentRequests, previousPaymentRequests, paymentSchedule)
-    expect(paymentRequests).toStrictEqual(originalPaymentRequests)
+    const originalPaymentRequests = structuredClone(paymentRequests)
+
+    handleSFI23AdvancePayments(
+      paymentRequests,
+      previousPaymentRequests,
+      paymentSchedule
+    )
+
+    expect(paymentRequests).toEqual(originalPaymentRequests)
   })
 
-  test('should not change payment requests if advance payment was not for 2023 payment date', () => {
+  test('does not change payment requests when the advance payment is not from 2023', () => {
     advancePaymentRequest.dueDate = '2024-01-01'
-    const originalPaymentRequests = JSON.parse(JSON.stringify(paymentRequests))
-    handleSFI23AdvancePayments(paymentRequests, previousPaymentRequests, paymentSchedule)
-    expect(paymentRequests).toStrictEqual(originalPaymentRequests)
+    const originalPaymentRequests = structuredClone(paymentRequests)
+
+    handleSFI23AdvancePayments(
+      paymentRequests,
+      previousPaymentRequests,
+      paymentSchedule
+    )
+
+    expect(paymentRequests).toEqual(originalPaymentRequests)
   })
 
-  test('should not change AR payment requests', () => {
+  test('does not change AR payment requests', () => {
     paymentRequest.ledger = AR
-    const originalPaymentRequests = JSON.parse(JSON.stringify(paymentRequests))
-    handleSFI23AdvancePayments(paymentRequests, previousPaymentRequests, paymentSchedule)
-    expect(paymentRequests).toStrictEqual(originalPaymentRequests)
+    const originalPaymentRequests = structuredClone(paymentRequests)
+
+    handleSFI23AdvancePayments(
+      paymentRequests,
+      previousPaymentRequests,
+      paymentSchedule
+    )
+
+    expect(paymentRequests).toEqual(originalPaymentRequests)
   })
 })

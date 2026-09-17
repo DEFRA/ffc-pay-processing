@@ -1,10 +1,12 @@
+const { getSchemeIds } = require('ffc-pay-schemes')
 const { resetDatabase, closeDatabaseConnection } = require('../../helpers')
 const { isAgreementClosed } = require('../../../app/processing/is-agreement-closed')
 const { closureDBEntry } = require('../../mocks/closure/closure-db-entry')
 const db = require('../../../app/data')
-const { BPS } = require('../../../app/constants/schemes')
 const { FRN } = require('../../mocks/values/frn')
 const { FUTURE_DATE } = require('../../mocks/values/future-date')
+
+const { BPS } = getSchemeIds()
 
 let paymentRequest
 let baseClosure
@@ -12,7 +14,21 @@ let baseClosure
 describe('is agreement closed', () => {
   beforeEach(async () => {
     jest.clearAllMocks()
-    await resetDatabase()
+    try {
+      await resetDatabase()
+    } catch (error) {
+      console.error({
+        message: error.message,
+        name: error.name,
+        parentMessage: error.parent?.message,
+        originalMessage: error.original?.message,
+        detail: error.parent?.detail,
+        constraint: error.parent?.constraint,
+        table: error.parent?.table
+      })
+
+      throw error
+    }
 
     paymentRequest = structuredClone(require('../../mocks/payment-requests/payment-request'))
     paymentRequest.value = 0

@@ -1,4 +1,4 @@
-const { MANUAL, ES, IMPS, FC, BPS, FPTT, WMP } = require('../constants/schemes')
+const { schemeDoesNotRequirePPAs, getSchemeIds } = require('ffc-pay-schemes')
 const { completePaymentRequests } = require('./complete-payment-requests')
 const { isCrossBorder } = require('./is-cross-border')
 const { transformPaymentRequest } = require('./transform-payment-request')
@@ -16,7 +16,7 @@ const { isAgreementClosed } = require('./is-agreement-closed')
 const { suppressARPaymentRequests } = require('./suppress-ar-payment-requests')
 const config = require('../config/processing')
 
-const noCalculationsRequired = schemeId => [MANUAL, ES, IMPS, FC, FPTT, WMP].includes(schemeId)
+const { BPS } = getSchemeIds()
 
 const isBPSCrossBorder = paymentRequest => {
   return (
@@ -83,7 +83,7 @@ const finalizePayment = async (scheduleId, completedPaymentRequests) => {
 const processPaymentRequest = async (scheduledPaymentRequest) => {
   const { scheduleId, paymentRequest } = scheduledPaymentRequest
 
-  if (noCalculationsRequired(paymentRequest.schemeId)) {
+  if (schemeDoesNotRequirePPAs(paymentRequest.schemeId)) {
     await completePaymentRequests(scheduleId, [paymentRequest])
     return
   }

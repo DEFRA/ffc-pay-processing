@@ -1,5 +1,7 @@
-const { COHT_CAPITAL } = require('../../../app/constants/schemes')
+const { getSchemeIds } = require('ffc-pay-schemes')
 const scheme = require('./scheme')
+
+const { COHT_CAPITAL } = getSchemeIds()
 
 module.exports = {
   ...scheme,

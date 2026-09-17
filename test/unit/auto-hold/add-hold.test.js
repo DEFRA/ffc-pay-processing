@@ -1,76 +1,99 @@
-const { resetDatabase, closeDatabaseConnection } = require('../../helpers')
-const { BPS } = require('../../../app/constants/schemes')
+jest.mock('ffc-pay-schemes', () => ({
+  getSchemeIds: jest.fn(() => ({ BPS: 5 }))
+}))
 
-jest.mock('../../../app/event')
-const { sendHoldEvent: mockSendHoldEvent } = require('../../../app/event')
+jest.mock('../../../app/data', () => ({
+  autoHold: {
+    create: jest.fn()
+  }
+}))
 
-const { FRN } = require('../../mocks/values/frn')
-
-const { ADDED } = require('../../../app/constants/hold-statuses')
+jest.mock('../../../app/event', () => ({
+  sendHoldEvent: jest.fn()
+}))
 
 const db = require('../../../app/data')
-
+const { sendHoldEvent } = require('../../../app/event')
 const { addHold } = require('../../../app/auto-hold/add-hold')
-const paymentRequest = require('../../mocks/payment-requests/payment-request')
-
-const holdCategoryId = 1
+const { ADDED } = require('../../../app/constants/hold-statuses')
 
 describe('add auto hold', () => {
-  beforeEach(async () => {
+  const paymentRequest = {
+    frn: 1234567890,
+    marketingYear: 2024,
+    agreementNumber: 'AGREEMENT-1',
+    contractNumber: 'CONTRACT-1',
+    schemeId: 1
+  }
+
+  const categoryId = 1
+  const plainHold = { id: 10, ...paymentRequest, autoHoldCategoryId: categoryId }
+  const hold = {
+    get: jest.fn(() => plainHold)
+  }
+
+  beforeEach(() => {
     jest.clearAllMocks()
-    await resetDatabase()
+    db.autoHold.create.mockResolvedValue(hold)
   })
 
-  test('should save new hold for non-BPS scheme', async () => {
-    const nonBpsPaymentRequest = { ...paymentRequest, schemeId: 'SFI' }
-    await addHold(nonBpsPaymentRequest, holdCategoryId)
-    const hold = await db.autoHold.findOne({ where: { frn: FRN } })
-    expect(hold).not.toBeNull()
-    expect(hold.agreementNumber).toBe(nonBpsPaymentRequest.agreementNumber)
-    expect(hold.contractNumber).toBe(nonBpsPaymentRequest.contractNumber)
+  afterEach(() => {
+    jest.restoreAllMocks()
   })
 
-  test('should save new hold for BPS scheme without agreement and contract numbers', async () => {
-    const bpsPaymentRequest = { ...paymentRequest, schemeId: BPS }
-    await addHold(bpsPaymentRequest, holdCategoryId)
-    const hold = await db.autoHold.findOne({ where: { frn: FRN } })
-    expect(hold).not.toBeNull()
-    expect(hold.agreementNumber).toBeNull()
-    expect(hold.contractNumber).toBeNull()
+  test('creates a hold with agreement and contract numbers for non-BPS schemes', async () => {
+    const added = new Date('2024-01-01')
+    jest.spyOn(Date, 'now').mockReturnValue(added.getTime())
+
+    await addHold(paymentRequest, categoryId)
+
+    expect(db.autoHold.create).toHaveBeenCalledWith(
+      {
+        frn: paymentRequest.frn,
+        autoHoldCategoryId: categoryId,
+        marketingYear: paymentRequest.marketingYear,
+        added: added.getTime(),
+        agreementNumber: paymentRequest.agreementNumber,
+        contractNumber: paymentRequest.contractNumber
+      },
+      { transaction: undefined }
+    )
   })
 
-  test('should send hold added event with hold data', async () => {
-    await addHold(paymentRequest, holdCategoryId)
-    const hold = await db.autoHold.findOne({ where: { frn: FRN } })
-    const plainHold = hold.get({ plain: true })
-    expect(mockSendHoldEvent).toHaveBeenCalledWith(plainHold, ADDED)
+  test('omits agreement and contract numbers for BPS schemes', async () => {
+    const bpsPaymentRequest = {
+      ...paymentRequest,
+      schemeId: 5
+    }
+
+    await addHold(bpsPaymentRequest, categoryId)
+
+    expect(db.autoHold.create).toHaveBeenCalledWith(
+      {
+        frn: bpsPaymentRequest.frn,
+        autoHoldCategoryId: categoryId,
+        marketingYear: bpsPaymentRequest.marketingYear,
+        added: expect.any(Number)
+      },
+      { transaction: undefined }
+    )
   })
 
-  test('should use provided transaction', async () => {
-    const transaction = await db.sequelize.transaction()
-    await addHold(paymentRequest, holdCategoryId, transaction)
-    const holdInTransaction = await db.autoHold.findOne({
-      where: { frn: FRN },
-      transaction
-    })
-    expect(holdInTransaction).not.toBeNull()
-    await transaction.rollback()
-    const holdAfterRollback = await db.autoHold.findOne({ where: { frn: FRN } })
-    expect(holdAfterRollback).toBeNull()
+  test('uses the supplied transaction', async () => {
+    const transaction = { id: 'transaction-1' }
+
+    await addHold(paymentRequest, categoryId, transaction)
+
+    expect(db.autoHold.create).toHaveBeenCalledWith(
+      expect.any(Object),
+      { transaction }
+    )
   })
 
-  test('should set correct fields', async () => {
-    const now = new Date()
-    Date.now = jest.fn(() => now)
-    await addHold(paymentRequest, holdCategoryId)
-    const hold = await db.autoHold.findOne({ where: { frn: FRN } })
-    expect(Number(hold.frn)).toBe(paymentRequest.frn)
-    expect(hold.autoHoldCategoryId).toBe(holdCategoryId)
-    expect(hold.marketingYear).toBe(paymentRequest.marketingYear)
-    expect(hold.added).toEqual(now)
-  })
+  test('sends the hold added event using plain hold data', async () => {
+    await addHold(paymentRequest, categoryId)
 
-  afterAll(async () => {
-    await closeDatabaseConnection()
+    expect(hold.get).toHaveBeenCalledWith({ plain: true })
+    expect(sendHoldEvent).toHaveBeenCalledWith(plainHold, ADDED)
   })
 })

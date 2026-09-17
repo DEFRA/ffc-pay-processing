@@ -1,5 +1,7 @@
+const { getSchemeIds } = require('ffc-pay-schemes')
 const db = require('../data')
-const { BPS, CS } = require('../constants/schemes')
+
+const { BPS, CS } = getSchemeIds()
 
 const getCompletedPaymentRequestsFilter = (paymentRequest) => {
   const defaultFilter = {
