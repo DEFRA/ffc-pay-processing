@@ -17,6 +17,7 @@ jest.mock('ffc-pay-schemes', () => ({
 
 jest.mock('../../app/data', () => ({
   scheme: {
+    findOne: jest.fn(),
     upsert: jest.fn()
   }
 }))
@@ -29,6 +30,7 @@ describe('update schemes database', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     jest.spyOn(console, 'log').mockImplementation()
+    db.scheme.upsert.mockResolvedValue()
   })
 
   afterEach(() => {
@@ -42,11 +44,14 @@ describe('update schemes database', () => {
     }
 
     getSchemes.mockReturnValue([scheme])
-    db.scheme.upsert.mockResolvedValue([{}, true])
+    db.scheme.findOne.mockResolvedValue(null)
     schemeDoesNotRequirePPAs.mockReturnValue(false)
 
     await updateSchemesDatabase()
 
+    expect(db.scheme.findOne).toHaveBeenCalledWith({
+      where: { schemeId: scheme.schemeId }
+    })
     expect(db.scheme.upsert).toHaveBeenCalledWith({
       schemeId: scheme.schemeId,
       name: scheme.schemeName,
@@ -67,7 +72,7 @@ describe('update schemes database', () => {
     }
 
     getSchemes.mockReturnValue([scheme])
-    db.scheme.upsert.mockResolvedValue([{}, true])
+    db.scheme.findOne.mockResolvedValue(null)
     schemeDoesNotRequirePPAs.mockReturnValue(true)
 
     await updateSchemesDatabase()
@@ -84,7 +89,7 @@ describe('update schemes database', () => {
     }
 
     getSchemes.mockReturnValue([scheme])
-    db.scheme.upsert.mockResolvedValue([{}, false])
+    db.scheme.findOne.mockResolvedValue(scheme)
 
     await updateSchemesDatabase()
 
@@ -99,13 +104,14 @@ describe('update schemes database', () => {
     ]
 
     getSchemes.mockReturnValue(schemes)
-    db.scheme.upsert
-      .mockResolvedValueOnce([{}, true])
-      .mockResolvedValueOnce([{}, false])
+    db.scheme.findOne
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(schemes[1])
     schemeDoesNotRequirePPAs.mockReturnValue(false)
 
     await updateSchemesDatabase()
 
+    expect(db.scheme.findOne).toHaveBeenCalledTimes(2)
     expect(db.scheme.upsert).toHaveBeenCalledTimes(2)
     expect(addHoldType).toHaveBeenCalledTimes(4)
   })
