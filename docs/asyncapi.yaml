@@ -412,7 +412,7 @@ components:
         claimDate: null
         fesCode: null
         annualValue: null
-        remmittanceDescription: null
+        remittanceDescription: null
         providesAccountingValues: false
         invoiceLines:
           - completedInvoiceLineId: 7
@@ -577,7 +577,7 @@ components:
           type: number
           nullable: true
           example: null
-        remmittanceDescription:
+        remittanceDescription:
           type: string
           nullable: true
           example: null
