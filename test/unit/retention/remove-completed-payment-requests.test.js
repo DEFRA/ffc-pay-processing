@@ -1,52 +1,42 @@
-const { removeCompletedPaymentRequests } = require('../../../app/retention/remove-completed-payment-requests')
-const db = require('../../../app/data')
+const { createKnexMock } = require('../../helpers/mock-knex')
 
-jest.mock('../../../app/data', () => ({
-  Sequelize: {
-    Op: {
-      in: 'IN_OPERATOR'
-    }
-  },
-  completedPaymentRequest: {
-    destroy: jest.fn()
-  }
+const mockDb = createKnexMock(['completedPaymentRequest'])
+
+jest.mock('../../../app/database', () => ({
+  client: mockDb.knex,
+  transaction: mockDb.transaction,
+  close: mockDb.close,
+  ...mockDb.tables
 }))
+
+const { removeCompletedPaymentRequests } = require('../../../app/retention/remove-completed-payment-requests')
 
 describe('removeCompletedPaymentRequests', () => {
   const completedPaymentRequestIds = [101, 102]
-  const transaction = { id: 'transaction-object' }
 
   beforeEach(() => {
     jest.clearAllMocks()
+    mockDb.builder.resolves()
   })
 
-  test('calls db.completedPaymentRequest.destroy with correct parameters', async () => {
+  test('deletes rows matching the ids against the transaction', async () => {
+    await removeCompletedPaymentRequests(completedPaymentRequestIds, mockDb.trx)
+
+    expect(mockDb.tables.completedPaymentRequest).toHaveBeenCalledWith(mockDb.trx)
+    expect(mockDb.builder.whereIn).toHaveBeenCalledWith('completedPaymentRequestId', completedPaymentRequestIds)
+    expect(mockDb.builder.del).toHaveBeenCalledTimes(1)
+  })
+
+  test.each([undefined, null])('runs outside a transaction when transaction is %s', async (transaction) => {
     await removeCompletedPaymentRequests(completedPaymentRequestIds, transaction)
 
-    expect(db.completedPaymentRequest.destroy).toHaveBeenCalledTimes(1)
-    expect(db.completedPaymentRequest.destroy).toHaveBeenCalledWith({
-      where: {
-        completedPaymentRequestId: { [db.Sequelize.Op.in]: completedPaymentRequestIds }
-      },
-      transaction
-    })
+    expect(mockDb.tables.completedPaymentRequest).toHaveBeenCalledWith(undefined)
+    expect(mockDb.builder.del).toHaveBeenCalledTimes(1)
   })
 
-  test('calls db.completedPaymentRequest.destroy with undefined transaction if not provided', async () => {
-    await removeCompletedPaymentRequests(completedPaymentRequestIds)
+  test('propagates errors from the delete', async () => {
+    mockDb.builder.rejects(new Error('DB failure'))
 
-    expect(db.completedPaymentRequest.destroy).toHaveBeenCalledWith({
-      where: {
-        completedPaymentRequestId: { [db.Sequelize.Op.in]: completedPaymentRequestIds }
-      },
-      transaction: undefined
-    })
-  })
-
-  test('propagates errors from db.completedPaymentRequest.destroy', async () => {
-    const error = new Error('DB failure')
-    db.completedPaymentRequest.destroy.mockRejectedValue(error)
-
-    await expect(removeCompletedPaymentRequests(completedPaymentRequestIds, transaction)).rejects.toThrow('DB failure')
+    await expect(removeCompletedPaymentRequests(completedPaymentRequestIds, mockDb.trx)).rejects.toThrow('DB failure')
   })
 })

@@ -1,48 +1,42 @@
-const { removeSchedules } = require('../../../app/retention/remove-schedules')
-const db = require('../../../app/data')
+const { createKnexMock } = require('../../helpers/mock-knex')
 
-jest.mock('../../../app/data', () => ({
-  Sequelize: {
-    Op: {
-      in: 'IN_OPERATOR'
-    }
-  },
-  schedule: {
-    destroy: jest.fn()
-  }
+const mockDb = createKnexMock(['schedule'])
+
+jest.mock('../../../app/database', () => ({
+  client: mockDb.knex,
+  transaction: mockDb.transaction,
+  close: mockDb.close,
+  ...mockDb.tables
 }))
 
+const { removeSchedules } = require('../../../app/retention/remove-schedules')
+
 describe('removeSchedules', () => {
-  const paymentRequestIds = [101, 102]
-  const transaction = { id: 'transaction-object' }
+  const paymentRequestIds = [1, 2, 3]
 
   beforeEach(() => {
     jest.clearAllMocks()
+    mockDb.builder.resolves()
   })
 
-  test('calls db.schedule.destroy with correct parameters', async () => {
+  test('deletes rows matching the ids against the transaction', async () => {
+    await removeSchedules(paymentRequestIds, mockDb.trx)
+
+    expect(mockDb.tables.schedule).toHaveBeenCalledWith(mockDb.trx)
+    expect(mockDb.builder.whereIn).toHaveBeenCalledWith('paymentRequestId', paymentRequestIds)
+    expect(mockDb.builder.del).toHaveBeenCalledTimes(1)
+  })
+
+  test.each([undefined, null])('runs outside a transaction when transaction is %s', async (transaction) => {
     await removeSchedules(paymentRequestIds, transaction)
 
-    expect(db.schedule.destroy).toHaveBeenCalledTimes(1)
-    expect(db.schedule.destroy).toHaveBeenCalledWith({
-      where: { paymentRequestId: { [db.Sequelize.Op.in]: paymentRequestIds } },
-      transaction
-    })
+    expect(mockDb.tables.schedule).toHaveBeenCalledWith(undefined)
+    expect(mockDb.builder.del).toHaveBeenCalledTimes(1)
   })
 
-  test('calls db.schedule.destroy with undefined transaction if not provided', async () => {
-    await removeSchedules(paymentRequestIds)
+  test('propagates errors from the delete', async () => {
+    mockDb.builder.rejects(new Error('DB failure'))
 
-    expect(db.schedule.destroy).toHaveBeenCalledWith({
-      where: { paymentRequestId: { [db.Sequelize.Op.in]: paymentRequestIds } },
-      transaction: undefined
-    })
-  })
-
-  test('propagates errors from db.schedule.destroy', async () => {
-    const error = new Error('DB failure')
-    db.schedule.destroy.mockRejectedValue(error)
-
-    await expect(removeSchedules(paymentRequestIds, transaction)).rejects.toThrow('DB failure')
+    await expect(removeSchedules(paymentRequestIds, mockDb.trx)).rejects.toThrow('DB failure')
   })
 })

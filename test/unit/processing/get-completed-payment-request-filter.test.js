@@ -1,13 +1,14 @@
-jest.mock('../../../app/data')
-const db = require('../../../app/data')
+const { createQueryBuilder } = require('../../helpers/mock-knex')
 
 const { SFI, BPS, CS } = require('../../../app/constants/schemes')
 const { getCompletedPaymentRequestsFilter } = require('../../../app/processing/get-completed-payment-requests-filter')
 
 let basePaymentRequest
+let query
 
 describe('get completed payment requests filter', () => {
   beforeEach(() => {
+    query = createQueryBuilder()
     basePaymentRequest = {
       schemeId: SFI,
       frn: 1234567890,
@@ -18,45 +19,54 @@ describe('get completed payment requests filter', () => {
     }
   })
 
-  const expectFilter = (filter, paymentRequest, overrides = {}) => {
-    expect(filter).toMatchObject({
-      invalid: false,
-      schemeId: paymentRequest.schemeId,
-      frn: paymentRequest.frn,
-      ...overrides
-    })
+  const applyFilter = (paymentRequest) => {
+    const filter = getCompletedPaymentRequestsFilter(paymentRequest)
+    filter(query)
   }
 
-  test.each([
-    { scheme: SFI, manual: false, expectedNumber: { [db.Sequelize.Op.lt]: 1 } },
-    { scheme: SFI, manual: true, expectedNumber: { [db.Sequelize.Op.not]: null } },
-    { scheme: BPS, manual: false, expectedNumber: { [db.Sequelize.Op.lt]: 1 } },
-    { scheme: BPS, manual: true, expectedNumber: { [db.Sequelize.Op.not]: null } },
-    { scheme: CS, manual: false, expectedNumber: { [db.Sequelize.Op.lt]: 1 } },
-    { scheme: CS, manual: true, expectedNumber: { [db.Sequelize.Op.not]: null } }
-  ])(
-    'should return correct filter for scheme $scheme (manual: $manual)',
-    ({ scheme, manual, expectedNumber }) => {
-      const paymentRequest = structuredClone(basePaymentRequest)
-      paymentRequest.schemeId = scheme
-      if (manual) { paymentRequest.paymentRequestNumber = 0 }
+  test.each([SFI, BPS, CS])('should only include earlier payment requests for scheme %s', (scheme) => {
+    applyFilter({ ...basePaymentRequest, schemeId: scheme })
+    expect(query.where).toHaveBeenCalledWith('paymentRequestNumber', '<', 1)
+    expect(query.whereNotNull).not.toHaveBeenCalled()
+  })
 
-      const filter = getCompletedPaymentRequestsFilter(paymentRequest)
+  test.each([SFI, BPS, CS])('should include any numbered payment request for manual scheme %s', (scheme) => {
+    applyFilter({ ...basePaymentRequest, schemeId: scheme, paymentRequestNumber: 0 })
+    expect(query.whereNotNull).toHaveBeenCalledWith('paymentRequestNumber')
+    expect(query.where).not.toHaveBeenCalledWith('paymentRequestNumber', '<', expect.anything())
+  })
 
-      if (scheme === CS && manual) {
-        expect(filter).toMatchObject({
-          paymentRequestNumber: expectedNumber,
-          [db.Sequelize.Op.or]: [
-            { contractNumber: paymentRequest.contractNumber },
-            db.Sequelize.where(
-              db.Sequelize.fn('replace', db.Sequelize.col('contractNumber'), 'A0', 'A'),
-              paymentRequest.contractNumber?.replaceAll('A0', 'A')
-            )
-          ]
-        })
-      } else {
-        expectFilter(filter, paymentRequest, { paymentRequestNumber: expectedNumber })
-      }
-    }
-  )
+  test.each([SFI, BPS, CS])('should exclude invalid payment requests for scheme %s', (scheme) => {
+    applyFilter({ ...basePaymentRequest, schemeId: scheme })
+    expect(query.where).toHaveBeenCalledWith({ invalid: false })
+  })
+
+  test('should filter BPS by scheme, frn and marketing year', () => {
+    applyFilter({ ...basePaymentRequest, schemeId: BPS })
+    expect(query.where).toHaveBeenCalledWith({
+      schemeId: BPS,
+      frn: basePaymentRequest.frn,
+      marketingYear: basePaymentRequest.marketingYear
+    })
+  })
+
+  test('should filter CS by scheme, frn and either contract number format', () => {
+    applyFilter({ ...basePaymentRequest, schemeId: CS, contractNumber: 'A0123' })
+    expect(query.where).toHaveBeenCalledWith({
+      schemeId: CS,
+      frn: basePaymentRequest.frn
+    })
+    expect(query.where).toHaveBeenCalledWith({ contractNumber: 'A0123' })
+    expect(query.orWhereRaw).toHaveBeenCalledWith('replace("contractNumber", \'A0\', \'A\') = ?', ['A123'])
+  })
+
+  test('should filter other schemes by scheme, frn, marketing year and agreement number', () => {
+    applyFilter(basePaymentRequest)
+    expect(query.where).toHaveBeenCalledWith({
+      schemeId: SFI,
+      frn: basePaymentRequest.frn,
+      marketingYear: basePaymentRequest.marketingYear,
+      agreementNumber: basePaymentRequest.agreementNumber
+    })
+  })
 })

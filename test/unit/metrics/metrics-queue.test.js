@@ -1,11 +1,11 @@
-const { metricsQueue } = require('../../../app/metrics/metrics-queue')
+const mockWhere = jest.fn().mockResolvedValue([])
 
-jest.mock('../../../app/data', () => ({
-  metric: {
-    findAll: jest.fn().mockResolvedValue([]),
-  },
+jest.mock('../../../app/database', () => ({
+  metric: jest.fn(() => ({ where: mockWhere }))
 }))
-const db = require('../../../app/data')
+const db = require('../../../app/database')
+
+const { metricsQueue } = require('../../../app/metrics/metrics-queue')
 
 describe('MetricsCalculationQueue', () => {
   let consoleLogSpy
@@ -27,14 +27,15 @@ describe('MetricsCalculationQueue', () => {
   })
 
   describe('enqueue', () => {
-    test('should enqueue a calculation and call db.metric.findAll', async () => {
+    test('should enqueue a calculation and query metrics by period', async () => {
       const promise = metricsQueue.enqueue('all', null, null)
 
       expect(metricsQueue.queue.size).toBeGreaterThanOrEqual(0)
 
       await promise
 
-      expect(db.metric.findAll).toHaveBeenCalledWith({ period_type: 'all' })
+      expect(db.metric).toHaveBeenCalled()
+      expect(mockWhere).toHaveBeenCalledWith({ period_type: 'all' })
     })
 
     test('should enqueue calculation with schemeYear and month', async () => {
@@ -42,7 +43,7 @@ describe('MetricsCalculationQueue', () => {
 
       await promise
 
-      expect(db.metric.findAll).toHaveBeenCalledWith({
+      expect(mockWhere).toHaveBeenCalledWith({
         period_type: 'monthInYear',
         scheme_year: 2023,
         month_in_year: 6,
@@ -52,7 +53,7 @@ describe('MetricsCalculationQueue', () => {
     test('should reuse promise if calculation currently processing', async () => {
       // Enqueue first calculation and delay finish
       let resolveCalc
-      db.metric.findAll.mockImplementation(() =>
+      mockWhere.mockImplementation(() =>
         new Promise(resolve => { resolveCalc = resolve })
       )
 
@@ -77,7 +78,7 @@ describe('MetricsCalculationQueue', () => {
 
       await metricsQueue.processQueue()
 
-      expect(db.metric.findAll).not.toHaveBeenCalled()
+      expect(mockWhere).not.toHaveBeenCalled()
 
       metricsQueue.processing = false
     })
@@ -85,13 +86,13 @@ describe('MetricsCalculationQueue', () => {
     test('should not process if queue is empty', async () => {
       await metricsQueue.processQueue()
 
-      expect(db.metric.findAll).not.toHaveBeenCalled()
+      expect(mockWhere).not.toHaveBeenCalled()
       expect(metricsQueue.processing).toBe(false)
     })
 
-    test('should handle errors from db.metric.findAll and reject calculation', async () => {
+    test('should handle errors from the metrics query and reject calculation', async () => {
       const error = new Error('DB failure')
-      db.metric.findAll.mockRejectedValueOnce(error)
+      mockWhere.mockRejectedValueOnce(error)
 
       const promise = metricsQueue.enqueue('all', null, null)
 
@@ -161,7 +162,7 @@ describe('MetricsCalculationQueue', () => {
   describe('integration scenarios', () => {
     test('should handle rapid successive enqueues reusing processing calculation', async () => {
       let resolveCalc
-      db.metric.findAll.mockImplementation(() =>
+      mockWhere.mockImplementation(() =>
         new Promise(resolve => { resolveCalc = resolve })
       )
 
@@ -178,12 +179,12 @@ describe('MetricsCalculationQueue', () => {
       resolveCalc()
       await Promise.all(promises)
 
-      expect(db.metric.findAll).toHaveBeenCalledTimes(1)
+      expect(mockWhere).toHaveBeenCalledTimes(1)
     })
 
     test('should handle mix of success and failure in queue processing', async () => {
       const error = new Error('Failed')
-      db.metric.findAll
+      mockWhere
         .mockResolvedValueOnce([])
         .mockRejectedValueOnce(error)
         .mockResolvedValueOnce([])
@@ -196,7 +197,7 @@ describe('MetricsCalculationQueue', () => {
       await expect(p2).rejects.toThrow('Failed')
       await p3
 
-      expect(db.metric.findAll).toHaveBeenCalledTimes(3)
+      expect(mockWhere).toHaveBeenCalledTimes(3)
       expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringMatching(/✓ Completed calculation: all-null-null/))
       expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Failed calculation ytd-null-null'), error)
       expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringMatching(/✓ Completed calculation: year-2023-null/))
@@ -205,7 +206,7 @@ describe('MetricsCalculationQueue', () => {
     test('should handle enqueue during processing', async () => {
       let midProcessingEnqueue
 
-      db.metric.findAll.mockImplementation(async () => {
+      mockWhere.mockImplementation(async () => {
         if (!midProcessingEnqueue) {
           midProcessingEnqueue = metricsQueue.enqueue('ytd', null, null)
         }
@@ -216,7 +217,7 @@ describe('MetricsCalculationQueue', () => {
       await promise1
       await midProcessingEnqueue
 
-      expect(db.metric.findAll).toHaveBeenCalledTimes(2)
+      expect(mockWhere).toHaveBeenCalledTimes(2)
     })
   })
 })

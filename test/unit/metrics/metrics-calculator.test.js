@@ -1,4 +1,8 @@
-jest.mock('../../../app/data')
+jest.mock('../../../app/database', () => ({
+  client: {
+    raw: jest.fn()
+  }
+}))
 jest.mock('../../../app/metrics/get-metrics-data', () => ({
   getDateRangeForAll: jest.fn(),
   getDateRangeForYTD: jest.fn(),
@@ -15,7 +19,7 @@ jest.mock('../../../app/metrics/build-metrics', () => ({
 jest.mock('../../../app/metrics/create-save-metrics', () => ({
   saveMetrics: jest.fn()
 }))
-const db = require('../../../app/data')
+const db = require('../../../app/database')
 const { getDateRangeForAll, getDateRangeForYTD, getDateRangeForYear, getDateRangeForMonthInYear, getDateRangeForRelativePeriod, fetchMetricsData, fetchHoldsData, mergeMetricsWithHolds } = require('../../../app/metrics/get-metrics-data')
 const { buildWhereClauseForDateRange } = require('../../../app/metrics/build-metrics')
 const { saveMetrics } = require('../../../app/metrics/create-save-metrics')
@@ -30,10 +34,7 @@ describe('Metrics Calculator', () => {
     consoleLogSpy = jest.spyOn(console, 'log').mockImplementation()
     consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation()
 
-    db.sequelize = {
-      query: jest.fn().mockResolvedValue([{ year: 2023 }]),
-      QueryTypes: { SELECT: 'SELECT' }
-    }
+    db.client.raw.mockResolvedValue({ rows: [{ year: 2023 }] })
 
     getDateRangeForAll.mockReturnValue({ startDate: null, endDate: null })
     getDateRangeForYTD.mockReturnValue({ startDate: new Date(), endDate: new Date() })
@@ -169,26 +170,25 @@ describe('Metrics Calculator', () => {
 
   describe('calculateAllMetrics', () => {
     test('should calculate all metrics successfully', async () => {
-      db.sequelize.query.mockResolvedValue([{ year: 2023 }, { year: 2024 }])
+      db.client.raw.mockResolvedValue({ rows: [{ year: 2023 }, { year: 2024 }] })
       await calculateAllMetrics()
       expect(console.log).toHaveBeenCalledWith('Starting metrics calculation...')
       expect(fetchMetricsData).toHaveBeenCalledTimes(5 + 2 * 13) // 31
-      expect(db.sequelize.query).toHaveBeenCalledWith(
-        'SELECT DISTINCT EXTRACT(YEAR FROM "received") AS year FROM "paymentRequests" ORDER BY year DESC',
-        { type: db.sequelize.QueryTypes.SELECT }
+      expect(db.client.raw).toHaveBeenCalledWith(
+        'SELECT DISTINCT EXTRACT(YEAR FROM "received") AS year FROM "paymentRequests" ORDER BY year DESC'
       )
       expect(console.log).toHaveBeenCalledWith('✓ All metrics calculated successfully')
     })
 
     test('should handle error in calculating metrics', async () => {
-      db.sequelize.query.mockRejectedValue(new Error('DB error'))
+      db.client.raw.mockRejectedValue(new Error('DB error'))
       await expect(calculateAllMetrics()).rejects.toThrow('DB error')
       expect(fetchMetricsData).toHaveBeenCalledTimes(5)
       expect(console.error).toHaveBeenCalledWith('✗ Error calculating metrics:', expect.any(Error))
     })
 
     test('should skip null year', async () => {
-      db.sequelize.query.mockResolvedValue([{ year: null }, { year: 2023 }])
+      db.client.raw.mockResolvedValue({ rows: [{ year: null }, { year: 2023 }] })
       await calculateAllMetrics()
       expect(fetchMetricsData).toHaveBeenCalledTimes(5 + 13) // 18
     })

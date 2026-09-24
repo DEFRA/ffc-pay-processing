@@ -1,10 +1,19 @@
 const routes = require('../../../../app/server/routes/metrics')
 const handler = routes[0].handler
 
-jest.mock('../../../../app/data')
+const { createQueryBuilder } = require('../../../helpers/mock-knex')
+
+const mockSnapshotBuilder = createQueryBuilder()
+const mockResultsBuilder = createQueryBuilder()
+
+jest.mock('../../../../app/database', () => ({
+  metric: jest.fn(() => ({
+    max: (...args) => mockSnapshotBuilder.max(...args),
+    select: (...args) => mockResultsBuilder.select(...args)
+  }))
+}))
 jest.mock('../../../../app/metrics/metrics-queue')
 
-const db = require('../../../../app/data')
 const { metricsQueue } = require('../../../../app/metrics/metrics-queue')
 
 const { PERIOD_ALL, PERIOD_YTD, PERIOD_YEAR, PERIOD_MONTH_IN_YEAR, PERIOD_MONTH, PERIOD_WEEK, PERIOD_DAY } = require('../../../../app/constants/periods')
@@ -32,15 +41,8 @@ describe('Metrics Route Handler', () => {
       query: {}
     }
 
-    db.sequelize = {
-      fn: jest.fn(),
-      col: jest.fn()
-    }
-
-    db.metric = {
-      findOne: jest.fn(),
-      findAll: jest.fn()
-    }
+    mockSnapshotBuilder.resolves(undefined)
+    mockResultsBuilder.resolves([])
 
     metricsQueue.enqueue = jest.fn().mockResolvedValue()
   })
@@ -65,7 +67,7 @@ describe('Metrics Route Handler', () => {
 
     test('should accept valid period all', async () => {
       mockRequest.query.period = PERIOD_ALL
-      db.metric.findOne.mockResolvedValue(null)
+      mockSnapshotBuilder.resolves(null)
 
       await handler(mockRequest, mockH)
 
@@ -87,23 +89,20 @@ describe('Metrics Route Handler', () => {
 
     test('should accept valid period ytd', async () => {
       mockRequest.query.period = PERIOD_YTD
-      db.metric.findOne.mockResolvedValue({ maxDate: '2023-01-01' })
-      db.metric.findAll.mockResolvedValue([])
+      mockSnapshotBuilder.resolves({ maxDate: '2023-01-01' })
+      mockResultsBuilder.resolves([])
 
       await handler(mockRequest, mockH)
 
-      expect(db.metric.findOne).toHaveBeenCalledWith({
-        attributes: [[db.sequelize.fn('MAX', db.sequelize.col('snapshot_date')), 'maxDate']],
-        where: { periodType: PERIOD_YTD },
-        raw: true
-      })
+      expect(mockSnapshotBuilder.max).toHaveBeenCalledWith({ maxDate: 'snapshot_date' })
+      expect(mockSnapshotBuilder.where).toHaveBeenCalledWith({ period_type: PERIOD_YTD })
       expect(mockResponse.code).toHaveBeenCalledWith(HTTP_OK)
     })
 
     test('should accept valid period month', async () => {
       mockRequest.query.period = PERIOD_MONTH
-      db.metric.findOne.mockResolvedValue({ maxDate: '2023-01-01' })
-      db.metric.findAll.mockResolvedValue([])
+      mockSnapshotBuilder.resolves({ maxDate: '2023-01-01' })
+      mockResultsBuilder.resolves([])
 
       await handler(mockRequest, mockH)
 
@@ -112,8 +111,8 @@ describe('Metrics Route Handler', () => {
 
     test('should accept valid period week', async () => {
       mockRequest.query.period = PERIOD_WEEK
-      db.metric.findOne.mockResolvedValue({ maxDate: '2023-01-01' })
-      db.metric.findAll.mockResolvedValue([])
+      mockSnapshotBuilder.resolves({ maxDate: '2023-01-01' })
+      mockResultsBuilder.resolves([])
 
       await handler(mockRequest, mockH)
 
@@ -122,8 +121,8 @@ describe('Metrics Route Handler', () => {
 
     test('should accept valid period day', async () => {
       mockRequest.query.period = PERIOD_DAY
-      db.metric.findOne.mockResolvedValue({ maxDate: '2023-01-01' })
-      db.metric.findAll.mockResolvedValue([])
+      mockSnapshotBuilder.resolves({ maxDate: '2023-01-01' })
+      mockResultsBuilder.resolves([])
 
       await handler(mockRequest, mockH)
 
@@ -131,16 +130,13 @@ describe('Metrics Route Handler', () => {
     })
 
     test('should default to all period when not specified', async () => {
-      db.metric.findOne.mockResolvedValue({ maxDate: '2023-01-01' })
-      db.metric.findAll.mockResolvedValue([])
+      mockSnapshotBuilder.resolves({ maxDate: '2023-01-01' })
+      mockResultsBuilder.resolves([])
 
       await handler(mockRequest, mockH)
 
-      expect(db.metric.findOne).toHaveBeenCalledWith({
-        attributes: [[db.sequelize.fn('MAX', db.sequelize.col('snapshot_date')), 'maxDate']],
-        where: { periodType: PERIOD_ALL },
-        raw: true
-      })
+      expect(mockSnapshotBuilder.max).toHaveBeenCalledWith({ maxDate: 'snapshot_date' })
+      expect(mockSnapshotBuilder.where).toHaveBeenCalledWith({ period_type: PERIOD_ALL })
       expect(mockResponse.code).toHaveBeenCalledWith(HTTP_OK)
     })
   })
@@ -162,8 +158,8 @@ describe('Metrics Route Handler', () => {
       mockRequest.query.period = PERIOD_YEAR
       mockRequest.query.schemeYear = '2023'
       metricsQueue.enqueue.mockResolvedValue()
-      db.metric.findOne.mockResolvedValue({ maxDate: '2023-01-01' })
-      db.metric.findAll.mockResolvedValue([])
+      mockSnapshotBuilder.resolves({ maxDate: '2023-01-01' })
+      mockResultsBuilder.resolves([])
 
       await handler(mockRequest, mockH)
 
@@ -275,8 +271,8 @@ describe('Metrics Route Handler', () => {
       mockRequest.query.schemeYear = '2023'
       mockRequest.query.month = '1'
       metricsQueue.enqueue.mockResolvedValue()
-      db.metric.findOne.mockResolvedValue({ maxDate: '2023-01-01' })
-      db.metric.findAll.mockResolvedValue([])
+      mockSnapshotBuilder.resolves({ maxDate: '2023-01-01' })
+      mockResultsBuilder.resolves([])
 
       await handler(mockRequest, mockH)
 
@@ -289,8 +285,8 @@ describe('Metrics Route Handler', () => {
       mockRequest.query.schemeYear = '2023'
       mockRequest.query.month = '12'
       metricsQueue.enqueue.mockResolvedValue()
-      db.metric.findOne.mockResolvedValue({ maxDate: '2023-01-01' })
-      db.metric.findAll.mockResolvedValue([])
+      mockSnapshotBuilder.resolves({ maxDate: '2023-01-01' })
+      mockResultsBuilder.resolves([])
 
       await handler(mockRequest, mockH)
 
@@ -318,8 +314,8 @@ describe('Metrics Route Handler', () => {
   describe('Data Fetching and Processing', () => {
     test('should fetch metrics for all period', async () => {
       mockRequest.query.period = PERIOD_ALL
-      db.metric.findOne.mockResolvedValue({ maxDate: '2023-01-01' })
-      db.metric.findAll.mockResolvedValue([
+      mockSnapshotBuilder.resolves({ maxDate: '2023-01-01' })
+      mockResultsBuilder.resolves([
         {
           schemeName: 'Scheme1',
           schemeYear: null,
@@ -352,13 +348,11 @@ describe('Metrics Route Handler', () => {
 
       await handler(mockRequest, mockH)
 
-      expect(db.metric.findAll).toHaveBeenCalledWith({
-        where: {
-          snapshotDate: '2023-01-01',
-          periodType: PERIOD_ALL
-        },
-        order: [['schemeName', 'ASC']]
+      expect(mockResultsBuilder.where).toHaveBeenCalledWith({
+        snapshot_date: '2023-01-01',
+        period_type: PERIOD_ALL
       })
+      expect(mockResultsBuilder.orderBy).toHaveBeenCalledWith('scheme_name', 'asc')
       expect(mockH.response).toHaveBeenCalledWith({
         totalPayments: 30,
         totalValue: 3000,
@@ -411,8 +405,8 @@ describe('Metrics Route Handler', () => {
       mockRequest.query.schemeYear = '2023'
       mockRequest.query.month = '6'
       metricsQueue.enqueue.mockResolvedValue()
-      db.metric.findOne.mockResolvedValue({ maxDate: '2023-01-01' })
-      db.metric.findAll.mockResolvedValue([
+      mockSnapshotBuilder.resolves({ maxDate: '2023-01-01' })
+      mockResultsBuilder.resolves([
         {
           schemeName: 'Scheme1',
           schemeYear: 2023,
@@ -432,20 +426,15 @@ describe('Metrics Route Handler', () => {
 
       await handler(mockRequest, mockH)
 
-      expect(db.metric.findOne).toHaveBeenCalledWith({
-        attributes: [[db.sequelize.fn('MAX', db.sequelize.col('snapshot_date')), 'maxDate']],
-        where: { periodType: PERIOD_MONTH_IN_YEAR, schemeYear: 2023 },
-        raw: true
+      expect(mockSnapshotBuilder.max).toHaveBeenCalledWith({ maxDate: 'snapshot_date' })
+      expect(mockSnapshotBuilder.where).toHaveBeenCalledWith({ period_type: PERIOD_MONTH_IN_YEAR, scheme_year: 2023 })
+      expect(mockResultsBuilder.where).toHaveBeenCalledWith({
+        snapshot_date: '2023-01-01',
+        period_type: PERIOD_MONTH_IN_YEAR,
+        scheme_year: 2023,
+        month_in_year: 6
       })
-      expect(db.metric.findAll).toHaveBeenCalledWith({
-        where: {
-          snapshotDate: '2023-01-01',
-          periodType: PERIOD_MONTH_IN_YEAR,
-          schemeYear: 2023,
-          monthInYear: 6
-        },
-        order: [['schemeName', 'ASC']]
-      })
+      expect(mockResultsBuilder.orderBy).toHaveBeenCalledWith('scheme_name', 'asc')
       expect(mockResponse.code).toHaveBeenCalledWith(HTTP_OK)
     })
 
@@ -458,20 +447,18 @@ describe('Metrics Route Handler', () => {
         mockRequest.query.schemeYear = '2023'
         mockRequest.query.month = String(month)
         metricsQueue.enqueue.mockResolvedValue()
-        db.metric.findOne.mockResolvedValue({ maxDate: '2023-01-01' })
-        db.metric.findAll.mockResolvedValue([])
+        mockSnapshotBuilder.resolves({ maxDate: '2023-01-01' })
+        mockResultsBuilder.resolves([])
 
         await handler(mockRequest, mockH)
 
-        expect(db.metric.findAll).toHaveBeenCalledWith({
-          where: {
-            snapshotDate: '2023-01-01',
-            periodType: PERIOD_MONTH_IN_YEAR,
-            schemeYear: 2023,
-            monthInYear: month
-          },
-          order: [['schemeName', 'ASC']]
+        expect(mockResultsBuilder.where).toHaveBeenCalledWith({
+          snapshot_date: '2023-01-01',
+          period_type: PERIOD_MONTH_IN_YEAR,
+          scheme_year: 2023,
+          month_in_year: month
         })
+        expect(mockResultsBuilder.orderBy).toHaveBeenCalledWith('scheme_name', 'asc')
       }
     })
 
@@ -479,20 +466,18 @@ describe('Metrics Route Handler', () => {
       mockRequest.query.period = PERIOD_YEAR
       mockRequest.query.schemeYear = '2023'
       metricsQueue.enqueue.mockResolvedValue()
-      db.metric.findOne.mockResolvedValue({ maxDate: '2023-01-01' })
-      db.metric.findAll.mockResolvedValue([])
+      mockSnapshotBuilder.resolves({ maxDate: '2023-01-01' })
+      mockResultsBuilder.resolves([])
 
       await handler(mockRequest, mockH)
 
-      expect(db.metric.findAll).toHaveBeenCalledWith({
-        where: {
-          snapshotDate: '2023-01-01',
-          periodType: PERIOD_YEAR,
-          schemeYear: 2023
-          // monthInYear should NOT be included
-        },
-        order: [['schemeName', 'ASC']]
+      expect(mockResultsBuilder.where).toHaveBeenCalledWith({
+        snapshot_date: '2023-01-01',
+        period_type: PERIOD_YEAR,
+        scheme_year: 2023
+        // monthInYear should NOT be included
       })
+      expect(mockResultsBuilder.orderBy).toHaveBeenCalledWith('scheme_name', 'asc')
     })
 
     test('should handle monthInYear with different scheme years', async () => {
@@ -504,27 +489,25 @@ describe('Metrics Route Handler', () => {
         mockRequest.query.schemeYear = String(year)
         mockRequest.query.month = '3'
         metricsQueue.enqueue.mockResolvedValue()
-        db.metric.findOne.mockResolvedValue({ maxDate: '2023-01-01' })
-        db.metric.findAll.mockResolvedValue([])
+        mockSnapshotBuilder.resolves({ maxDate: '2023-01-01' })
+        mockResultsBuilder.resolves([])
 
         await handler(mockRequest, mockH)
 
-        expect(db.metric.findAll).toHaveBeenCalledWith({
-          where: {
-            snapshotDate: '2023-01-01',
-            periodType: PERIOD_MONTH_IN_YEAR,
-            schemeYear: year,
-            monthInYear: 3
-          },
-          order: [['schemeName', 'ASC']]
+        expect(mockResultsBuilder.where).toHaveBeenCalledWith({
+          snapshot_date: '2023-01-01',
+          period_type: PERIOD_MONTH_IN_YEAR,
+          scheme_year: year,
+          month_in_year: 3
         })
+        expect(mockResultsBuilder.orderBy).toHaveBeenCalledWith('scheme_name', 'asc')
       }
     })
 
     test('should not aggregate for all period', async () => {
       mockRequest.query.period = PERIOD_ALL
-      db.metric.findOne.mockResolvedValue({ maxDate: '2023-01-01' })
-      db.metric.findAll.mockResolvedValue([
+      mockSnapshotBuilder.resolves({ maxDate: '2023-01-01' })
+      mockResultsBuilder.resolves([
         {
           schemeName: 'Scheme1',
           schemeYear: 2022,
@@ -606,8 +589,8 @@ describe('Metrics Route Handler', () => {
       mockRequest.query.period = PERIOD_YEAR
       mockRequest.query.schemeYear = '2023'
       metricsQueue.enqueue.mockResolvedValue()
-      db.metric.findOne.mockResolvedValue({ maxDate: '2023-01-01' })
-      db.metric.findAll.mockResolvedValue([
+      mockSnapshotBuilder.resolves({ maxDate: '2023-01-01' })
+      mockResultsBuilder.resolves([
         {
           schemeName: 'Scheme1',
           schemeYear: 2023,
@@ -660,8 +643,8 @@ describe('Metrics Route Handler', () => {
       mockRequest.query.period = PERIOD_YEAR
       mockRequest.query.schemeYear = '2023'
       metricsQueue.enqueue.mockResolvedValue()
-      db.metric.findOne.mockResolvedValue({ maxDate: '2023-01-01' })
-      db.metric.findAll.mockResolvedValue([
+      mockSnapshotBuilder.resolves({ maxDate: '2023-01-01' })
+      mockResultsBuilder.resolves([
         {
           schemeName: 'Scheme1',
           schemeYear: 2023,
@@ -680,46 +663,36 @@ describe('Metrics Route Handler', () => {
 
       await handler(mockRequest, mockH)
 
-      expect(db.metric.findOne).toHaveBeenCalledWith({
-        attributes: [[db.sequelize.fn('MAX', db.sequelize.col('snapshot_date')), 'maxDate']],
-        where: { periodType: PERIOD_YEAR, schemeYear: 2023 },
-        raw: true
+      expect(mockSnapshotBuilder.max).toHaveBeenCalledWith({ maxDate: 'snapshot_date' })
+      expect(mockSnapshotBuilder.where).toHaveBeenCalledWith({ period_type: PERIOD_YEAR, scheme_year: 2023 })
+      expect(mockResultsBuilder.where).toHaveBeenCalledWith({
+        snapshot_date: '2023-01-01',
+        period_type: PERIOD_YEAR,
+        scheme_year: 2023
       })
-      expect(db.metric.findAll).toHaveBeenCalledWith({
-        where: {
-          snapshotDate: '2023-01-01',
-          periodType: PERIOD_YEAR,
-          schemeYear: 2023
-        },
-        order: [['schemeName', 'ASC']]
-      })
+      expect(mockResultsBuilder.orderBy).toHaveBeenCalledWith('scheme_name', 'asc')
     })
 
     test('should not filter by schemeYear for all period', async () => {
       mockRequest.query.period = PERIOD_ALL
       mockRequest.query.schemeYear = '2023'
-      db.metric.findOne.mockResolvedValue({ maxDate: '2023-01-01' })
-      db.metric.findAll.mockResolvedValue([])
+      mockSnapshotBuilder.resolves({ maxDate: '2023-01-01' })
+      mockResultsBuilder.resolves([])
 
       await handler(mockRequest, mockH)
 
-      expect(db.metric.findOne).toHaveBeenCalledWith({
-        attributes: [[db.sequelize.fn('MAX', db.sequelize.col('snapshot_date')), 'maxDate']],
-        where: { periodType: PERIOD_ALL },
-        raw: true
+      expect(mockSnapshotBuilder.max).toHaveBeenCalledWith({ maxDate: 'snapshot_date' })
+      expect(mockSnapshotBuilder.where).toHaveBeenCalledWith({ period_type: PERIOD_ALL })
+      expect(mockResultsBuilder.where).toHaveBeenCalledWith({
+        snapshot_date: '2023-01-01',
+        period_type: PERIOD_ALL
       })
-      expect(db.metric.findAll).toHaveBeenCalledWith({
-        where: {
-          snapshotDate: '2023-01-01',
-          periodType: PERIOD_ALL
-        },
-        order: [['schemeName', 'ASC']]
-      })
+      expect(mockResultsBuilder.orderBy).toHaveBeenCalledWith('scheme_name', 'asc')
     })
 
     test('should return empty response when no snapshot found', async () => {
       mockRequest.query.period = PERIOD_ALL
-      db.metric.findOne.mockResolvedValue(null)
+      mockSnapshotBuilder.resolves(null)
 
       await handler(mockRequest, mockH)
 
@@ -741,7 +714,7 @@ describe('Metrics Route Handler', () => {
 
     test('should return empty response when maxDate is null', async () => {
       mockRequest.query.period = PERIOD_ALL
-      db.metric.findOne.mockResolvedValue({ maxDate: null })
+      mockSnapshotBuilder.resolves({ maxDate: null })
 
       await handler(mockRequest, mockH)
 
@@ -763,8 +736,8 @@ describe('Metrics Route Handler', () => {
 
     test('should filter out null scheme names', async () => {
       mockRequest.query.period = PERIOD_ALL
-      db.metric.findOne.mockResolvedValue({ maxDate: '2023-01-01' })
-      db.metric.findAll.mockResolvedValue([
+      mockSnapshotBuilder.resolves({ maxDate: '2023-01-01' })
+      mockResultsBuilder.resolves([
         {
           schemeName: 'Scheme1',
           schemeYear: null,
@@ -808,7 +781,7 @@ describe('Metrics Route Handler', () => {
   describe('Error Handling', () => {
     test('should handle unexpected errors in fetching', async () => {
       mockRequest.query.period = PERIOD_ALL
-      db.metric.findOne.mockRejectedValue(new Error('DB error'))
+      mockSnapshotBuilder.rejects(new Error('DB error'))
 
       await handler(mockRequest, mockH)
 
@@ -820,10 +793,10 @@ describe('Metrics Route Handler', () => {
       expect(consoleErrorSpy).toHaveBeenCalledWith('Error fetching metrics:', expect.any(Error))
     })
 
-    test('should handle error in findAll', async () => {
+    test('should handle error in metrics results query', async () => {
       mockRequest.query.period = PERIOD_ALL
-      db.metric.findOne.mockResolvedValue({ maxDate: '2023-01-01' })
-      db.metric.findAll.mockRejectedValue(new Error('Query error'))
+      mockSnapshotBuilder.resolves({ maxDate: '2023-01-01' })
+      mockResultsBuilder.rejects(new Error('Query error'))
 
       await handler(mockRequest, mockH)
 
@@ -854,8 +827,8 @@ describe('Metrics Route Handler', () => {
       mockRequest.query.period = PERIOD_YEAR
       mockRequest.query.schemeYear = '2023'
       metricsQueue.enqueue.mockResolvedValue()
-      db.metric.findOne.mockResolvedValue({ maxDate: '2023-01-01' })
-      db.metric.findAll.mockResolvedValue([])
+      mockSnapshotBuilder.resolves({ maxDate: '2023-01-01' })
+      mockResultsBuilder.resolves([])
 
       await handler(mockRequest, mockH)
 
@@ -867,8 +840,8 @@ describe('Metrics Route Handler', () => {
       mockRequest.query.schemeYear = '2023'
       mockRequest.query.month = '6'
       metricsQueue.enqueue.mockResolvedValue()
-      db.metric.findOne.mockResolvedValue({ maxDate: '2023-01-01' })
-      db.metric.findAll.mockResolvedValue([])
+      mockSnapshotBuilder.resolves({ maxDate: '2023-01-01' })
+      mockResultsBuilder.resolves([])
 
       await handler(mockRequest, mockH)
 
@@ -877,8 +850,8 @@ describe('Metrics Route Handler', () => {
 
     test('should not enqueue for other periods', async () => {
       mockRequest.query.period = PERIOD_YTD
-      db.metric.findOne.mockResolvedValue({ maxDate: '2023-01-01' })
-      db.metric.findAll.mockResolvedValue([])
+      mockSnapshotBuilder.resolves({ maxDate: '2023-01-01' })
+      mockResultsBuilder.resolves([])
 
       await handler(mockRequest, mockH)
 
@@ -889,8 +862,8 @@ describe('Metrics Route Handler', () => {
   describe('Response Formatting', () => {
     test('should format response with all total fields', async () => {
       mockRequest.query.period = PERIOD_ALL
-      db.metric.findOne.mockResolvedValue({ maxDate: '2023-01-01' })
-      db.metric.findAll.mockResolvedValue([
+      mockSnapshotBuilder.resolves({ maxDate: '2023-01-01' })
+      mockResultsBuilder.resolves([
         {
           schemeName: 'Scheme1',
           schemeYear: null,
@@ -925,8 +898,8 @@ describe('Metrics Route Handler', () => {
 
     test('should format scheme metrics with all fields', async () => {
       mockRequest.query.period = PERIOD_ALL
-      db.metric.findOne.mockResolvedValue({ maxDate: '2023-01-01' })
-      db.metric.findAll.mockResolvedValue([
+      mockSnapshotBuilder.resolves({ maxDate: '2023-01-01' })
+      mockResultsBuilder.resolves([
         {
           schemeName: 'Scheme1',
           schemeYear: null,
@@ -964,8 +937,8 @@ describe('Metrics Route Handler', () => {
   describe('FPTT Value Sign Flipping', () => {
     test('should flip positive FPTT values to negative', async () => {
       mockRequest.query.period = PERIOD_ALL
-      db.metric.findOne.mockResolvedValue({ maxDate: '2023-01-01' })
-      db.metric.findAll.mockResolvedValue([{
+      mockSnapshotBuilder.resolves({ maxDate: '2023-01-01' })
+      mockResultsBuilder.resolves([{
         schemeName: 'FPTT',
         schemeYear: null,
         totalPayments: 2,
@@ -991,8 +964,8 @@ describe('Metrics Route Handler', () => {
 
     test('should flip negative FPTT values to positive', async () => {
       mockRequest.query.period = PERIOD_ALL
-      db.metric.findOne.mockResolvedValue({ maxDate: '2023-01-01' })
-      db.metric.findAll.mockResolvedValue([{
+      mockSnapshotBuilder.resolves({ maxDate: '2023-01-01' })
+      mockResultsBuilder.resolves([{
         schemeName: 'FPTT',
         schemeYear: null,
         totalPayments: 2,
@@ -1018,8 +991,8 @@ describe('Metrics Route Handler', () => {
 
     test('should return zero (not -0) for FPTT zero string value', async () => {
       mockRequest.query.period = PERIOD_ALL
-      db.metric.findOne.mockResolvedValue({ maxDate: '2023-01-01' })
-      db.metric.findAll.mockResolvedValue([{
+      mockSnapshotBuilder.resolves({ maxDate: '2023-01-01' })
+      mockResultsBuilder.resolves([{
         schemeName: 'FPTT',
         schemeYear: null,
         totalPayments: 0,
@@ -1045,8 +1018,8 @@ describe('Metrics Route Handler', () => {
 
     test('should return zero (not -0) for FPTT signed-zero string value', async () => {
       mockRequest.query.period = PERIOD_ALL
-      db.metric.findOne.mockResolvedValue({ maxDate: '2023-01-01' })
-      db.metric.findAll.mockResolvedValue([{
+      mockSnapshotBuilder.resolves({ maxDate: '2023-01-01' })
+      mockResultsBuilder.resolves([{
         schemeName: 'FPTT',
         schemeYear: null,
         totalPayments: 0,
@@ -1072,8 +1045,8 @@ describe('Metrics Route Handler', () => {
 
     test('should not flip values for non-FPTT schemes', async () => {
       mockRequest.query.period = PERIOD_ALL
-      db.metric.findOne.mockResolvedValue({ maxDate: '2023-01-01' })
-      db.metric.findAll.mockResolvedValue([{
+      mockSnapshotBuilder.resolves({ maxDate: '2023-01-01' })
+      mockResultsBuilder.resolves([{
         schemeName: 'SFI',
         schemeYear: null,
         totalPayments: 5,
@@ -1097,8 +1070,8 @@ describe('Metrics Route Handler', () => {
 
     test('should flip FPTT values and leave other scheme values unchanged in mixed results', async () => {
       mockRequest.query.period = PERIOD_ALL
-      db.metric.findOne.mockResolvedValue({ maxDate: '2023-01-01' })
-      db.metric.findAll.mockResolvedValue([
+      mockSnapshotBuilder.resolves({ maxDate: '2023-01-01' })
+      mockResultsBuilder.resolves([
         {
           schemeName: 'FPTT',
           schemeYear: null,
@@ -1141,8 +1114,8 @@ describe('Metrics Route Handler', () => {
 
     test('should flip and aggregate FPTT values correctly across multiple records', async () => {
       mockRequest.query.period = PERIOD_YTD
-      db.metric.findOne.mockResolvedValue({ maxDate: '2023-01-01' })
-      db.metric.findAll.mockResolvedValue([
+      mockSnapshotBuilder.resolves({ maxDate: '2023-01-01' })
+      mockResultsBuilder.resolves([
         {
           schemeName: 'FPTT',
           schemeYear: null,

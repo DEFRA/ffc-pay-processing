@@ -1,11 +1,14 @@
-const { removeAgreementData } = require('../../../app/retention')
-const db = require('../../../app/data')
+const { createKnexMock } = require('../../helpers/mock-knex')
 
-jest.mock('../../../app/data', () => ({
-  sequelize: {
-    transaction: jest.fn()
-  }
+const mockDb = createKnexMock()
+
+jest.mock('../../../app/database', () => ({
+  client: mockDb.knex,
+  transaction: mockDb.transaction,
+  close: mockDb.close
 }))
+
+const { removeAgreementData } = require('../../../app/retention')
 
 jest.mock('../../../app/retention/find-completed-payment-requests', () => ({
   findCompletedPaymentRequests: jest.fn()
@@ -75,11 +78,7 @@ describe('removeAgreementData', () => {
   beforeEach(() => {
     jest.clearAllMocks()
 
-    transaction = {
-      commit: jest.fn().mockResolvedValue(),
-      rollback: jest.fn().mockResolvedValue()
-    }
-    db.sequelize.transaction.mockResolvedValue(transaction)
+    transaction = mockDb.trx
   })
 
   test('commits transaction and returns early if no payment requests found', async () => {
@@ -88,7 +87,7 @@ describe('removeAgreementData', () => {
 
     await removeAgreementData(retentionData)
 
-    expect(db.sequelize.transaction).toHaveBeenCalledTimes(1)
+    expect(mockDb.transaction).toHaveBeenCalledTimes(1)
     expect(removeFRNAgreementClosed).toHaveBeenCalledWith(
       retentionData.agreementNumber,
       retentionData.frn,
@@ -128,7 +127,7 @@ describe('removeAgreementData', () => {
 
     await removeAgreementData(retentionData)
 
-    expect(db.sequelize.transaction).toHaveBeenCalledTimes(1)
+    expect(mockDb.transaction).toHaveBeenCalledTimes(1)
     expect(removeFRNAgreementClosed).toHaveBeenCalledWith(
       retentionData.agreementNumber,
       retentionData.frn,
