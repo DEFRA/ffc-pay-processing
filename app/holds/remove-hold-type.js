@@ -1,12 +1,9 @@
-const db = require('../data')
+const db = require('../database')
 
 const removeHoldType = async (holdCategoryId, transaction) => {
-  await db.holdCategory.destroy(
-    {
-      where: { holdCategoryId },
-      transaction
-    }
-  )
+  await db.holdCategory(transaction ?? undefined)
+    .where({ holdCategoryId })
+    .del()
 }
 
 module.exports = { removeHoldType }

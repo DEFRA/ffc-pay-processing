@@ -12,7 +12,7 @@ const { BPS } = require('../../../../app/constants/schemes')
 const { sfiAutoHoldCategory, bpsAutoHoldCategory } = require('../../../mocks/holds/hold-category')
 const hold = require('../../../mocks/holds/auto-hold')
 
-const db = require('../../../../app/data')
+const db = require('../../../../app/database')
 
 const { removeAutoHold } = require('../../../../app/auto-hold/remove-auto-hold')
 const paymentRequest = require('../../../mocks/payment-requests/payment-request')
@@ -21,28 +21,28 @@ describe('remove auto hold', () => {
   beforeEach(async () => {
     jest.clearAllMocks()
     await resetDatabase()
-    await db.autoHold.create(hold)
+    await db.autoHold().insert(hold)
     mockGetHoldCategoryId.mockResolvedValue(sfiAutoHoldCategory.autoHoldCategoryId)
   })
 
   test('should update hold with closed date for non-BPS scheme', async () => {
     const nonBpsPaymentRequest = { ...paymentRequest, schemeId: 'SFI' }
     await removeAutoHold(nonBpsPaymentRequest, sfiAutoHoldCategory.name)
-    const updatedHold = await db.autoHold.findOne({ where: { autoHoldId: hold.autoHoldId } })
+    const updatedHold = await db.autoHold().where({ autoHoldId: hold.autoHoldId }).first()
     expect(updatedHold.closed).not.toBeNull()
   })
 
   test('should update hold with closed date for BPS scheme', async () => {
     const bpsPaymentRequest = { ...paymentRequest, schemeId: BPS }
     await removeAutoHold(bpsPaymentRequest, bpsAutoHoldCategory.name)
-    const updatedHold = await db.autoHold.findOne({ where: { autoHoldId: hold.autoHoldId } })
+    const updatedHold = await db.autoHold().where({ autoHoldId: hold.autoHoldId }).first()
     expect(updatedHold.closed).not.toBeNull()
   })
 
   test('should send hold removed event with hold data if hold exists', async () => {
     await removeAutoHold(paymentRequest, sfiAutoHoldCategory.name)
-    const updatedHold = await db.autoHold.findOne({ where: { autoHoldId: hold.autoHoldId } })
-    const plainHold = updatedHold.get({ plain: true })
+    const updatedHold = await db.autoHold().where({ autoHoldId: hold.autoHoldId }).first()
+    const plainHold = updatedHold
     expect(mockSendHoldEvent).toHaveBeenCalledWith(expect.objectContaining(plainHold), REMOVED)
   })
 

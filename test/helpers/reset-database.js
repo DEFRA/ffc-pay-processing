@@ -1,4 +1,5 @@
-const db = require('../../app/data')
+const db = require('../../app/database')
+const { truncate } = require('./truncate')
 const sfi = require('../mocks/schemes/sfi')
 const sfip = require('../mocks/schemes/sfip')
 const lumpSums = require('../mocks/schemes/lump-sums')
@@ -17,10 +18,10 @@ const sfi26 = require('../mocks/schemes/sfi26')
 const { sfiHoldCategory, sfiPilotHoldCategory, manualLedgerHoldCategory, debtEnrichmentHoldCategory, sfiAutoHoldCategory, sfiPilotAutoHoldCategory, manualLedgerAutoHoldCategory, debtEnrichmentAutoHoldCategory } = require('../mocks/holds/hold-category')
 
 const resetDatabase = async () => {
-  await db.sequelize.truncate({ cascade: true })
-  await db.scheme.bulkCreate([sfi, sfip, lumpSums, vetVisits, cs, bps, manual, sfi23, delinked, sfiExpanded, cohtRevenue, cohtCapital, fptt, wmp, sfi26])
-  await db.holdCategory.bulkCreate([sfiHoldCategory, sfiPilotHoldCategory, manualLedgerHoldCategory, debtEnrichmentHoldCategory])
-  await db.autoHoldCategory.bulkCreate([sfiAutoHoldCategory, sfiPilotAutoHoldCategory, manualLedgerAutoHoldCategory, debtEnrichmentAutoHoldCategory])
+  await truncate()
+  await db.scheme().insert([sfi, sfip, lumpSums, vetVisits, cs, bps, manual, sfi23, delinked, sfiExpanded, cohtRevenue, cohtCapital, fptt, wmp, sfi26])
+  await db.holdCategory().insert([sfiHoldCategory, sfiPilotHoldCategory, manualLedgerHoldCategory, debtEnrichmentHoldCategory])
+  await db.autoHoldCategory().insert([sfiAutoHoldCategory, sfiPilotAutoHoldCategory, manualLedgerAutoHoldCategory, debtEnrichmentAutoHoldCategory])
 }
 
 module.exports = {

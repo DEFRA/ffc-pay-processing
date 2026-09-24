@@ -1,13 +1,11 @@
 const { GBP } = require('../constants/currency')
 const { BPS } = require('../constants/schemes')
-const db = require('../data')
+const db = require('../database')
 
 const updateSettlementStatus = async (settlement, filter) => {
-  const completedPaymentRequest = await db.completedPaymentRequest.findOne({
-    where: {
-      ...filter
-    }
-  })
+  const completedPaymentRequest = await db.completedPaymentRequest()
+    .where({ ...filter })
+    .first()
 
   if (!completedPaymentRequest) {
     return undefined
@@ -17,25 +15,16 @@ const updateSettlementStatus = async (settlement, filter) => {
     settlement.value = completedPaymentRequest.value
   }
 
-  await db.completedPaymentRequest.update({
-    lastSettlement: settlement.settlementDate,
-    settledValue: settlement.value
-  }, {
-    where: {
-      ...filter,
-      [db.Sequelize.Op.or]:
-        [{
-          lastSettlement: {
-            [db.Sequelize.Op.is]: null
-          }
-        }, {
-          lastSettlement: {
-            [db.Sequelize.Op.lt]: settlement.settlementDate
-          }
-        }]
-    }
-  })
-  return { frn: parseInt(completedPaymentRequest.frn), invoiceNumber: completedPaymentRequest.invoiceNumber }
+  await db.completedPaymentRequest()
+    .where({ ...filter })
+    .where(function () {
+      this.whereNull('lastSettlement').orWhere('lastSettlement', '<', settlement.settlementDate)
+    })
+    .update({
+      lastSettlement: settlement.settlementDate,
+      settledValue: settlement.value
+    })
+  return { frn: Number.parseInt(completedPaymentRequest.frn), invoiceNumber: completedPaymentRequest.invoiceNumber }
 }
 
 module.exports = {

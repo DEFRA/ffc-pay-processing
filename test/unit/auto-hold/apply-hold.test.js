@@ -1,20 +1,12 @@
-const mockCommit = jest.fn()
-const mockRollback = jest.fn()
-const mockTransactionObject = {
-  commit: mockCommit,
-  rollback: mockRollback
-}
-const mockTransaction = jest.fn().mockImplementation(() => {
-  return mockTransactionObject
-})
+const { createKnexMock } = require('../../helpers/mock-knex')
 
-jest.mock('../../../app/data', () => {
-  return {
-    sequelize: {
-      transaction: mockTransaction
-    }
-  }
-})
+const mockDb = createKnexMock()
+
+jest.mock('../../../app/database', () => ({
+  client: mockDb.knex,
+  transaction: mockDb.transaction,
+  close: mockDb.close
+}))
 
 jest.mock('../../../app/auto-hold/get-hold-category-id')
 const { getHoldCategoryId: mockGetHoldCategoryId } = require('../../../app/auto-hold/get-hold-category-id')
@@ -38,22 +30,22 @@ describe('apply hold', () => {
 
   test('should create database transaction', async () => {
     await applyHold(paymentRequest, TOP_UP)
-    expect(mockTransaction).toHaveBeenCalledTimes(1)
+    expect(mockDb.transaction).toHaveBeenCalledTimes(1)
   })
 
   test('should get hold category id from category', async () => {
     await applyHold(paymentRequest, TOP_UP)
-    expect(mockGetHoldCategoryId).toHaveBeenCalledWith(paymentRequest.schemeId, TOP_UP, mockTransactionObject)
+    expect(mockGetHoldCategoryId).toHaveBeenCalledWith(paymentRequest.schemeId, TOP_UP, mockDb.trx)
   })
 
   test('should hold and reschedule payment request', async () => {
     await applyHold(paymentRequest, TOP_UP)
-    expect(mockHoldAndReschedule).toHaveBeenCalledWith(paymentRequest, holdCategoryId, mockTransactionObject)
+    expect(mockHoldAndReschedule).toHaveBeenCalledWith(paymentRequest, holdCategoryId, mockDb.trx)
   })
 
   test('should commit transaction', async () => {
     await applyHold(paymentRequest, TOP_UP)
-    expect(mockCommit).toHaveBeenCalledTimes(1)
+    expect(mockDb.trx.commit).toHaveBeenCalledTimes(1)
   })
 
   test('should rollback transaction if error thrown', async () => {
@@ -64,7 +56,7 @@ describe('apply hold', () => {
       await applyHold(paymentRequest, TOP_UP)
     } catch (error) {
       expect(error.message).toBe('Simulated error in holdAndReschedule')
-      expect(mockRollback).toHaveBeenCalledTimes(1)
+      expect(mockDb.trx.rollback).toHaveBeenCalledTimes(1)
     }
   })
 })

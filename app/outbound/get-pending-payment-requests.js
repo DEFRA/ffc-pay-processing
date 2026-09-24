@@ -1,9 +1,9 @@
-const db = require('../data')
+const db = require('../database')
 const { removeNullProperties } = require('../remove-null-properties')
 const { processingConfig } = require('../config')
 
 const getPendingPaymentRequests = async (transaction) => {
-  const outbox = await db.sequelize.query(`
+  const { rows: outbox } = await (transaction ?? db.client).raw(`
     SELECT
       "outbox".*
     FROM "outbox"
@@ -17,28 +17,21 @@ const getPendingPaymentRequests = async (transaction) => {
     LIMIT :processingCap
     FOR UPDATE OF "outbox" SKIP LOCKED
     `, {
-    replacements: {
-      processingCap: processingConfig.processingCap
-    },
-    transaction,
-    type: db.Sequelize.QueryTypes.SELECT,
-    raw: true
+    processingCap: processingConfig.processingCap
   })
 
-  const completedPaymentRequests = await db.completedPaymentRequest.findAll({
-    transaction,
-    include: [{
-      model: db.completedInvoiceLine,
-      as: 'invoiceLines'
-    }],
-    where: {
-      completedPaymentRequestId: {
-        [db.Sequelize.Op.in]: [...outbox.map(x => x.completedPaymentRequestId)]
-      }
-    }
-  })
+  const completedPaymentRequestIds = outbox.map(x => x.completedPaymentRequestId)
 
-  return completedPaymentRequests.map(x => x.get({ plain: true })).map(removeNullProperties)
+  const completedPaymentRequests = await db.completedPaymentRequest(transaction ?? undefined)
+    .whereIn('completedPaymentRequestId', completedPaymentRequestIds)
+
+  const invoiceLines = await db.completedInvoiceLine(transaction ?? undefined)
+    .whereIn('completedPaymentRequestId', completedPaymentRequestIds)
+    .orderBy('completedInvoiceLineId', 'asc')
+
+  return completedPaymentRequests
+    .map(x => ({ ...x, invoiceLines: invoiceLines.filter(line => line.completedPaymentRequestId === x.completedPaymentRequestId) }))
+    .map(removeNullProperties)
 }
 
 module.exports = {

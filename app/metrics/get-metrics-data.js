@@ -1,4 +1,4 @@
-const db = require('../../app/data')
+const db = require('../../app/database')
 const schemes = require('../../app/constants/schemes')
 const { buildMetricsQuery, buildQueryWhereClausesAndReplacements } = require('./build-metrics')
 const {
@@ -63,11 +63,8 @@ const fetchMetricsData = async (whereClause, _year = null, _month = null, period
     groupByMonth = false
   }
   const metricsQuery = buildMetricsQuery(whereSQL, groupByYear, groupByMonth)
-  return db.sequelize.query(metricsQuery, {
-    replacements,
-    type: db.sequelize.QueryTypes.SELECT,
-    raw: true
-  })
+  const { rows } = await db.client.raw(metricsQuery, replacements)
+  return rows
 }
 
 const fetchHoldsData = async (whereClause) => {
@@ -83,22 +80,19 @@ const fetchHoldsData = async (whereClause) => {
         INNER JOIN "holdCategories" hc ON h."holdCategoryId" = hc."holdCategoryId"
         WHERE h."closed" IS NULL
           AND hc."schemeId" = pr."schemeId"
-          ${whereClause.received?.[db.Sequelize.Op.gte] ? 'AND pr."received" >= :startDate' : ''}
-          ${whereClause.received?.[db.Sequelize.Op.lt] ? 'AND pr."received" < :endDate' : ''}
+          ${whereClause.received?.gte ? 'AND pr."received" >= :startDate' : ''}
+          ${whereClause.received?.lt ? 'AND pr."received" < :endDate' : ''}
         GROUP BY "year", "month", pr."schemeId"
     `
   const replacements = {}
-  if (whereClause.received?.[db.Sequelize.Op.gte]) {
-    replacements.startDate = whereClause.received[db.Sequelize.Op.gte]
+  if (whereClause.received?.gte) {
+    replacements.startDate = whereClause.received.gte
   }
-  if (whereClause.received?.[db.Sequelize.Op.lt]) {
-    replacements.endDate = whereClause.received[db.Sequelize.Op.lt]
+  if (whereClause.received?.lt) {
+    replacements.endDate = whereClause.received.lt
   }
-  return db.sequelize.query(holdsQuery, {
-    replacements,
-    type: db.sequelize.QueryTypes.SELECT,
-    raw: true
-  })
+  const { rows } = await db.client.raw(holdsQuery, replacements)
+  return rows
 }
 
 const mergeMetricsWithHolds = (metricsResults, holdsResults) => {
@@ -108,8 +102,8 @@ const mergeMetricsWithHolds = (metricsResults, holdsResults) => {
     const holdData = holdsMap.get(key)
     return {
       ...metric,
-      paymentsOnHold: holdData ? Number.parseInt(holdData.paymentsOnHold) : 0,
-      valueOnHold: holdData ? Number.parseInt(holdData.valueOnHold) : 0
+      paymentsOnHold: holdData ? Number.Number.parseInt(holdData.paymentsOnHold) : 0,
+      valueOnHold: holdData ? Number.Number.parseInt(holdData.valueOnHold) : 0
     }
   })
 }

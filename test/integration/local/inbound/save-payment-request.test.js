@@ -12,9 +12,9 @@ const { createSchedule: mockCreateSchedule } = require('../../../../app/inbound/
 jest.mock('../../../../app/event/send-duplicate-payment-event')
 const { sendDuplicatePaymentEvent: mockSendDuplicatePaymentEvent } = require('../../../../app/event/send-duplicate-payment-event')
 
-const db = require('../../../../app/data')
+const db = require('../../../../app/database')
 
-const transactionSpy = jest.spyOn(db.sequelize, 'transaction')
+const transactionSpy = jest.spyOn(db, 'transaction')
 
 const paymentRequest = require('../../../mocks/payment-requests/payment-request')
 
@@ -34,15 +34,15 @@ describe('save payment request', () => {
 
   test('should save payment request if not already exists', async () => {
     await savePaymentRequest(paymentRequest)
-    const savedPaymentRequest = await db.paymentRequest.findOne({ where: { invoiceNumber: paymentRequest.invoiceNumber } })
+    const savedPaymentRequest = await db.paymentRequest().where({ invoiceNumber: paymentRequest.invoiceNumber }).first()
     expect(savedPaymentRequest.invoiceNumber).toBe(paymentRequest.invoiceNumber)
   })
 
   test('should not save payment request if already exists', async () => {
     mockGetExistingPaymentRequest.mockResolvedValue(paymentRequest)
     await savePaymentRequest(paymentRequest)
-    const savedPaymentRequest = await db.paymentRequest.findOne({ where: { invoiceNumber: paymentRequest.invoiceNumber } })
-    expect(savedPaymentRequest).toBeNull()
+    const savedPaymentRequest = await db.paymentRequest().where({ invoiceNumber: paymentRequest.invoiceNumber }).first()
+    expect(savedPaymentRequest).toBeUndefined()
   })
 
   test('should send duplicate payment event if already exists', async () => {
@@ -75,8 +75,8 @@ describe('save payment request', () => {
   test('should rollback transaction if error', async () => {
     mockSaveInvoiceLines.mockRejectedValue(new Error('Test error'))
     await expect(savePaymentRequest(paymentRequest)).rejects.toThrow('Test error')
-    const savedPaymentRequest = await db.paymentRequest.findOne({ where: { invoiceNumber: paymentRequest.invoiceNumber } })
-    expect(savedPaymentRequest).toBeNull()
+    const savedPaymentRequest = await db.paymentRequest().where({ invoiceNumber: paymentRequest.invoiceNumber }).first()
+    expect(savedPaymentRequest).toBeUndefined()
   })
 
   afterAll(async () => {

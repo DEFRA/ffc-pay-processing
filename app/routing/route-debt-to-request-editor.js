@@ -1,4 +1,4 @@
-const db = require('../data')
+const db = require('../database')
 const { messageConfig } = require('../config')
 const { sendMessage } = require('../messaging/send-message')
 const { getHoldCategoryId, holdAndReschedule } = require('../auto-hold')
@@ -6,7 +6,7 @@ const { ROUTED_DEBT } = require('../constants/messages')
 const { AWAITING_DEBT_ENRICHMENT } = require('../constants/hold-categories-names')
 
 const routeDebtToRequestEditor = async (paymentRequest) => {
-  const transaction = await db.sequelize.transaction()
+  const transaction = await db.transaction()
   try {
     await sendMessage(paymentRequest, ROUTED_DEBT, messageConfig.debtTopic)
     console.log('Payment request routed to request editor:', {

@@ -1,12 +1,9 @@
-const db = require('../data')
+const db = require('../database')
 
 const removeSchedules = async (paymentRequestIds, transaction) => {
-  await db.schedule.destroy({
-    where: {
-      paymentRequestId: { [db.Sequelize.Op.in]: paymentRequestIds }
-    },
-    transaction
-  })
+  await db.schedule(transaction ?? undefined)
+    .whereIn('paymentRequestId', paymentRequestIds)
+    .del()
 }
 
 module.exports = {

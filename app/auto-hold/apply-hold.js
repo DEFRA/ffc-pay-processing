@@ -1,9 +1,9 @@
-const db = require('../data')
+const db = require('../database')
 const { getHoldCategoryId } = require('./get-hold-category-id')
 const { holdAndReschedule } = require('./hold-and-reschedule')
 
 const applyHold = async (paymentRequest, category) => {
-  const transaction = await db.sequelize.transaction()
+  const transaction = await db.transaction()
   const { schemeId, frn, marketingYear, agreementNumber, contractNumber } = paymentRequest
   try {
     console.log(`${category} automatically held for FRN ${frn}, with marketing year ${marketingYear}, agreement number ${agreementNumber} and contract number ${contractNumber}`)

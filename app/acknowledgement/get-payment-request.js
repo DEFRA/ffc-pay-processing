@@ -1,11 +1,14 @@
-const db = require('../data')
+const db = require('../database')
 
 const getPaymentRequest = async (invoiceNumber) => {
-  return db.completedPaymentRequest.findOne({
-    where: { invoiceNumber },
-    include: [{ model: db.completedInvoiceLine, as: 'invoiceLines' }],
-    raw: false
-  })
+  const paymentRequest = await db.completedPaymentRequest().where({ invoiceNumber }).first()
+  if (!paymentRequest) {
+    return null
+  }
+  paymentRequest.invoiceLines = await db.completedInvoiceLine()
+    .where({ completedPaymentRequestId: paymentRequest.completedPaymentRequestId })
+    .orderBy('completedInvoiceLineId', 'asc')
+  return paymentRequest
 }
 
 module.exports = {

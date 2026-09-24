@@ -2,7 +2,7 @@ const moment = require('moment')
 
 const { resetDatabase, savePaymentRequest } = require('../../../helpers')
 
-const db = require('../../../../app/data')
+const db = require('../../../../app/database')
 
 const { updateSettlementStatus } = require('../../../../app/settlement/update-settlement-status')
 const { BPS } = require('../../../../app/constants/schemes')
@@ -28,14 +28,14 @@ describe('update settlement status', () => {
   test('should update settled value if no previous settlements', async () => {
     await savePaymentRequest(paymentRequest, true)
     await updateSettlementStatus(settlement)
-    const updatedPaymentRequest = await db.completedPaymentRequest.findOne({ where: { invoiceNumber: paymentRequest.invoiceNumber } })
+    const updatedPaymentRequest = await db.completedPaymentRequest().where({ invoiceNumber: paymentRequest.invoiceNumber }).first()
     expect(updatedPaymentRequest.settledValue).toBe(settlement.value)
   })
 
   test('should update last settled date if no previous settlements', async () => {
     await savePaymentRequest(paymentRequest, true)
     await updateSettlementStatus(settlement)
-    const updatedPaymentRequest = await db.completedPaymentRequest.findOne({ where: { invoiceNumber: paymentRequest.invoiceNumber } })
+    const updatedPaymentRequest = await db.completedPaymentRequest().where({ invoiceNumber: paymentRequest.invoiceNumber }).first()
     expect(updatedPaymentRequest.lastSettlement).toStrictEqual(new Date(settlement.settlementDate))
   })
 
@@ -49,7 +49,7 @@ describe('update settlement status', () => {
     paymentRequest.lastSettlement = moment(settlement.settlementDate).subtract(1, 'day').toDate()
     await savePaymentRequest(paymentRequest, true)
     await updateSettlementStatus(settlement)
-    const updatedPaymentRequest = await db.completedPaymentRequest.findOne({ where: { invoiceNumber: paymentRequest.invoiceNumber } })
+    const updatedPaymentRequest = await db.completedPaymentRequest().where({ invoiceNumber: paymentRequest.invoiceNumber }).first()
     expect(updatedPaymentRequest.settledValue).toBe(settlement.value)
   })
 
@@ -57,7 +57,7 @@ describe('update settlement status', () => {
     paymentRequest.lastSettlement = moment(settlement.settlementDate).subtract(1, 'day').toDate()
     await savePaymentRequest(paymentRequest, true)
     await updateSettlementStatus(settlement)
-    const updatedPaymentRequest = await db.completedPaymentRequest.findOne({ where: { invoiceNumber: paymentRequest.invoiceNumber } })
+    const updatedPaymentRequest = await db.completedPaymentRequest().where({ invoiceNumber: paymentRequest.invoiceNumber }).first()
     expect(updatedPaymentRequest.lastSettlement).toStrictEqual(new Date(settlement.settlementDate))
   })
 
@@ -73,7 +73,7 @@ describe('update settlement status', () => {
     paymentRequest.settledValue = 50
     await savePaymentRequest(paymentRequest, true)
     await updateSettlementStatus(settlement)
-    const updatedPaymentRequest = await db.completedPaymentRequest.findOne({ where: { invoiceNumber: paymentRequest.invoiceNumber } })
+    const updatedPaymentRequest = await db.completedPaymentRequest().where({ invoiceNumber: paymentRequest.invoiceNumber }).first()
     expect(updatedPaymentRequest.settledValue).toBe(paymentRequest.settledValue)
   })
 
@@ -81,7 +81,7 @@ describe('update settlement status', () => {
     paymentRequest.lastSettlement = moment(settlement.settlementDate).add(1, 'day').toDate()
     await savePaymentRequest(paymentRequest, true)
     await updateSettlementStatus(settlement)
-    const updatedPaymentRequest = await db.completedPaymentRequest.findOne({ where: { invoiceNumber: paymentRequest.invoiceNumber } })
+    const updatedPaymentRequest = await db.completedPaymentRequest().where({ invoiceNumber: paymentRequest.invoiceNumber }).first()
     expect(updatedPaymentRequest.lastSettlement).toStrictEqual(paymentRequest.lastSettlement)
   })
 
@@ -97,7 +97,7 @@ describe('update settlement status', () => {
     paymentRequest.settledValue = 50
     await savePaymentRequest(paymentRequest, true)
     await updateSettlementStatus(settlement)
-    const updatedPaymentRequest = await db.completedPaymentRequest.findOne({ where: { invoiceNumber: paymentRequest.invoiceNumber } })
+    const updatedPaymentRequest = await db.completedPaymentRequest().where({ invoiceNumber: paymentRequest.invoiceNumber }).first()
     expect(updatedPaymentRequest.settledValue).toBe(paymentRequest.settledValue)
   })
 
@@ -105,7 +105,7 @@ describe('update settlement status', () => {
     paymentRequest.lastSettlement = moment(settlement.settlementDate).toDate()
     await savePaymentRequest(paymentRequest, true)
     await updateSettlementStatus(settlement)
-    const updatedPaymentRequest = await db.completedPaymentRequest.findOne({ where: { invoiceNumber: paymentRequest.invoiceNumber } })
+    const updatedPaymentRequest = await db.completedPaymentRequest().where({ invoiceNumber: paymentRequest.invoiceNumber }).first()
     expect(updatedPaymentRequest.lastSettlement).toStrictEqual(paymentRequest.lastSettlement)
   })
 
@@ -128,7 +128,7 @@ describe('update settlement status', () => {
     paymentRequest.marketingYear = marketingYear
     await savePaymentRequest(paymentRequest, true)
     await updateSettlementStatus(settlement)
-    const updatedPaymentRequest = await db.completedPaymentRequest.findOne({ where: { invoiceNumber: paymentRequest.invoiceNumber } })
+    const updatedPaymentRequest = await db.completedPaymentRequest().where({ invoiceNumber: paymentRequest.invoiceNumber }).first()
     expect(updatedPaymentRequest.settledValue).toBe(paymentRequest.value)
   })
 
@@ -142,7 +142,7 @@ describe('update settlement status', () => {
     paymentRequest.marketingYear = marketingYear
     await savePaymentRequest(paymentRequest, true)
     await updateSettlementStatus(settlement)
-    const updatedPaymentRequest = await db.completedPaymentRequest.findOne({ where: { invoiceNumber: paymentRequest.invoiceNumber } })
+    const updatedPaymentRequest = await db.completedPaymentRequest().where({ invoiceNumber: paymentRequest.invoiceNumber }).first()
     expect(updatedPaymentRequest.settledValue).toBe(settlement.value)
   })
 
@@ -159,7 +159,7 @@ describe('update settlement status', () => {
     settlement.currency = EUR
     await savePaymentRequest(paymentRequest, true)
     await updateSettlementStatus(settlement)
-    const updatedPaymentRequest = await db.completedPaymentRequest.findOne({ where: { invoiceNumber: paymentRequest.invoiceNumber } })
+    const updatedPaymentRequest = await db.completedPaymentRequest().where({ invoiceNumber: paymentRequest.invoiceNumber }).first()
     expect(updatedPaymentRequest.settledValue).toBe(settlement.value)
   })
 })

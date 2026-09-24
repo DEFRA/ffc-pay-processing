@@ -2,7 +2,7 @@ const { resetDatabase, closeDatabaseConnection, savePaymentRequest } = require('
 
 const paymentRequest = require('../../../mocks/payment-requests/payment-request')
 
-const db = require('../../../../app/data')
+const db = require('../../../../app/database')
 
 const { createSchedule } = require('../../../../app/inbound/create-schedule')
 
@@ -18,19 +18,19 @@ describe('create schedule', () => {
 
   test('should save new schedule', async () => {
     await createSchedule(paymentRequestId)
-    const schedule = await db.schedule.findOne({ where: { paymentRequestId } })
+    const schedule = await db.schedule().where({ paymentRequestId }).first()
     expect(schedule).not.toBeNull()
   })
 
   test('should save schedule with payment request id', async () => {
     await createSchedule(paymentRequestId)
-    const schedule = await db.schedule.findOne({ where: { paymentRequestId } })
+    const schedule = await db.schedule().where({ paymentRequestId }).first()
     expect(schedule.paymentRequestId).toBe(paymentRequestId)
   })
 
   test('should save schedule as pending', async () => {
     await createSchedule(paymentRequestId)
-    const schedule = await db.schedule.findOne({ where: { paymentRequestId } })
+    const schedule = await db.schedule().where({ paymentRequestId }).first()
     expect(schedule.pending).not.toBeNull()
   })
 

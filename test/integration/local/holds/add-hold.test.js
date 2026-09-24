@@ -7,7 +7,7 @@ const { FRN } = require('../../../mocks/values/frn')
 
 const { ADDED } = require('../../../../app/constants/hold-statuses')
 
-const db = require('../../../../app/data')
+const db = require('../../../../app/database')
 
 const { addHold } = require('../../../../app/holds/add-hold')
 
@@ -21,14 +21,14 @@ describe('add hold', () => {
 
   test('should save new hold', async () => {
     await addHold(FRN, holdCategoryId)
-    const hold = await db.hold.findOne({ where: { frn: FRN } })
+    const hold = await db.hold().where({ frn: FRN }).first()
     expect(hold).not.toBeNull()
   })
 
   test('should send hold added event with hold data', async () => {
     await addHold(FRN, holdCategoryId)
-    const hold = await db.hold.findOne({ where: { frn: FRN } })
-    const plainHold = hold.get({ plain: true })
+    const hold = await db.hold().where({ frn: FRN }).first()
+    const plainHold = hold
     expect(mockSendHoldEvent).toHaveBeenCalledWith(plainHold, ADDED)
   })
 

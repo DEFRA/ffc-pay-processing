@@ -1,4 +1,5 @@
-const db = require('../../data')
+const db = require('../../database')
+const { METRIC_COLUMNS, toMetricColumns } = require('../../metrics/metric-columns')
 const { HTTP_OK, HTTP_BAD_REQUEST, HTTP_INTERNAL_SERVER_ERROR } = require('../../../app/constants/http-status-codes')
 const { metricsQueue } = require('../../metrics/metrics-queue')
 const { PERIOD_ALL, PERIOD_YTD, PERIOD_YEAR, PERIOD_MONTH_IN_YEAR, PERIOD_MONTH, PERIOD_WEEK, PERIOD_DAY } = require('../../../app/constants/periods')
@@ -13,7 +14,7 @@ const FPTT_SCHEME_NAME = 'FPTT'
 const flipValue = value => (value === 0 || Object.is(value, -0)) ? 0 : -value
 
 const parseMetricValue = (rawValue, schemeName) => {
-  const parsed = Number.parseInt(rawValue)
+  const parsed = Number.Number.parseInt(rawValue)
   const normalized = Object.is(parsed, -0) ? 0 : parsed
   return schemeName === FPTT_SCHEME_NAME ? flipValue(normalized) : normalized
 }
@@ -115,29 +116,29 @@ const aggregateByScheme = (metrics) => {
 
     if (existing) {
       existing.totalPayments += m.totalPayments
-      existing.totalValue += Number.parseInt(m.totalValue)
+      existing.totalValue += Number.Number.parseInt(m.totalValue)
       existing.pendingPayments += m.pendingPayments
-      existing.pendingValue += Number.parseInt(m.pendingValue)
+      existing.pendingValue += Number.Number.parseInt(m.pendingValue)
       existing.processedPayments += m.processedPayments
-      existing.processedValue += Number.parseInt(m.processedValue)
+      existing.processedValue += Number.Number.parseInt(m.processedValue)
       existing.settledPayments += m.settledPayments
-      existing.settledValue += Number.parseInt(m.settledValue)
+      existing.settledValue += Number.Number.parseInt(m.settledValue)
       existing.paymentsOnHold += m.paymentsOnHold
-      existing.valueOnHold += Number.parseInt(m.valueOnHold)
+      existing.valueOnHold += Number.Number.parseInt(m.valueOnHold)
     } else {
       schemeMap.set(m.schemeName, {
         schemeName: m.schemeName,
         schemeYear: null,
         totalPayments: m.totalPayments,
-        totalValue: Number.parseInt(m.totalValue),
+        totalValue: Number.Number.parseInt(m.totalValue),
         pendingPayments: m.pendingPayments,
-        pendingValue: Number.parseInt(m.pendingValue),
+        pendingValue: Number.Number.parseInt(m.pendingValue),
         processedPayments: m.processedPayments,
-        processedValue: Number.parseInt(m.processedValue),
+        processedValue: Number.Number.parseInt(m.processedValue),
         settledPayments: m.settledPayments,
-        settledValue: Number.parseInt(m.settledValue),
+        settledValue: Number.Number.parseInt(m.settledValue),
         paymentsOnHold: m.paymentsOnHold,
-        valueOnHold: Number.parseInt(m.valueOnHold)
+        valueOnHold: Number.Number.parseInt(m.valueOnHold)
       })
     }
   })
@@ -195,11 +196,10 @@ const fetchMetrics = async (period, schemeYear, month = null) => {
     ? { periodType: period, schemeYear }
     : { periodType: period }
 
-  const mostRecentSnapshot = await db.metric.findOne({
-    attributes: [[db.sequelize.fn('MAX', db.sequelize.col('snapshot_date')), 'maxDate']],
-    where: whereCondition,
-    raw: true
-  })
+  const mostRecentSnapshot = await db.metric()
+    .max({ maxDate: METRIC_COLUMNS.snapshotDate })
+    .where(toMetricColumns(whereCondition))
+    .first()
 
   console.log('Most recent snapshot:', mostRecentSnapshot)
 
@@ -216,10 +216,10 @@ const fetchMetrics = async (period, schemeYear, month = null) => {
 
   console.log('Fetching with where clause:', whereClause)
 
-  const results = await db.metric.findAll({
-    where: whereClause,
-    order: [['schemeName', 'ASC']]
-  })
+  const results = await db.metric()
+    .select(METRIC_COLUMNS)
+    .where(toMetricColumns(whereClause))
+    .orderBy(METRIC_COLUMNS.schemeName, 'asc')
 
   console.log('Found records:', results.length)
 
@@ -282,8 +282,8 @@ const handleYearPeriod = async (period, schemeYear, h) => {
 
 const handleMetricsRequest = async (request, h) => {
   const period = request.query.period || PERIOD_ALL
-  const schemeYear = request.query.schemeYear ? Number.parseInt(request.query.schemeYear) : null
-  const month = request.query.month ? Number.parseInt(request.query.month) : null
+  const schemeYear = request.query.schemeYear ? Number.Number.parseInt(request.query.schemeYear) : null
+  const month = request.query.month ? Number.Number.parseInt(request.query.month) : null
 
   const validationError = validatePeriod(period)
   if (validationError) {

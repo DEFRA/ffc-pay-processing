@@ -2,7 +2,7 @@ const { resetDatabase, closeDatabaseConnection, savePaymentRequest } = require('
 
 const paymentRequest = require('../../../mocks/payment-requests/payment-request')
 
-const db = require('../../../../app/data')
+const db = require('../../../../app/database')
 
 const { invalidatePaymentRequests } = require('../../../../app/reset/invalidate-payment-requests')
 
@@ -18,13 +18,13 @@ describe('invalidate payment requests', () => {
 
   test('should invalidate payment requests', async () => {
     await invalidatePaymentRequests(paymentRequestId)
-    const updatedPaymentRequest = await db.completedPaymentRequest.findOne({ where: { invoiceNumber: paymentRequest.invoiceNumber } })
+    const updatedPaymentRequest = await db.completedPaymentRequest().where({ invoiceNumber: paymentRequest.invoiceNumber }).first()
     expect(updatedPaymentRequest.invalid).toBeTruthy()
   })
 
   test('should not invalidate payment requests that do not match primary key', async () => {
     await invalidatePaymentRequests(999)
-    const updatedPaymentRequest = await db.completedPaymentRequest.findOne({ where: { invoiceNumber: paymentRequest.invoiceNumber } })
+    const updatedPaymentRequest = await db.completedPaymentRequest().where({ invoiceNumber: paymentRequest.invoiceNumber }).first()
     expect(updatedPaymentRequest.invalid).toBeFalsy()
   })
 

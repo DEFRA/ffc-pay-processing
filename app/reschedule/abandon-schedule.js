@@ -1,7 +1,7 @@
-const db = require('../data')
+const db = require('../database')
 
 const abandonSchedule = async (scheduleId, transaction) => {
-  await db.schedule.update({ started: null }, { where: { scheduleId, completed: null }, transaction })
+  await db.schedule(transaction ?? undefined).where({ scheduleId, completed: null }).update({ started: null })
 }
 
 module.exports = {

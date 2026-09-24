@@ -30,7 +30,7 @@ const { RECOVERY } = require('../../../../app/constants/adjustment-types')
 const { IRREGULAR } = require('../../../../app/constants/debt-types')
 const { closureDBEntry } = require('../../../mocks/closure/closure-db-entry')
 const { processingConfig } = require('../../../../app/config')
-const db = require('../../../../app/data')
+const db = require('../../../../app/database')
 const { processPaymentRequests } = require('../../../../app/processing/process-payment-requests')
 const { FUTURE_DATE } = require('../../../mocks/values/future-date')
 const { ROUTED_DEBT } = require('../../../../app/constants/messages')
@@ -54,24 +54,22 @@ describe('process payment requests', () => {
     test('should process payment request and update schedule', async () => {
       const { scheduleId } = await saveSchedule(inProgressSchedule, paymentRequest)
       await processPaymentRequests()
-      const updatedSchedule = await db.schedule.findByPk(scheduleId)
+      const updatedSchedule = await db.schedule().where({ scheduleId }).first()
       expect(updatedSchedule.completed).not.toBeNull()
     })
 
     test('should create completed payment request and invoice lines', async () => {
       const { paymentRequestId } = await saveSchedule(inProgressSchedule, paymentRequest)
       await processPaymentRequests()
-      const completedPaymentRequests = await db.completedPaymentRequest.findAll({
-        where: {
-          paymentRequestId,
-          frn: paymentRequest.frn,
-          marketingYear: paymentRequest.marketingYear,
-          schemeId: paymentRequest.schemeId
-        }
+      const completedPaymentRequests = await db.completedPaymentRequest().where({
+        paymentRequestId,
+        frn: paymentRequest.frn,
+        marketingYear: paymentRequest.marketingYear,
+        schemeId: paymentRequest.schemeId
       })
       expect(completedPaymentRequests.length).toBe(1)
 
-      const completedInvoiceLines = await db.completedInvoiceLine.findAll()
+      const completedInvoiceLines = await db.completedInvoiceLine()
       expect(completedInvoiceLines.length).toBe(paymentRequest.invoiceLines.length)
     })
   })
@@ -104,7 +102,7 @@ describe('process payment requests', () => {
       const recoveryRequest = createAdjustmentPaymentRequest(paymentRequest, RECOVERY)
       await saveSchedule(inProgressSchedule, recoveryRequest)
       await processPaymentRequests()
-      const holds = await db.autoHold.findAll({ where: { frn: paymentRequest.frn, closed: null } })
+      const holds = await db.autoHold().where({ frn: paymentRequest.frn, closed: null })
       expect(holds.length).toBe(1)
     })
   })
@@ -120,7 +118,7 @@ describe('process payment requests', () => {
       recoveryRequest.debtType = IRREGULAR
       await saveSchedule(inProgressSchedule, recoveryRequest)
       await processPaymentRequests()
-      const holds = await db.autoHold.findAll({ where: { frn: paymentRequest.frn, closed: null } })
+      const holds = await db.autoHold().where({ frn: paymentRequest.frn, closed: null })
       expect(holds.length).toBe(1)
       expect(mockSendMessage).toBeCalled()
     })
@@ -134,7 +132,7 @@ describe('process payment requests', () => {
       recoveryRequest.debtType = IRREGULAR
       await saveSchedule(inProgressSchedule, recoveryRequest)
       await processPaymentRequests()
-      const holds = await db.autoHold.findAll({ where: { frn: paymentRequest.frn, closed: null } })
+      const holds = await db.autoHold().where({ frn: paymentRequest.frn, closed: null })
       expect(holds.length).toBe(0)
       expect(mockSendMessage).not.toBeCalled()
     })
@@ -146,13 +144,11 @@ describe('process payment requests', () => {
     test('does not create AR entries if closure date has passed', async () => {
       await savePaymentRequest(paymentRequest, true)
       paymentRequest.invoiceNumber = 'INV-001'
-      await db.frnAgreementClosed.create(closureDBEntry)
+      await db.frnAgreementClosed().insert(closureDBEntry)
       const closureRequest = createClosurePaymentRequest(paymentRequest)
       const { paymentRequestId } = await saveSchedule(inProgressSchedule, closureRequest)
       await processPaymentRequests()
-      const completedAR = await db.completedPaymentRequest.findAll({
-        where: { paymentRequestId, frn: paymentRequest.frn, marketingYear: paymentRequest.marketingYear, schemeId: paymentRequest.schemeId, ledger: AR }
-      })
+      const completedAR = await db.completedPaymentRequest().where({ paymentRequestId, frn: paymentRequest.frn, marketingYear: paymentRequest.marketingYear, schemeId: paymentRequest.schemeId, ledger: AR })
       expect(completedAR.length).toBe(0)
     })
 
@@ -162,7 +158,7 @@ describe('process payment requests', () => {
       await savePaymentRequest(paymentRequest, true)
       paymentRequest.invoiceNumber = 'INV-001'
       closureDBEntry.closureDate = FUTURE_DATE
-      await db.frnAgreementClosed.create(closureDBEntry)
+      await db.frnAgreementClosed().insert(closureDBEntry)
       const recoveryRequest = createAdjustmentPaymentRequest(paymentRequest, RECOVERY)
       recoveryRequest.debtType = IRREGULAR
       await saveSchedule(inProgressSchedule, recoveryRequest)

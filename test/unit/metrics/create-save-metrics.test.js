@@ -1,8 +1,16 @@
-jest.mock('../../../app/data')
+const { createKnexMock } = require('../../helpers/mock-knex')
+
+const mockDb = createKnexMock(['metric'])
+
+jest.mock('../../../app/database', () => ({
+  client: mockDb.knex,
+  transaction: mockDb.transaction,
+  close: mockDb.close,
+  ...mockDb.tables
+}))
 jest.mock('../../../app/metrics/get-metrics-data', () => ({
   getSchemeNameById: jest.fn()
 }))
-const db = require('../../../app/data')
 const { getSchemeNameById } = require('../../../app/metrics/get-metrics-data')
 const { parseIntOrZero, createMetricRecord, saveMetrics } = require('../../../app/metrics/create-save-metrics')
 
@@ -10,11 +18,7 @@ describe('Create Save Metrics', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     getSchemeNameById.mockReturnValue('SFI')
-    db.metric = {
-      findOne: jest.fn().mockResolvedValue(null),
-      update: jest.fn().mockResolvedValue([1]),
-      create: jest.fn().mockResolvedValue({ id: 1 })
-    }
+    mockDb.builder.resolves(undefined)
   })
 
   describe('parseIntOrZero', () => {
@@ -50,17 +54,36 @@ describe('Create Save Metrics', () => {
   })
 
   describe('saveMetrics', () => {
-    test('should create new metric if not exists', async () => {
-      const results = [{}]
-      await saveMetrics(results, 'period', '2023-01-01', null, null, 2023, 1)
-      expect(db.metric.create).toHaveBeenCalled()
+    test('should look up an existing metric by snake case columns', async () => {
+      await saveMetrics([{}], 'period', '2023-01-01', null, null, 2023, 1)
+      expect(mockDb.builder.where).toHaveBeenCalledWith({
+        period_type: 'period',
+        scheme_name: 'SFI',
+        scheme_year: 2023,
+        month_in_year: 1
+      })
+      expect(mockDb.builder.first).toHaveBeenCalledTimes(1)
+    })
+
+    test('should insert new metric with snake case columns if not exists', async () => {
+      await saveMetrics([{ totalPayments: '3' }], 'period', '2023-01-01', null, null, 2023, 1)
+      expect(mockDb.builder.insert).toHaveBeenCalledWith(expect.objectContaining({
+        snapshot_date: '2023-01-01',
+        period_type: 'period',
+        scheme_name: 'SFI',
+        scheme_year: 2023,
+        month_in_year: 1,
+        total_payments: 3
+      }))
+      expect(mockDb.builder.update).not.toHaveBeenCalled()
     })
 
     test('should update existing metric', async () => {
-      db.metric.findOne.mockResolvedValue({ id: 1 })
-      const results = [{}]
-      await saveMetrics(results, 'period', '2023-01-01', null, null, 2023, 1)
-      expect(db.metric.update).toHaveBeenCalled()
+      mockDb.builder.resolves({ id: 1 })
+      await saveMetrics([{}], 'period', '2023-01-01', null, null, 2023, 1)
+      expect(mockDb.builder.where).toHaveBeenCalledWith({ id: 1 })
+      expect(mockDb.builder.update).toHaveBeenCalledWith(expect.objectContaining({ period_type: 'period' }))
+      expect(mockDb.builder.insert).not.toHaveBeenCalled()
     })
   })
 })

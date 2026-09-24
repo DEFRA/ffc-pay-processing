@@ -1,46 +1,56 @@
-const db = require('../data')
+const db = require('../database')
 
 const getHolds = async (pageProperties, open = true) => {
   let { pageNumber, pageSize } = pageProperties
-  const where = open ? { closed: null } : {}
-  const holds = await db.hold.findAll({
-    where,
-    include: [{
-      model: db.holdCategory,
-      as: 'holdCategory',
-      attributes: [],
-      include: [{
-        model: db.scheme,
-        as: 'scheme',
-        attributes: []
-      }]
-    }],
-    raw: true,
-    attributes: ['holdId', 'frn', [db.Sequelize.col('holdCategory.name'), 'holdCategoryName'], [db.Sequelize.col('holdCategory.scheme.schemeId'), 'holdCategorySchemeId'], [db.Sequelize.col('holdCategory.scheme.name'), 'holdCategorySchemeName'], [db.Sequelize.col('added'), 'dateTimeAdded'], [db.Sequelize.col('closed'), 'dateTimeClosed']]
-  })
+  const holdsQuery = db.hold()
+    .leftJoin('holdCategories', 'holds.holdCategoryId', 'holdCategories.holdCategoryId')
+    .leftJoin('schemes', 'holdCategories.schemeId', 'schemes.schemeId')
+    .select(
+      'holds.holdId',
+      'holds.frn',
+      {
+        holdCategoryName: 'holdCategories.name',
+        holdCategorySchemeId: 'schemes.schemeId',
+        holdCategorySchemeName: 'schemes.name',
+        dateTimeAdded: 'holds.added',
+        dateTimeClosed: 'holds.closed'
+      }
+    )
 
-  const autoHolds = await db.autoHold.findAll({
-    where,
-    include: [{
-      model: db.autoHoldCategory,
-      as: 'autoHoldCategory',
-      attributes: [],
-      include: [{
-        model: db.scheme,
-        as: 'scheme',
-        attributes: []
-      }]
-    }],
-    raw: true,
-    attributes: [['autoHoldId', 'holdId'], 'frn', [db.Sequelize.col('autoHoldCategory.name'), 'holdCategoryName'], [db.Sequelize.col('autoHoldCategory.scheme.schemeId'), 'holdCategorySchemeId'], [db.Sequelize.col('autoHoldCategory.scheme.name'), 'holdCategorySchemeName'], 'marketingYear', 'agreementNumber', 'contractNumber', [db.Sequelize.col('added'), 'dateTimeAdded'], [db.Sequelize.col('closed'), 'dateTimeClosed']]
-  })
+  const autoHoldsQuery = db.autoHold()
+    .leftJoin('autoHoldCategories', 'autoHolds.autoHoldCategoryId', 'autoHoldCategories.autoHoldCategoryId')
+    .leftJoin('schemes', 'autoHoldCategories.schemeId', 'schemes.schemeId')
+    .select(
+      { holdId: 'autoHolds.autoHoldId' },
+      'autoHolds.frn',
+      {
+        holdCategoryName: 'autoHoldCategories.name',
+        holdCategorySchemeId: 'schemes.schemeId',
+        holdCategorySchemeName: 'schemes.name'
+      },
+      'autoHolds.marketingYear',
+      'autoHolds.agreementNumber',
+      'autoHolds.contractNumber',
+      {
+        dateTimeAdded: 'autoHolds.added',
+        dateTimeClosed: 'autoHolds.closed'
+      }
+    )
+
+  if (open) {
+    holdsQuery.whereNull('holds.closed')
+    autoHoldsQuery.whereNull('autoHolds.closed')
+  }
+
+  const holds = await holdsQuery
+  const autoHolds = await autoHoldsQuery
 
   const mergedResults = [...holds, ...autoHolds]
 
   if (pageNumber && pageSize) {
     pageNumber = Number(pageNumber)
     pageSize = Number(pageSize)
-    if (!isNaN(pageNumber) && !isNaN(pageSize)) {
+    if (!Number.isNaN(pageNumber) && !Number.isNaN(pageSize)) {
       const offset = (pageNumber - 1) * pageSize
       const paginatedResults = mergedResults.slice(offset, offset + pageSize)
       return paginatedResults

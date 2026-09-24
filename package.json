@@ -1,6 +1,6 @@
 {
   "name": "ffc-pay-processing",
-  "version": "2.57.11",
+  "version": "2.57.12",
   "description": "Payment Hub processing service",
   "homepage": "https://github.com/DEFRA/ffc-pay-processing",
   "main": "app/index.js",
@@ -33,18 +33,16 @@
   ],
   "license": "OGL-UK-3.0",
   "dependencies": {
-    "@azure/identity": "4.13.1",
     "@azure/monitor-opentelemetry": "1.19.0",
     "@hapi/boom": "10.0.0",
     "@hapi/hapi": "21.4.8",
-    "ffc-database": "1.0.27",
+    "ffc-database": "2.0.0",
     "ffc-messaging": "2.10.10",
     "ffc-pay-event-publisher": "1.2.9",
     "hapi-pino": "13.0.0",
     "joi": "18.2.9",
     "log-timestamp": "0.3.0",
-    "moment": "2.31.0",
-    "sequelize": "6.37.8"
+    "moment": "2.31.0"
   },
   "devDependencies": {
     "blipp": "4.0.1",
@@ -55,9 +53,6 @@
     "jest-junit": "17.0.0",
     "neostandard": "0.12.2",
     "nodemon": "3.1.14"
-  },
-  "overrides": {
-    "uuid": "11.1.1"
   },
   "nodemonConfig": {
     "ignore": [
