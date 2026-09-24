@@ -5,7 +5,7 @@ const { sfiHoldCategory } = require('../../../mocks/holds/hold-category')
 const scheme = require('../../../mocks/schemes/scheme')
 const { TIMESTAMP } = require('../../../mocks/values/date')
 
-const db = require('../../../../app/data')
+const db = require('../../../../app/database')
 const { getHolds } = require('../../../../app/holds/get-holds')
 const autoHold = require('../../../mocks/holds/auto-hold')
 
@@ -16,10 +16,10 @@ describe('get holds', () => {
   beforeEach(async () => {
     jest.clearAllMocks()
     await resetDatabase()
-    await db.hold.create(hold)
-    await db.autoHold.create(autoHold)
-    await db.hold.create({ ...hold, holdId: 2, closed: TIMESTAMP })
-    await db.autoHold.create({ ...autoHold, autoHoldId: 2, closed: TIMESTAMP })
+    await db.hold().insert(hold)
+    await db.autoHold().insert(autoHold)
+    await db.hold().insert({ ...hold, holdId: 2, closed: TIMESTAMP })
+    await db.autoHold().insert({ ...autoHold, autoHoldId: 2, closed: TIMESTAMP })
     pageNumber = undefined
     pageSize = undefined
   })

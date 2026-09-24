@@ -5,7 +5,7 @@ const { randomUUID } = require('node:crypto')
 
 const paymentRequest = require('../../../mocks/payment-requests/payment-request')
 
-const db = require('../../../../app/data')
+const db = require('../../../../app/database')
 
 const { resetReferenceId } = require('../../../../app/reset/reset-reference-id')
 
@@ -24,7 +24,7 @@ describe('reset reference id', () => {
 
   test('should reset reference id with new UUID', async () => {
     await resetReferenceId(paymentRequestId)
-    const updatedPaymentRequest = await db.paymentRequest.findOne({ where: { paymentRequestId } })
+    const updatedPaymentRequest = await db.paymentRequest().where({ paymentRequestId }).first()
     expect(updatedPaymentRequest.referenceId).toEqual(UUID)
   })
 

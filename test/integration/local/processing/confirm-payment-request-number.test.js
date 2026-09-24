@@ -1,6 +1,7 @@
 const { resetDatabase, closeDatabaseConnection, savePaymentRequest } = require('../../../helpers')
 
-const db = require('../../../../app/data')
+const db = require('../../../../app/database')
+const { pickColumns } = require('../../../helpers/table-columns')
 
 const { confirmPaymentRequestNumber } = require('../../../../app/processing/confirm-payment-request-number')
 
@@ -55,9 +56,9 @@ describe('confirm payment request number', () => {
   })
 
   test('should not include invalid payment requests', async () => {
-    await db.paymentRequest.create(paymentRequest)
+    await db.paymentRequest().insert(pickColumns('paymentRequest', paymentRequest))
     paymentRequest.invalid = true
-    await db.completedPaymentRequest.create(paymentRequest)
+    await db.completedPaymentRequest().insert(pickColumns('completedPaymentRequest', paymentRequest))
     const paymentRequestNumber = await confirmPaymentRequestNumber(paymentRequest)
     expect(paymentRequestNumber).toBe(paymentRequest.paymentRequestNumber)
   })

@@ -1,11 +1,12 @@
-const db = require('../../../../app/data')
+const { resetDatabase } = require('../../../helpers')
+const db = require('../../../../app/database')
 const { completePaymentRequests } = require('../../../../app/processing/complete-payment-requests')
 const { sendZeroValueEvent } = require('../../../../app/event')
 
 jest.mock('../../../../app/event')
 
 const saveSchedule = async schedule => {
-  const savedSchedule = await db.schedule.create(schedule)
+  const [savedSchedule] = await db.schedule().insert(schedule).returning('scheduleId')
   return { scheduleId: savedSchedule.scheduleId }
 }
 
@@ -13,7 +14,7 @@ describe('complete payment requests', () => {
   let paymentRequest
 
   beforeEach(async () => {
-    await db.sequelize.truncate({ cascade: true })
+    await resetDatabase()
 
     paymentRequest = {
       invoiceNumber: 'S12345678',
@@ -39,7 +40,7 @@ describe('complete payment requests', () => {
       const { scheduleId } = await saveSchedule(schedule)
 
       await completePaymentRequests(scheduleId, [paymentRequest])
-      const saved = await db.schedule.findByPk(scheduleId)
+      const saved = await db.schedule().where({ scheduleId }).first()
 
       if (type === 'existing') {
         expect(saved.completed).toBeInstanceOf(Date)
@@ -58,8 +59,35 @@ describe('complete payment requests', () => {
 
       await completePaymentRequests(scheduleId, [paymentRequest])
 
-      const requests = await db.completedPaymentRequest.findAll()
+      const requests = await db.completedPaymentRequest()
       expect(requests.length).toBe(1)
+    })
+
+    test('should default completed payment request to valid', async () => {
+      const { scheduleId } = await saveSchedule({
+        started: new Date('2026-01-01T18:00:00Z'),
+        completed: null
+      })
+
+      await completePaymentRequests(scheduleId, [paymentRequest])
+
+      const request = await db.completedPaymentRequest().first()
+      expect(request.invalid).toBe(false)
+    })
+
+    test('should ignore payment request fields that are not columns', async () => {
+      paymentRequest.scheme = { name: 'SFI' }
+      paymentRequest.invoiceLines = [{ value: 100, invoiceLineId: 1, paymentRequestId: 1, invalid: false }]
+
+      const { scheduleId } = await saveSchedule({
+        started: new Date('2026-01-01T18:00:00Z'),
+        completed: null
+      })
+
+      await completePaymentRequests(scheduleId, [paymentRequest])
+
+      const lines = await db.completedInvoiceLine()
+      expect(lines.length).toBe(1)
     })
 
     test('should create multiple requests for split payments', async () => {
@@ -73,7 +101,7 @@ describe('complete payment requests', () => {
 
       await completePaymentRequests(scheduleId, [paymentRequest])
 
-      const requests = await db.completedPaymentRequest.findAll()
+      const requests = await db.completedPaymentRequest()
       expect(requests.length).toBe(2)
     })
   })
@@ -92,7 +120,7 @@ describe('complete payment requests', () => {
 
       await completePaymentRequests(scheduleId, [paymentRequest])
 
-      const savedLines = await db.completedInvoiceLine.findAll()
+      const savedLines = await db.completedInvoiceLine()
       expect(savedLines.length).toBe(expectedLength)
     })
   })
@@ -113,8 +141,8 @@ describe('complete payment requests', () => {
 
       await completePaymentRequests(scheduleId, [paymentRequest])
 
-      const completed = await db.completedPaymentRequest.findAll()
-      const outbox = await db.outbox.findAll()
+      const completed = await db.completedPaymentRequest()
+      const outbox = await db.outbox()
 
       expect(completed.length).toBe(completedReqs)
       expect(sendZeroValueEvent).toHaveBeenCalledTimes(zeroEventCalls)

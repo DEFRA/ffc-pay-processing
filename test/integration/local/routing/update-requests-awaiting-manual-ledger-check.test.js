@@ -1,5 +1,5 @@
 const { resetDatabase, closeDatabaseConnection, savePaymentRequest } = require('../../../helpers')
-const db = require('../../../../app/data')
+const db = require('../../../../app/database')
 
 jest.mock('../../../../app/routing/get-schedule-id')
 const { getScheduleId: mockGetScheduleId } = require('../../../../app/routing/get-schedule-id')
@@ -112,7 +112,7 @@ describe('update requests awaiting manual ledger check', () => {
 
   test('should remove manual ledger hold for scheme if payment request has outstanding schedule', async () => {
     const { id } = await savePaymentRequest(paymentRequest)
-    const mockCheckPaymentRequest = await db.paymentRequest.findOne({ where: { paymentRequestId: id } })
+    const mockCheckPaymentRequest = await db.paymentRequest().where({ paymentRequestId: id }).first()
     await updateRequestsAwaitingManualLedgerCheck(manualLedgerCheckResult)
     expect(mockRemoveAutoHold).toHaveBeenCalledWith(mockCheckPaymentRequest, AWAITING_LEDGER_CHECK)
   })

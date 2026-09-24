@@ -5,7 +5,7 @@ const { sfiHoldCategory } = require('../../../mocks/holds/hold-category')
 const { FRN } = require('../../../mocks/values/frn')
 const { TIMESTAMP } = require('../../../mocks/values/date')
 
-const db = require('../../../../app/data')
+const db = require('../../../../app/database')
 
 const { getExistingHold } = require('../../../../app/reschedule/get-existing-hold')
 
@@ -13,7 +13,7 @@ describe('get existing hold', () => {
   beforeEach(async () => {
     jest.clearAllMocks()
     await resetDatabase()
-    await db.hold.create(hold)
+    await db.hold().insert(hold)
   })
 
   test('should get existing hold if matched by hold category and FRN', async () => {
@@ -32,7 +32,7 @@ describe('get existing hold', () => {
   })
 
   test('should not get closed holds', async () => {
-    await db.hold.update({ closed: TIMESTAMP }, { where: { holdId: hold.holdId } })
+    await db.hold().where({ holdId: hold.holdId }).update({ closed: TIMESTAMP })
     const existingHold = await getExistingHold(sfiHoldCategory.holdCategoryId, FRN)
     expect(existingHold).toBeNull()
   })

@@ -9,7 +9,7 @@ const { RECOVERY_DATE } = require('../../../mocks/values/recovery-date')
 const { ADMINISTRATIVE, IRREGULAR } = require('../../../../app/constants/debt-types')
 const { AWAITING_DEBT_ENRICHMENT } = require('../../../../app/constants/hold-categories-names')
 
-const db = require('../../../../app/data')
+const db = require('../../../../app/database')
 
 const { prepareForReprocessing } = require('../../../../app/routing/prepare-for-reprocessing')
 
@@ -26,13 +26,13 @@ describe('prepare for reprocessing', () => {
     [IRREGULAR]
   ])('updates payment request with new debt type: %s', async (debtType) => {
     await prepareForReprocessing(paymentRequest, debtType, RECOVERY_DATE)
-    const updatedPaymentRequest = await db.paymentRequest.findOne({ where: { paymentRequestId: paymentRequest.paymentRequestId } })
+    const updatedPaymentRequest = await db.paymentRequest().where({ paymentRequestId: paymentRequest.paymentRequestId }).first()
     expect(updatedPaymentRequest.debtType).toEqual(debtType)
   })
 
   test('should update payment request with new recovery date', async () => {
     await prepareForReprocessing(paymentRequest, ADMINISTRATIVE, RECOVERY_DATE)
-    const updatedPaymentRequest = await db.paymentRequest.findOne({ where: { paymentRequestId: paymentRequest.paymentRequestId } })
+    const updatedPaymentRequest = await db.paymentRequest().where({ paymentRequestId: paymentRequest.paymentRequestId }).first()
     expect(updatedPaymentRequest.recoveryDate).toEqual(RECOVERY_DATE)
   })
 
