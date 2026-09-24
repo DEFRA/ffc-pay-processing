@@ -1,4 +1,5 @@
-const db = require('../../app/data')
+const db = require('../../app/database')
+const { toMetricColumns } = require('./metric-columns')
 const { getSchemeNameById } = require('./get-metrics-data')
 
 const parseIntOrZero = (value) => {
@@ -32,22 +33,19 @@ const saveMetrics = async (results, period, snapshotDate, startDate, endDate, ye
   for (const result of results) {
     const metricRecord = createMetricRecord(result, period, snapshotDate, startDate, endDate, year, month)
 
-    const existing = await db.metric.findOne({
-      where: {
+    const existing = await db.metric()
+      .select('id')
+      .where(toMetricColumns({
         periodType: metricRecord.periodType,
         schemeName: metricRecord.schemeName,
         schemeYear: metricRecord.schemeYear,
         monthInYear: metricRecord.monthInYear
-      }
-    })
+      }))
+      .first()
     if (existing) {
-      await db.metric.update(metricRecord, {
-        where: {
-          id: existing.id
-        }
-      })
+      await db.metric().where({ id: existing.id }).update(toMetricColumns(metricRecord))
     } else {
-      await db.metric.create(metricRecord)
+      await db.metric().insert(toMetricColumns(metricRecord))
     }
   }
 }

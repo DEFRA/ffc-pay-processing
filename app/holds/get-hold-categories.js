@@ -1,15 +1,14 @@
-const db = require('../data')
+const db = require('../database')
 
 const getHoldCategories = async () => {
-  return db.holdCategory.findAll({
-    include: [{
-      model: db.scheme,
-      as: 'scheme',
-      attributes: []
-    }],
-    raw: true,
-    attributes: ['holdCategoryId', 'name', [db.Sequelize.col('scheme.schemeId'), 'schemeId'], [db.Sequelize.col('scheme.name'), 'schemeName']]
-  })
+  return db.holdCategory()
+    .leftJoin('schemes', 'holdCategories.schemeId', 'schemes.schemeId')
+    .select(
+      'holdCategories.holdCategoryId',
+      'holdCategories.name',
+      'schemes.schemeId',
+      { schemeName: 'schemes.name' }
+    )
 }
 
 module.exports = {

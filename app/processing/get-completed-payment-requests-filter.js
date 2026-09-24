@@ -1,38 +1,47 @@
-const db = require('../data')
 const { BPS, CS } = require('../constants/schemes')
 
-const getCompletedPaymentRequestsFilter = (paymentRequest) => {
-  const defaultFilter = {
-    paymentRequestNumber: paymentRequest.paymentRequestNumber === 0
-      ? { [db.Sequelize.Op.not]: null }
-      : { [db.Sequelize.Op.lt]: paymentRequest.paymentRequestNumber },
-    invalid: false
+const applyDefaultFilter = (query, paymentRequest) => {
+  if (paymentRequest.paymentRequestNumber === 0) {
+    query.whereNotNull('paymentRequestNumber')
+  } else {
+    query.where('paymentRequestNumber', '<', paymentRequest.paymentRequestNumber)
   }
+  query.where({ invalid: false })
+}
+
+const getCompletedPaymentRequestsFilter = (paymentRequest) => {
   switch (paymentRequest.schemeId) {
     case BPS:
-      return {
-        ...defaultFilter,
-        schemeId: paymentRequest.schemeId,
-        frn: paymentRequest.frn,
-        marketingYear: paymentRequest.marketingYear
+      return (query) => {
+        applyDefaultFilter(query, paymentRequest)
+        query.where({
+          schemeId: paymentRequest.schemeId,
+          frn: paymentRequest.frn,
+          marketingYear: paymentRequest.marketingYear
+        })
       }
     case CS:
-      return {
-        ...defaultFilter,
-        schemeId: paymentRequest.schemeId,
-        frn: paymentRequest.frn,
-        [db.Sequelize.Op.or]: [
-          { contractNumber: paymentRequest.contractNumber },
-          db.Sequelize.where(db.Sequelize.fn('replace', db.Sequelize.col('contractNumber'), 'A0', 'A'), paymentRequest.contractNumber?.replaceAll('A0', 'A'))
-        ]
+      return (query) => {
+        applyDefaultFilter(query, paymentRequest)
+        query.where({
+          schemeId: paymentRequest.schemeId,
+          frn: paymentRequest.frn
+        })
+        query.where((contractQuery) => {
+          contractQuery
+            .where({ contractNumber: paymentRequest.contractNumber })
+            .orWhereRaw('replace("contractNumber", \'A0\', \'A\') = ?', [paymentRequest.contractNumber?.replaceAll('A0', 'A')])
+        })
       }
     default:
-      return {
-        ...defaultFilter,
-        schemeId: paymentRequest.schemeId,
-        frn: paymentRequest.frn,
-        marketingYear: paymentRequest.marketingYear,
-        agreementNumber: paymentRequest.agreementNumber
+      return (query) => {
+        applyDefaultFilter(query, paymentRequest)
+        query.where({
+          schemeId: paymentRequest.schemeId,
+          frn: paymentRequest.frn,
+          marketingYear: paymentRequest.marketingYear,
+          agreementNumber: paymentRequest.agreementNumber
+        })
       }
   }
 }

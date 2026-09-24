@@ -1,7 +1,7 @@
-const db = require('../data')
+const db = require('../database')
 
 const getSchemes = async () => {
-  return db.scheme.findAll()
+  return db.scheme()
 }
 
 module.exports = {

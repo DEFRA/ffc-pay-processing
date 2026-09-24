@@ -1,5 +1,5 @@
 const { BPS } = require('../constants/schemes')
-const db = require('../data')
+const db = require('../database')
 
 const getExistingHold = async (autoHoldCategoryId, paymentRequest, transaction) => {
   const { frn, marketingYear, agreementNumber, contractNumber, schemeId } = paymentRequest
@@ -8,10 +8,7 @@ const getExistingHold = async (autoHoldCategoryId, paymentRequest, transaction) 
     where.agreementNumber = agreementNumber
     where.contractNumber = contractNumber
   }
-  return db.autoHold.findOne({
-    transaction,
-    where
-  })
+  return (await db.autoHold(transaction ?? undefined).where(where).first()) ?? null
 }
 
 module.exports = {

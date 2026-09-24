@@ -1,12 +1,9 @@
-const db = require('../data')
+const db = require('../database')
 
 const removeCompletedPaymentRequests = async (completedPaymentRequestIds, transaction) => {
-  await db.completedPaymentRequest.destroy({
-    where: {
-      completedPaymentRequestId: { [db.Sequelize.Op.in]: completedPaymentRequestIds }
-    },
-    transaction
-  })
+  await db.completedPaymentRequest(transaction ?? undefined)
+    .whereIn('completedPaymentRequestId', completedPaymentRequestIds)
+    .del()
 }
 
 module.exports = {
