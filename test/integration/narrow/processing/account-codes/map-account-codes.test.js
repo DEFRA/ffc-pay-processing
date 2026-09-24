@@ -1,4 +1,4 @@
-const { SFI, MANUAL } = require('../../../../../app/constants/schemes')
+const { getSchemeIds } = require('ffc-pay-schemes')
 const { AP, AR } = require('../../../../../app/constants/ledgers')
 const { ADMINISTRATIVE, IRREGULAR } = require('../../../../../app/constants/debt-types')
 const { SOS710 } = require('../../../../../app/constants/account-codes/ap')
@@ -6,6 +6,8 @@ const { SOS750 } = require('../../../../../app/constants/account-codes/ar-admin'
 const { SOS770 } = require('../../../../../app/constants/account-codes/ar-irregular')
 
 const { mapAccountCodes } = require('../../../../../app/processing/account-codes/map-account-codes')
+
+const { SFI, MANUAL } = getSchemeIds()
 
 const accountCodeAP = SOS710
 const accountCodeARAdm = SOS750

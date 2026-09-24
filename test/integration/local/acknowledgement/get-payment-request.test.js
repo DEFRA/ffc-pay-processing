@@ -6,7 +6,21 @@ const { getPaymentRequest } = require('../../../../app/acknowledgement/get-payme
 
 describe('acknowledge payment request', () => {
   beforeEach(async () => {
-    await resetDatabase()
+    try {
+      await resetDatabase()
+    } catch (error) {
+      console.error({
+        message: error.message,
+        name: error.name,
+        parentMessage: error.parent?.message,
+        originalMessage: error.original?.message,
+        detail: error.parent?.detail,
+        constraint: error.parent?.constraint,
+        table: error.parent?.table
+      })
+
+      throw error
+    }
     await savePaymentRequest(paymentRequest, true)
   })
 

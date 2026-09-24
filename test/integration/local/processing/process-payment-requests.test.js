@@ -42,7 +42,21 @@ describe('process payment requests', () => {
     jest.clearAllMocks()
     processingConfig.useManualLedgerCheck = false
     processingConfig.handleSchemeClosures = false
-    await resetDatabase()
+    try {
+      await resetDatabase()
+    } catch (error) {
+      console.error({
+        message: error.message,
+        name: error.name,
+        parentMessage: error.parent?.message,
+        originalMessage: error.original?.message,
+        detail: error.parent?.detail,
+        constraint: error.parent?.constraint,
+        table: error.parent?.table
+      })
+
+      throw error
+    }
     paymentRequest = JSON.parse(JSON.stringify(require('../../../mocks/payment-requests/payment-request')))
   })
 

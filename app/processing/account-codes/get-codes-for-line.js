@@ -1,5 +1,7 @@
-const { CS } = require('../../constants/schemes')
+const { getSchemeIds } = require('ffc-pay-schemes')
 const { isCapital } = require('../is-capital')
+
+const { CS } = getSchemeIds()
 
 const getCodesForLine = (schemeId, lineCode, invoiceLine, accountCodeMap) => {
   if (schemeId === CS) {

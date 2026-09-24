@@ -1,4 +1,11 @@
-const { SFI23, SFI } = require('../../../../app/constants/schemes')
+jest.mock('ffc-pay-schemes', () => ({
+  getSchemeIds: jest.fn(() => ({
+    SFI23: 12,
+    SFI: 1
+  }))
+}))
+const { getSchemeIds } = require('ffc-pay-schemes')
+const { SFI23, SFI } = getSchemeIds()
 const { removeSettledSFI23AdvancePayments } = require('../../../../app/processing/due-dates/remove-settled-sfi23-advance-payments')
 
 describe('removeSettledSFI23AdvancePayments', () => {

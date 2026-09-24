@@ -1,102 +1,99 @@
-const { resetDatabase, closeDatabaseConnection } = require('../../helpers')
-const { BPS } = require('../../../app/constants/schemes')
+jest.mock('ffc-pay-schemes', () => ({
+  getSchemeIds: jest.fn(() => ({ BPS: 5 }))
+}))
 
-jest.mock('../../../app/data')
+jest.mock('../../../app/data', () => ({
+  autoHold: {
+    findOne: jest.fn()
+  }
+}))
+
 const db = require('../../../app/data')
-
 const { getExistingHold } = require('../../../app/auto-hold/get-existing-hold')
 
 describe('getExistingHold', () => {
-  const mockFindOne = jest.fn()
-  const mockTransaction = {}
+  const transaction = { id: 'transaction-1' }
+  const categoryId = 1
+  const basePaymentRequest = {
+    frn: '1234567890',
+    marketingYear: 2023,
+    agreementNumber: 'SIP00001',
+    contractNumber: 'CONT001'
+  }
 
-  beforeEach(async () => {
+  beforeEach(() => {
     jest.clearAllMocks()
-    await resetDatabase()
-    db.autoHold.findOne = mockFindOne
   })
 
-  test('should call findOne with correct parameters for BPS scheme', async () => {
-    const autoHoldCategoryId = 1
+  test('finds a BPS hold without agreement or contract numbers', async () => {
     const paymentRequest = {
-      frn: '1234567890',
-      marketingYear: 2023,
-      agreementNumber: 'SIP00001',
-      contractNumber: 'CONT001',
-      schemeId: BPS
+      ...basePaymentRequest,
+      schemeId: 5
     }
 
-    await getExistingHold(autoHoldCategoryId, paymentRequest, mockTransaction)
+    await getExistingHold(categoryId, paymentRequest, transaction)
 
-    expect(mockFindOne).toHaveBeenCalledWith({
-      transaction: mockTransaction,
+    expect(db.autoHold.findOne).toHaveBeenCalledWith({
+      transaction,
       where: {
-        autoHoldCategoryId: 1,
-        frn: '1234567890',
-        marketingYear: 2023,
+        autoHoldCategoryId: categoryId,
+        frn: paymentRequest.frn,
+        marketingYear: paymentRequest.marketingYear,
         closed: null
       }
     })
   })
 
-  test('should call findOne with correct parameters for non-BPS scheme', async () => {
-    const autoHoldCategoryId = 1
+  test('finds a non-BPS hold with agreement and contract numbers', async () => {
     const paymentRequest = {
-      frn: '1234567890',
-      marketingYear: 2023,
-      agreementNumber: 'SIP00001',
-      contractNumber: 'CONT001',
-      schemeId: 'SFI'
+      ...basePaymentRequest,
+      schemeId: 1
     }
 
-    await getExistingHold(autoHoldCategoryId, paymentRequest, mockTransaction)
+    await getExistingHold(categoryId, paymentRequest, transaction)
 
-    expect(mockFindOne).toHaveBeenCalledWith({
-      transaction: mockTransaction,
+    expect(db.autoHold.findOne).toHaveBeenCalledWith({
+      transaction,
       where: {
-        autoHoldCategoryId: 1,
-        frn: '1234567890',
-        marketingYear: 2023,
+        autoHoldCategoryId: categoryId,
+        frn: paymentRequest.frn,
+        marketingYear: paymentRequest.marketingYear,
         closed: null,
-        agreementNumber: 'SIP00001',
-        contractNumber: 'CONT001'
+        agreementNumber: paymentRequest.agreementNumber,
+        contractNumber: paymentRequest.contractNumber
       }
     })
   })
 
-  test('should return the result of findOne', async () => {
-    const mockHold = { id: 1, frn: '1234567890' }
-    mockFindOne.mockResolvedValue(mockHold)
+  test('returns the existing hold', async () => {
+    const existingHold = { id: 1, frn: basePaymentRequest.frn }
+    db.autoHold.findOne.mockResolvedValue(existingHold)
 
-    const autoHoldCategoryId = 1
-    const paymentRequest = {
-      frn: '1234567890',
-      marketingYear: 2023,
-      schemeId: BPS
-    }
+    const result = await getExistingHold(
+      categoryId,
+      { ...basePaymentRequest, schemeId: 5 },
+      transaction
+    )
 
-    const result = await getExistingHold(autoHoldCategoryId, paymentRequest, mockTransaction)
-
-    expect(result).toBe(mockHold)
+    expect(result).toBe(existingHold)
   })
 
-  test('should handle null transaction', async () => {
-    const autoHoldCategoryId = 1
+  test('passes an undefined transaction when none is supplied', async () => {
     const paymentRequest = {
-      frn: '1234567890',
-      marketingYear: 2023,
-      schemeId: BPS
+      ...basePaymentRequest,
+      schemeId: 5
     }
 
-    await getExistingHold(autoHoldCategoryId, paymentRequest)
+    await getExistingHold(categoryId, paymentRequest)
 
-    expect(mockFindOne).toHaveBeenCalledWith({
+    expect(db.autoHold.findOne).toHaveBeenCalledWith({
       transaction: undefined,
-      where: expect.any(Object)
+      where: {
+        autoHoldCategoryId: categoryId,
+        frn: paymentRequest.frn,
+        marketingYear: paymentRequest.marketingYear,
+        closed: null
+      }
     })
-  })
-
-  afterAll(async () => {
-    await closeDatabaseConnection()
   })
 })

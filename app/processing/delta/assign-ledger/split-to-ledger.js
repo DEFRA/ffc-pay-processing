@@ -1,4 +1,4 @@
-const { createSplitInvoiceNumber } = require('../invoice-number')
+const { createSplitInvoiceNumber } = require('ffc-pay-schemes')
 const { AP } = require('../../../constants/ledgers')
 const { ensureValueConsistency } = require('./ensure-value-consistency')
 const { calculateInvoiceLineValues } = require('./calculate-invoice-line-values')

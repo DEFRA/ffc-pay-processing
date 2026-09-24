@@ -3,7 +3,11 @@ const { ADMINISTRATIVE, IRREGULAR } = require('../../../../app/constants/debt-ty
 
 const { selectLineCode } = require('../../../../app/processing/account-codes/select-line-code')
 
-const accountCodes = require('../../../../app/processing/account-codes/maps/sfi')
+const accountCodes = {
+  ap: 'ap',
+  arAdmin: 'ar-admin',
+  arIrregular: 'ar-irregular'
+}
 
 let ledger
 let debtType

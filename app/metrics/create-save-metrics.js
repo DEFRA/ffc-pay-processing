@@ -1,12 +1,12 @@
+const { getSchemeNameFromSchemeId } = require('ffc-pay-schemes')
 const db = require('../../app/data')
-const { getSchemeNameById } = require('./get-metrics-data')
 
 const parseIntOrZero = (value) => {
   return Number.parseInt(value) || 0
 }
 
 const createMetricRecord = (result, period, snapshotDate, startDate, endDate, year, month = null) => {
-  const schemeName = getSchemeNameById(result.schemeId)
+  const schemeName = getSchemeNameFromSchemeId(result.schemeId)
   return {
     snapshotDate,
     periodType: period,

@@ -1,5 +1,7 @@
-const { VET_VISITS } = require('../../../app/constants/schemes')
+const { getSchemeIds } = require('ffc-pay-schemes')
 const scheme = require('./scheme')
+
+const { VET_VISITS } = getSchemeIds()
 
 module.exports = {
   ...scheme,

@@ -1,5 +1,7 @@
-const { SFI26 } = require('../../../app/constants/schemes')
+const { getSchemeIds } = require('ffc-pay-schemes')
 const paymentRequest = require('./payment-request')
+
+const { SFI26 } = getSchemeIds()
 
 module.exports = {
   ...paymentRequest,
