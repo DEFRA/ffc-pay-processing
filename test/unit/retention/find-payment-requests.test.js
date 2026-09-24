@@ -1,4 +1,5 @@
 const { createKnexMock } = require('../../helpers/mock-knex')
+const { MANUAL } = require('../../../app/constants/schemes')
 
 const mockDb = createKnexMock(['paymentRequest'])
 
@@ -25,7 +26,7 @@ describe('findPaymentRequests', () => {
     const mockResult = [{ paymentRequestId: 201 }, { paymentRequestId: 202 }]
     mockDb.builder.resolves(mockResult)
 
-    const result = await findPaymentRequests(agreementNumber, frn, schemeId, false, mockDb.trx)
+    const result = await findPaymentRequests(agreementNumber, frn, schemeId, false, undefined, mockDb.trx)
 
     expect(mockDb.tables.paymentRequest).toHaveBeenCalledWith(mockDb.trx)
     expect(mockDb.builder.select).toHaveBeenCalledWith('paymentRequestId')
@@ -34,20 +35,38 @@ describe('findPaymentRequests', () => {
   })
 
   test('selects payment request ids by contract number when usesContractNumber is true', async () => {
-    await findPaymentRequests(agreementNumber, frn, schemeId, true, mockDb.trx)
+    await findPaymentRequests(agreementNumber, frn, schemeId, true, undefined, mockDb.trx)
 
     expect(mockDb.builder.where).toHaveBeenCalledWith({ contractNumber: agreementNumber, frn, schemeId })
   })
 
   test.each([undefined, null])('runs outside a transaction when transaction is %s', async (transaction) => {
-    await findPaymentRequests(agreementNumber, frn, schemeId, false, transaction)
+    await findPaymentRequests(agreementNumber, frn, schemeId, false, undefined, transaction)
 
     expect(mockDb.tables.paymentRequest).toHaveBeenCalledWith(undefined)
+  })
+
+  test('includes pillar in where when scheme is manual', async () => {
+    await findPaymentRequests(agreementNumber, frn, MANUAL, false, 'SFI23', mockDb.trx)
+
+    expect(mockDb.builder.where).toHaveBeenCalledWith({ agreementNumber, frn, schemeId: MANUAL, pillar: 'SFI23' })
+  })
+
+  test('omits pillar from where when scheme is manual but no pillar supplied', async () => {
+    await findPaymentRequests(agreementNumber, frn, MANUAL, false, undefined, mockDb.trx)
+
+    expect(mockDb.builder.where).toHaveBeenCalledWith({ agreementNumber, frn, schemeId: MANUAL })
+  })
+
+  test('ignores pillar when scheme is not manual', async () => {
+    await findPaymentRequests(agreementNumber, frn, schemeId, false, 'SFI23', mockDb.trx)
+
+    expect(mockDb.builder.where).toHaveBeenCalledWith({ agreementNumber, frn, schemeId })
   })
 
   test('propagates errors from the query', async () => {
     mockDb.builder.rejects(new Error('DB failure'))
 
-    await expect(findPaymentRequests(agreementNumber, frn, schemeId, false, mockDb.trx)).rejects.toThrow('DB failure')
+    await expect(findPaymentRequests(agreementNumber, frn, schemeId, false, undefined, mockDb.trx)).rejects.toThrow('DB failure')
   })
 })
