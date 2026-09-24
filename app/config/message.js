@@ -76,7 +76,7 @@ const config = {
   processingSubscription: {
     address: process.env.PROCESSING_SUBSCRIPTION_ADDRESS,
     topic: process.env.PROCESSING_TOPIC_ADDRESS,
-    maxConcurrentCalls: process.env.PROCESSING_SUBSCRIPTION_MAX_CONCURRENT_CALLS ? Number.parseInt(process.env.PROCESSING_SUBSCRIPTION_MAX_CONCURRENT_CALLS) : undefined
+    maxConcurrentCalls: process.env.PROCESSING_SUBSCRIPTION_MAX_CONCURRENT_CALLS ? Number.Number.parseInt(process.env.PROCESSING_SUBSCRIPTION_MAX_CONCURRENT_CALLS) : undefined
   },
   acknowledgementSubscription: {
     address: process.env.ACKNOWLEDGEMENT_SUBSCRIPTION_ADDRESS,

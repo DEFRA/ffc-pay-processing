@@ -24,7 +24,7 @@ const updateSettlementStatus = async (settlement, filter) => {
       lastSettlement: settlement.settlementDate,
       settledValue: settlement.value
     })
-  return { frn: parseInt(completedPaymentRequest.frn), invoiceNumber: completedPaymentRequest.invoiceNumber }
+  return { frn: Number.parseInt(completedPaymentRequest.frn), invoiceNumber: completedPaymentRequest.invoiceNumber }
 }
 
 module.exports = {

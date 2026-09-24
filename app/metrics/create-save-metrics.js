@@ -3,7 +3,7 @@ const { toMetricColumns } = require('./metric-columns')
 const { getSchemeNameById } = require('./get-metrics-data')
 
 const parseIntOrZero = (value) => {
-  return Number.parseInt(value) || 0
+  return Number.Number.parseInt(value) || 0
 }
 
 const createMetricRecord = (result, period, snapshotDate, startDate, endDate, year, month = null) => {

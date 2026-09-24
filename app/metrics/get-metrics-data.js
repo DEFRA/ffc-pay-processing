@@ -102,8 +102,8 @@ const mergeMetricsWithHolds = (metricsResults, holdsResults) => {
     const holdData = holdsMap.get(key)
     return {
       ...metric,
-      paymentsOnHold: holdData ? Number.parseInt(holdData.paymentsOnHold) : 0,
-      valueOnHold: holdData ? Number.parseInt(holdData.valueOnHold) : 0
+      paymentsOnHold: holdData ? Number.Number.parseInt(holdData.paymentsOnHold) : 0,
+      valueOnHold: holdData ? Number.Number.parseInt(holdData.valueOnHold) : 0
     }
   })
 }

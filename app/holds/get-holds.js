@@ -50,7 +50,7 @@ const getHolds = async (pageProperties, open = true) => {
   if (pageNumber && pageSize) {
     pageNumber = Number(pageNumber)
     pageSize = Number(pageSize)
-    if (!isNaN(pageNumber) && !isNaN(pageSize)) {
+    if (!Number.isNaN(pageNumber) && !Number.isNaN(pageSize)) {
       const offset = (pageNumber - 1) * pageSize
       const paginatedResults = mergedResults.slice(offset, offset + pageSize)
       return paginatedResults
