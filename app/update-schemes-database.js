@@ -27,8 +27,8 @@ const updateSchemesDatabase = async () => {
       console.log('Required D365 holds added')
       // If the scheme supports PPAs, we also need the Request Editor hold categories
       if (!schemeDoesNotRequirePPAs(schemeId)) {
-        await addHoldType(AWAITING_DEBT_ENRICHMENT, schemeId)
-        await addHoldType(AWAITING_LEDGER_CHECK, schemeId)
+        await db.autoHoldCategory.create({ name: AWAITING_DEBT_ENRICHMENT, schemeId })
+        await db.autoHoldCategory.create({ name: AWAITING_LEDGER_CHECK, schemeId })
         console.log('Scheme supports PPAs - required Request Editor holds added')
       }
     }
