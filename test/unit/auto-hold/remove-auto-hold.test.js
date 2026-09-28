@@ -2,15 +2,15 @@ jest.mock('ffc-pay-schemes', () => ({
   getSchemeIds: jest.fn(() => ({ BPS: 6 }))
 }))
 
-jest.mock('../../../app/data', () => ({
-  autoHold: {
-    findOne: jest.fn(),
-    update: jest.fn()
-  },
-  autoHoldCategory: {
-    findOne: jest.fn(),
-    update: jest.fn()
-  }
+const { createKnexMock } = require('../../helpers/mock-knex')
+
+const mockDb = createKnexMock(['autoHold'])
+
+jest.mock('../../../app/database', () => ({
+  client: mockDb.knex,
+  transaction: mockDb.transaction,
+  close: mockDb.close,
+  ...mockDb.tables
 }))
 
 jest.mock('../../../app/auto-hold/get-hold-category-id', () => ({
@@ -21,7 +21,6 @@ jest.mock('../../../app/event', () => ({
   sendHoldEvent: jest.fn()
 }))
 
-const db = require('../../../app/data')
 const { getHoldCategoryId } = require('../../../app/auto-hold/get-hold-category-id')
 const { removeAutoHold } = require('../../../app/auto-hold/remove-auto-hold')
 const { sendHoldEvent } = require('../../../app/event')
@@ -52,7 +51,7 @@ describe('removeAutoHold', () => {
       closed: null
     }
 
-    db.autoHold.findOne.mockResolvedValue(hold)
+    mockDb.builder.resolves(hold)
 
     await removeAutoHold(paymentRequest, 'hold-category')
 
@@ -69,13 +68,10 @@ describe('removeAutoHold', () => {
       paymentRequest.schemeId,
       'hold-category'
     )
-    expect(db.autoHold.findOne).toHaveBeenCalledWith({ where, raw: true })
-    expect(db.autoHold.update).toHaveBeenCalledWith(
-      { closed: expect.any(Date) },
-      { where }
-    )
+    expect(mockDb.builder.where).toHaveBeenCalledWith(where)
+    expect(mockDb.builder.update).toHaveBeenCalledWith({ closed: expect.any(Date) })
 
-    const closed = db.autoHold.update.mock.calls[0][0].closed
+    const closed = mockDb.builder.update.mock.calls[0][0].closed
 
     expect(sendHoldEvent).toHaveBeenCalledWith(
       { ...hold, closed },
@@ -97,7 +93,7 @@ describe('removeAutoHold', () => {
       closed: null
     }
 
-    db.autoHold.findOne.mockResolvedValue(hold)
+    mockDb.builder.resolves(hold)
 
     await removeAutoHold(bpsPaymentRequest, 'hold-category')
 
@@ -108,19 +104,16 @@ describe('removeAutoHold', () => {
       closed: null
     }
 
-    expect(db.autoHold.findOne).toHaveBeenCalledWith({ where, raw: true })
-    expect(db.autoHold.update).toHaveBeenCalledWith(
-      { closed: expect.any(Date) },
-      { where }
-    )
+    expect(mockDb.builder.where).toHaveBeenCalledWith(where)
+    expect(mockDb.builder.update).toHaveBeenCalledWith({ closed: expect.any(Date) })
   })
 
   test('does not update or publish an event when no auto-hold exists', async () => {
-    db.autoHold.findOne.mockResolvedValue(null)
+    mockDb.builder.resolves(undefined)
 
     await removeAutoHold(paymentRequest, 'hold-category')
 
-    expect(db.autoHold.update).not.toHaveBeenCalled()
+    expect(mockDb.builder.update).not.toHaveBeenCalled()
     expect(sendHoldEvent).not.toHaveBeenCalled()
   })
 })
