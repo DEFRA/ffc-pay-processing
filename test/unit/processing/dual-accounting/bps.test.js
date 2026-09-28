@@ -1,4 +1,10 @@
-const { BPS } = require('../../../../app/constants/schemes')
+jest.mock('ffc-pay-schemes', () => ({
+  getSchemeIds: jest.fn(() => ({
+    BPS: 6
+  }))
+}))
+const { getSchemeIds } = require('ffc-pay-schemes')
+const { BPS } = getSchemeIds()
 const { DOM00, DOM01, DOM10 } = require('../../../../app/constants/domestic-fund-codes')
 const { applyBPSDualAccounting } = require('../../../../app/processing/dual-accounting/bps')
 

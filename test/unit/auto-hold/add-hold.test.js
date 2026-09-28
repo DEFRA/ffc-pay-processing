@@ -1,74 +1,87 @@
-const { resetDatabase, closeDatabaseConnection } = require('../../helpers')
-const { BPS } = require('../../../app/constants/schemes')
+jest.mock('ffc-pay-schemes', () => ({
+  getSchemeIds: jest.fn(() => ({ BPS: 5 }))
+}))
 
-jest.mock('../../../app/event')
-const { sendHoldEvent: mockSendHoldEvent } = require('../../../app/event')
+const { createKnexMock } = require('../../helpers/mock-knex')
 
-const { FRN } = require('../../mocks/values/frn')
+const mockDb = createKnexMock(['autoHold'])
 
-const { ADDED } = require('../../../app/constants/hold-statuses')
+jest.mock('../../../app/database', () => ({
+  client: mockDb.knex,
+  transaction: mockDb.transaction,
+  close: mockDb.close,
+  ...mockDb.tables
+}))
 
-const db = require('../../../app/database')
+jest.mock('../../../app/event', () => ({
+  sendHoldEvent: jest.fn()
+}))
 
 const { addHold } = require('../../../app/auto-hold/add-hold')
-const paymentRequest = require('../../mocks/payment-requests/payment-request')
-
-const holdCategoryId = 1
+const { sendHoldEvent } = require('../../../app/event')
+const { ADDED } = require('../../../app/constants/hold-statuses')
 
 describe('add auto hold', () => {
-  beforeEach(async () => {
+  const paymentRequest = {
+    frn: 1234567890,
+    marketingYear: 2024,
+    agreementNumber: 'AGREEMENT-1',
+    contractNumber: 'CONTRACT-1',
+    schemeId: 1
+  }
+
+  const categoryId = 1
+  const hold = { id: 10, ...paymentRequest, autoHoldCategoryId: categoryId }
+
+  beforeEach(() => {
     jest.clearAllMocks()
-    await resetDatabase()
+    mockDb.builder.resolves([hold])
   })
 
-  test('should save new hold for non-BPS scheme', async () => {
-    const nonBpsPaymentRequest = { ...paymentRequest, schemeId: 'SFI' }
-    await addHold(nonBpsPaymentRequest, holdCategoryId)
-    const hold = await db.autoHold().where({ frn: FRN }).first()
-    expect(hold).toBeDefined()
-    expect(hold.agreementNumber).toBe(nonBpsPaymentRequest.agreementNumber)
-    expect(hold.contractNumber).toBe(nonBpsPaymentRequest.contractNumber)
-  })
-
-  test('should save new hold for BPS scheme without agreement and contract numbers', async () => {
-    const bpsPaymentRequest = { ...paymentRequest, schemeId: BPS }
-    await addHold(bpsPaymentRequest, holdCategoryId)
-    const hold = await db.autoHold().where({ frn: FRN }).first()
-    expect(hold).toBeDefined()
-    expect(hold.agreementNumber).toBeNull()
-    expect(hold.contractNumber).toBeNull()
-  })
-
-  test('should send hold added event with hold data', async () => {
-    await addHold(paymentRequest, holdCategoryId)
-    const hold = await db.autoHold().where({ frn: FRN }).first()
-    const plainHold = hold
-    expect(mockSendHoldEvent).toHaveBeenCalledWith(plainHold, ADDED)
-  })
-
-  test('should use provided transaction', async () => {
-    const transaction = await db.transaction()
-    await addHold(paymentRequest, holdCategoryId, transaction)
-    const holdInTransaction = await db.autoHold(transaction).where({ frn: FRN }).first()
-    expect(holdInTransaction).toBeDefined()
-    await transaction.rollback()
-    const holdAfterRollback = await db.autoHold().where({ frn: FRN }).first()
-    expect(holdAfterRollback).toBeUndefined()
-  })
-
-  test('should set correct fields', async () => {
+  test('creates a hold with agreement and contract numbers for non-BPS schemes', async () => {
     const before = new Date()
-    await addHold(paymentRequest, holdCategoryId)
+    await addHold(paymentRequest, categoryId)
     const after = new Date()
-    const hold = await db.autoHold().where({ frn: FRN }).first()
-    expect(Number(hold.frn)).toBe(paymentRequest.frn)
-    expect(hold.autoHoldCategoryId).toBe(holdCategoryId)
-    expect(hold.marketingYear).toBe(paymentRequest.marketingYear)
-    expect(hold.added.getTime()).toBeGreaterThanOrEqual(before.getTime())
-    expect(hold.added.getTime()).toBeLessThanOrEqual(after.getTime())
+
+    expect(mockDb.tables.autoHold).toHaveBeenCalledWith(undefined)
+    expect(mockDb.builder.insert).toHaveBeenCalledWith(expect.objectContaining({
+      frn: paymentRequest.frn,
+      autoHoldCategoryId: categoryId,
+      marketingYear: paymentRequest.marketingYear,
+      agreementNumber: paymentRequest.agreementNumber,
+      contractNumber: paymentRequest.contractNumber
+    }))
+    const [[insertedFields]] = mockDb.builder.insert.mock.calls
+    expect(insertedFields.added.getTime()).toBeGreaterThanOrEqual(before.getTime())
+    expect(insertedFields.added.getTime()).toBeLessThanOrEqual(after.getTime())
+    expect(mockDb.builder.returning).toHaveBeenCalledWith('*')
   })
 
-  afterAll(async () => {
-    await closeDatabaseConnection()
+  test('omits agreement and contract numbers for BPS schemes', async () => {
+    const bpsPaymentRequest = { ...paymentRequest, schemeId: 5 }
+
+    await addHold(bpsPaymentRequest, categoryId)
+
+    const [[insertedFields]] = mockDb.builder.insert.mock.calls
+    expect(insertedFields).toEqual({
+      frn: bpsPaymentRequest.frn,
+      autoHoldCategoryId: categoryId,
+      marketingYear: bpsPaymentRequest.marketingYear,
+      added: expect.any(Date)
+    })
+  })
+
+  test('uses the supplied transaction', async () => {
+    const transaction = { id: 'transaction-1' }
+
+    await addHold(paymentRequest, categoryId, transaction)
+
+    expect(mockDb.tables.autoHold).toHaveBeenCalledWith(transaction)
+  })
+
+  test('sends the hold added event using the inserted hold', async () => {
+    await addHold(paymentRequest, categoryId)
+
+    expect(sendHoldEvent).toHaveBeenCalledWith(hold, ADDED)
   })
 })

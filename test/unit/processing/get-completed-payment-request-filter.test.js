@@ -1,6 +1,7 @@
 const { createQueryBuilder } = require('../../helpers/mock-knex')
+const { getSchemeIds } = require('ffc-pay-schemes')
 
-const { SFI, BPS, CS } = require('../../../app/constants/schemes')
+const { SFI, BPS, CS } = getSchemeIds()
 const { getCompletedPaymentRequestsFilter } = require('../../../app/processing/get-completed-payment-requests-filter')
 
 let basePaymentRequest

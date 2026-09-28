@@ -1,7 +1,8 @@
+const { getSchemeIds } = require('ffc-pay-schemes')
 const { AP, AR } = require('../../../../../app/constants/ledgers')
 const { confirmDueDates } = require('../../../../../app/processing/due-dates/confirm-due-dates')
 const { Q4, T4, M12, Q1, Q3, Q2, Y2, T2 } = require('../../../../../app/constants/schedules')
-const { SFI23 } = require('../../../../../app/constants/schemes')
+const { SFI23 } = getSchemeIds()
 
 let currentDate
 

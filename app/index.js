@@ -5,6 +5,7 @@ const { start: startMessaging, stop: stopMessaging } = require('./messaging')
 const { start: startProcessing } = require('./processing')
 const { startMetricsPolling, stopMetricsPolling } = require('./metrics/metrics-polling')
 const { start: startServer } = require('./server')
+const { updateSchemesDatabase } = require('./update-schemes-database')
 
 process.on(['SIGTERM', 'SIGINT'], async () => {
   await stopMessaging()
@@ -14,6 +15,7 @@ process.on(['SIGTERM', 'SIGINT'], async () => {
 
 const startApp = async () => {
   await startServer()
+  await updateSchemesDatabase()
   if (processingConfig.active) {
     await startMessaging()
     await startProcessing()

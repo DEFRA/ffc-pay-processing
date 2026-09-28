@@ -1,5 +1,7 @@
-const { BPS } = require('../../../app/constants/schemes')
+const { getSchemeIds } = require('ffc-pay-schemes')
 const scheme = require('./scheme')
+
+const { BPS } = getSchemeIds()
 
 module.exports = {
   ...scheme,

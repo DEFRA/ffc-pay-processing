@@ -1,4 +1,6 @@
-const { SFI23 } = require('../../constants/schemes')
+const { getSchemeIds } = require('ffc-pay-schemes')
+
+const { SFI23 } = getSchemeIds()
 
 const getFirstPaymentRequest = (paymentRequests, previousPaymentRequests) => {
   const firstPaymentRequest = previousPaymentRequests?.find(x => x.paymentRequestNumber === 1)

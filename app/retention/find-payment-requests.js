@@ -1,5 +1,7 @@
+const { getSchemeIds } = require('ffc-pay-schemes')
 const db = require('../database')
-const { MANUAL } = require('../constants/schemes')
+
+const { MANUAL } = getSchemeIds()
 
 const findPaymentRequests = async (agreementNumber, frn, schemeId, usesContractNumber, pillar, transaction) => {
   const where = { agreementNumber, frn, schemeId }

@@ -1,3 +1,7 @@
+jest.mock('ffc-pay-schemes', () => ({
+  getSchemeNameFromSchemeId: jest.fn()
+}))
+
 const { createKnexMock } = require('../../helpers/mock-knex')
 
 const mockDb = createKnexMock(['metric'])
@@ -8,48 +12,110 @@ jest.mock('../../../app/database', () => ({
   close: mockDb.close,
   ...mockDb.tables
 }))
-jest.mock('../../../app/metrics/get-metrics-data', () => ({
-  getSchemeNameById: jest.fn()
-}))
-const { getSchemeNameById } = require('../../../app/metrics/get-metrics-data')
-const { parseIntOrZero, createMetricRecord, saveMetrics } = require('../../../app/metrics/create-save-metrics')
 
-describe('Create Save Metrics', () => {
+const { getSchemeNameFromSchemeId } = require('ffc-pay-schemes')
+const {
+  parseIntOrZero,
+  createMetricRecord,
+  saveMetrics
+} = require('../../../app/metrics/create-save-metrics')
+
+describe('create-save-metrics', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    getSchemeNameById.mockReturnValue('SFI')
+    getSchemeNameFromSchemeId.mockReturnValue('SFI')
     mockDb.builder.resolves(undefined)
   })
 
   describe('parseIntOrZero', () => {
-    test('should parse valid number', () => {
+    test('parses a valid integer', () => {
       expect(parseIntOrZero('10')).toBe(10)
+      expect(parseIntOrZero('10.5')).toBe(10)
     })
 
-    test('should return zero for invalid', () => {
+    test('returns zero for invalid or empty values', () => {
       expect(parseIntOrZero('abc')).toBe(0)
       expect(parseIntOrZero(null)).toBe(0)
+      expect(parseIntOrZero(undefined)).toBe(0)
+      expect(parseIntOrZero('')).toBe(0)
     })
   })
 
   describe('createMetricRecord', () => {
-    test('should create metric record with valid scheme', () => {
-      const result = createMetricRecord({}, 'period', '2023-01-01', null, null, 2023, 1)
-      expect(result.schemeName).toBe('SFI')
-      expect(result.periodType).toBe('period')
-      expect(result.schemeYear).toBe(2023)
-      expect(result.monthInYear).toBe(1)
+    test('creates a metric record with parsed values and metadata', () => {
+      const result = createMetricRecord(
+        {
+          schemeId: 1,
+          totalPayments: '10',
+          totalValue: '1000',
+          pendingPayments: '2',
+          pendingValue: '200',
+          processedPayments: '3',
+          processedValue: '300',
+          settledPayments: '4',
+          settledValue: '400',
+          paymentsOnHold: '1',
+          valueOnHold: '100'
+        },
+        'MONTH',
+        '2023-01-31',
+        '2023-01-01',
+        '2023-01-31',
+        2023,
+        1
+      )
+
+      expect(getSchemeNameFromSchemeId).toHaveBeenCalledWith(1)
+      expect(result).toEqual({
+        snapshotDate: '2023-01-31',
+        periodType: 'MONTH',
+        schemeName: 'SFI',
+        schemeYear: 2023,
+        monthInYear: 1,
+        totalPayments: 10,
+        totalValue: 1000,
+        pendingPayments: 2,
+        pendingValue: 200,
+        processedPayments: 3,
+        processedValue: 300,
+        settledPayments: 4,
+        settledValue: 400,
+        paymentsOnHold: 1,
+        valueOnHold: 100,
+        dataStartDate: '2023-01-01',
+        dataEndDate: '2023-01-31'
+      })
     })
 
-    test('should create metric record with unknown scheme', () => {
-      getSchemeNameById.mockReturnValue(null)
-      const result = createMetricRecord({}, 'period', '2023-01-01', null, null, 2023, 1)
-      expect(result.schemeName).toBe(null)
-    })
+    test('uses defaults and zero for missing values', () => {
+      const result = createMetricRecord(
+        { schemeId: 2 },
+        'YEAR',
+        '2023-12-31',
+        null,
+        null,
+        undefined
+      )
 
-    test('should handle invalid numbers', () => {
-      const result = createMetricRecord({ totalPayments: 'abc' }, 'period', '2023-01-01', null, null, 2023, 1)
+      expect(result.schemeYear).toBeNull()
+      expect(result.monthInYear).toBeNull()
       expect(result.totalPayments).toBe(0)
+      expect(result.totalValue).toBe(0)
+      expect(result.paymentsOnHold).toBe(0)
+    })
+
+    test('uses the returned scheme name', () => {
+      getSchemeNameFromSchemeId.mockReturnValue(null)
+
+      const result = createMetricRecord(
+        { schemeId: 99 },
+        'YEAR',
+        '2023-12-31',
+        null,
+        null
+      )
+
+      expect(result.schemeName).toBeNull()
     })
   })
 
@@ -84,6 +150,11 @@ describe('Create Save Metrics', () => {
       expect(mockDb.builder.where).toHaveBeenCalledWith({ id: 1 })
       expect(mockDb.builder.update).toHaveBeenCalledWith(expect.objectContaining({ period_type: 'period' }))
       expect(mockDb.builder.insert).not.toHaveBeenCalled()
+    })
+
+    test('saves every result', async () => {
+      await saveMetrics([{}, {}], 'period', '2023-01-01', null, null, 2023, 1)
+      expect(mockDb.tables.metric).toHaveBeenCalledTimes(4)
     })
   })
 })

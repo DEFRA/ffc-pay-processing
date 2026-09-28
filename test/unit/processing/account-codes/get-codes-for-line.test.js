@@ -1,72 +1,86 @@
-jest.mock('../../../../app/processing/is-capital')
-const { isCapital: mockIsCapital } = require('../../../../app/processing/is-capital')
+jest.mock('ffc-pay-schemes', () => ({
+  getSchemeIds: jest.fn(() => ({ CS: 5 }))
+}))
 
-const { G00, P24 } = require('../../../../app/constants/line-codes')
-const { SFI, CS } = require('../../../../app/constants/schemes')
-const sfi = require('../../../../app/processing/account-codes/maps/sfi')
-const cs = require('../../../../app/processing/account-codes/maps/cs')
+jest.mock('../../../../app/processing/is-capital', () => ({
+  isCapital: jest.fn()
+}))
 
 const { getCodesForLine } = require('../../../../app/processing/account-codes/get-codes-for-line')
+const { isCapital } = require('../../../../app/processing/is-capital')
 
-let accountCodeMap
-let schemeId
-let lineCode
-let schemeCode
-let stateAid
-let invoiceLine
+describe('getCodesForLine', () => {
+  const accountCodeMap = [
+    { lineCode: 'LINE-1', stateAid: true, code: 'STATE-AID' },
+    { lineCode: 'LINE-1', stateAid: false, capital: true, code: 'CAPITAL' },
+    { lineCode: 'LINE-1', stateAid: false, revenue: true, code: 'REVENUE' },
+    { lineCode: 'LINE-2', code: 'OTHER-SCHEME' }
+  ]
 
-describe('get codes for line', () => {
   beforeEach(() => {
-    mockIsCapital.mockReturnValue(false)
+    jest.clearAllMocks()
+  })
 
-    accountCodeMap = sfi
-    schemeId = SFI
-    lineCode = G00
-    schemeCode = '1234A'
-    stateAid = false
-    invoiceLine = {
-      schemeCode,
-      stateAid
+  test('returns the state aid account code for CS lines', () => {
+    const invoiceLine = {
+      stateAid: true,
+      schemeCode: 'SCHEME'
     }
+
+    const result = getCodesForLine(5, 'LINE-1', invoiceLine, accountCodeMap)
+
+    expect(result).toEqual(accountCodeMap[0])
+    expect(isCapital).not.toHaveBeenCalled()
   })
 
-  test('should return mapping for line code', () => {
-    const result = getCodesForLine(schemeId, lineCode, invoiceLine, accountCodeMap)
-    expect(result).toStrictEqual(accountCodeMap[0])
+  test('returns the capital account code for capital CS lines', () => {
+    isCapital.mockReturnValue(true)
+
+    const invoiceLine = {
+      stateAid: false,
+      schemeCode: 'SCHEME'
+    }
+
+    const result = getCodesForLine(5, 'LINE-1', invoiceLine, accountCodeMap)
+
+    expect(result).toEqual(accountCodeMap[1])
+    expect(isCapital).toHaveBeenCalledWith('SCHEME')
   })
 
-  test('should return undefined if no mapping for line code', () => {
-    lineCode = 'XXX'
-    const result = getCodesForLine(schemeId, lineCode, invoiceLine, accountCodeMap)
+  test('returns the revenue account code for non-capital CS lines', () => {
+    isCapital.mockReturnValue(false)
+
+    const invoiceLine = {
+      stateAid: false,
+      schemeCode: 'SCHEME'
+    }
+
+    const result = getCodesForLine(5, 'LINE-1', invoiceLine, accountCodeMap)
+
+    expect(result).toEqual(accountCodeMap[2])
+    expect(isCapital).toHaveBeenCalledWith('SCHEME')
+  })
+
+  test('returns the matching line code for non-CS schemes', () => {
+    const invoiceLine = {
+      stateAid: false,
+      schemeCode: 'SCHEME'
+    }
+
+    const result = getCodesForLine('OTHER-SCHEME', 'LINE-2', invoiceLine, accountCodeMap)
+
+    expect(result).toEqual(accountCodeMap[3])
+    expect(isCapital).not.toHaveBeenCalled()
+  })
+
+  test('returns undefined when no account code matches', () => {
+    const invoiceLine = {
+      stateAid: false,
+      schemeCode: 'SCHEME'
+    }
+
+    const result = getCodesForLine(5, 'UNKNOWN', invoiceLine, accountCodeMap)
+
     expect(result).toBeUndefined()
-  })
-
-  test('should return capital mapping for CS if capital', () => {
-    mockIsCapital.mockReturnValue(true)
-    lineCode = P24
-    schemeId = CS
-    accountCodeMap = cs
-    const result = getCodesForLine(schemeId, lineCode, invoiceLine, accountCodeMap)
-    expect(result.capital).toBeTruthy()
-    expect(result.revenue).toBeFalsy()
-  })
-
-  test('should return revenue mapping for CS if not capital', () => {
-    mockIsCapital.mockReturnValue(false)
-    lineCode = P24
-    schemeId = CS
-    accountCodeMap = cs
-    const result = getCodesForLine(schemeId, lineCode, invoiceLine, accountCodeMap)
-    expect(result.revenue).toBeTruthy()
-    expect(result.capital).toBeFalsy()
-  })
-
-  test('should return state aid mapping for CS if state aid', () => {
-    invoiceLine.stateAid = true
-    lineCode = P24
-    schemeId = CS
-    accountCodeMap = cs
-    const result = getCodesForLine(schemeId, lineCode, invoiceLine, accountCodeMap)
-    expect(result.stateAid).toBeTruthy()
   })
 })

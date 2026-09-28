@@ -1,6 +1,8 @@
-const { BPS, CS } = require('../../constants/schemes')
+const { getSchemeIds } = require('ffc-pay-schemes')
 const { applyBPSDualAccounting } = require('./bps')
 const { applyCSDualAccounting } = require('./cs')
+
+const { BPS, CS } = getSchemeIds()
 
 const applyDualAccounting = (paymentRequest, previousPaymentRequests) => {
   if (paymentRequest.schemeId === BPS) {

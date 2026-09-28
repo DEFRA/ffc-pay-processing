@@ -1,5 +1,6 @@
 const { createKnexMock } = require('../../helpers/mock-knex')
-const { MANUAL } = require('../../../app/constants/schemes')
+const { getSchemeIds } = require('ffc-pay-schemes')
+const { MANUAL } = getSchemeIds()
 
 const mockDb = createKnexMock(['paymentRequest'])
 

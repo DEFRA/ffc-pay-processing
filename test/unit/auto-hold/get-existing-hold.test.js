@@ -1,5 +1,11 @@
+jest.mock('ffc-pay-schemes', () => ({
+  getSchemeIds: jest.fn(() => ({ BPS: 5 }))
+}))
+
 const { createKnexMock } = require('../../helpers/mock-knex')
-const { BPS } = require('../../../app/constants/schemes')
+const { getSchemeIds } = require('ffc-pay-schemes')
+
+const { BPS } = getSchemeIds()
 
 const mockDb = createKnexMock(['autoHold'])
 
@@ -13,6 +19,13 @@ jest.mock('../../../app/database', () => ({
 const { getExistingHold } = require('../../../app/auto-hold/get-existing-hold')
 
 describe('getExistingHold', () => {
+  const basePaymentRequest = {
+    frn: '1234567890',
+    marketingYear: 2023,
+    agreementNumber: 'SIP00001',
+    contractNumber: 'CONT001'
+  }
+
   beforeEach(() => {
     jest.clearAllMocks()
     mockDb.builder.resolves(undefined)
@@ -20,13 +33,7 @@ describe('getExistingHold', () => {
 
   test('should query with correct parameters for BPS scheme', async () => {
     const autoHoldCategoryId = 1
-    const paymentRequest = {
-      frn: '1234567890',
-      marketingYear: 2023,
-      agreementNumber: 'SIP00001',
-      contractNumber: 'CONT001',
-      schemeId: BPS
-    }
+    const paymentRequest = { ...basePaymentRequest, schemeId: BPS }
 
     await getExistingHold(autoHoldCategoryId, paymentRequest, mockDb.trx)
 
@@ -42,13 +49,7 @@ describe('getExistingHold', () => {
 
   test('should query with correct parameters for non-BPS scheme', async () => {
     const autoHoldCategoryId = 1
-    const paymentRequest = {
-      frn: '1234567890',
-      marketingYear: 2023,
-      agreementNumber: 'SIP00001',
-      contractNumber: 'CONT001',
-      schemeId: 'SFI'
-    }
+    const paymentRequest = { ...basePaymentRequest, schemeId: 1 }
 
     await getExistingHold(autoHoldCategoryId, paymentRequest, mockDb.trx)
 
@@ -66,19 +67,19 @@ describe('getExistingHold', () => {
     const mockHold = { id: 1, frn: '1234567890' }
     mockDb.builder.resolves(mockHold)
 
-    const result = await getExistingHold(1, { frn: '1234567890', marketingYear: 2023, schemeId: BPS }, mockDb.trx)
+    const result = await getExistingHold(1, { ...basePaymentRequest, schemeId: BPS }, mockDb.trx)
 
     expect(result).toBe(mockHold)
   })
 
   test('should return null if no hold found', async () => {
-    const result = await getExistingHold(1, { frn: '1234567890', marketingYear: 2023, schemeId: BPS }, mockDb.trx)
+    const result = await getExistingHold(1, { ...basePaymentRequest, schemeId: BPS }, mockDb.trx)
 
     expect(result).toBeNull()
   })
 
   test.each([undefined, null])('should query outside a transaction when transaction is %s', async (transaction) => {
-    await getExistingHold(1, { frn: '1234567890', marketingYear: 2023, schemeId: BPS }, transaction)
+    await getExistingHold(1, { ...basePaymentRequest, schemeId: BPS }, transaction)
 
     expect(mockDb.tables.autoHold).toHaveBeenCalledWith(undefined)
     expect(mockDb.builder.where).toHaveBeenCalledWith(expect.any(Object))

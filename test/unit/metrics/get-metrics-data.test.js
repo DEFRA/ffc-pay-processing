@@ -3,17 +3,14 @@ jest.mock('../../../app/database', () => ({
     raw: jest.fn()
   }
 }))
-jest.mock('../../../app/constants/schemes', () => ({}))
 jest.mock('../../../app/metrics/build-metrics', () => ({
   buildMetricsQuery: jest.fn(),
   buildQueryWhereClausesAndReplacements: jest.fn()
 }))
 
 const db = require('../../../app/database')
-const schemes = require('../../../app/constants/schemes')
 const { buildMetricsQuery, buildQueryWhereClausesAndReplacements } = require('../../../app/metrics/build-metrics')
 const {
-  getSchemeNameById,
   getDateRangeForAll,
   getDateRangeForYTD,
   getDateRangeForYear,
@@ -23,16 +20,13 @@ const {
   fetchHoldsData,
   mergeMetricsWithHolds
 } = require('../../../app/metrics/get-metrics-data')
+
 describe('Get Metrics Data', () => {
   let mockMetricsResults
   let mockHoldsResults
 
   beforeEach(() => {
     jest.clearAllMocks()
-
-    schemes.SFI = 1
-    schemes.DP = 2
-    schemes.CSHTR = 3
 
     mockMetricsResults = [
       {
@@ -56,18 +50,6 @@ describe('Get Metrics Data', () => {
 
     buildMetricsQuery.mockReturnValue('SELECT * FROM metrics')
     buildQueryWhereClausesAndReplacements.mockReturnValue({ whereClauses: [], replacements: {} })
-  })
-
-  describe('getSchemeNameById', () => {
-    test('should return scheme name for valid id', () => {
-      expect(getSchemeNameById(1)).toBe('SFI')
-      expect(getSchemeNameById(2)).toBe('DP')
-      expect(getSchemeNameById(3)).toBe('CSHTR')
-    })
-
-    test('should return null for invalid id', () => {
-      expect(getSchemeNameById(999)).toBe(null)
-    })
   })
 
   describe('getDateRangeForAll', () => {

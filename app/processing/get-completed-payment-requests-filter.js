@@ -1,4 +1,6 @@
-const { BPS, CS } = require('../constants/schemes')
+const { getSchemeIds } = require('ffc-pay-schemes')
+
+const { BPS, CS } = getSchemeIds()
 
 const applyDefaultFilter = (query, paymentRequest) => {
   if (paymentRequest.paymentRequestNumber === 0) {
