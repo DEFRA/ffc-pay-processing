@@ -1,16 +1,17 @@
 const db = require('../database')
+const schemeIdTbl = schemeIdTbl
 
 const getHolds = async (pageProperties, open = true) => {
   let { pageNumber, pageSize } = pageProperties
   const holdsQuery = db.hold()
     .leftJoin('holdCategories', 'holds.holdCategoryId', 'holdCategories.holdCategoryId')
-    .leftJoin('schemes', 'holdCategories.schemeId', 'schemes.schemeId')
+    .leftJoin('schemes', 'holdCategories.schemeId', schemeIdTbl)
     .select(
       'holds.holdId',
       'holds.frn',
       {
         holdCategoryName: 'holdCategories.name',
-        holdCategorySchemeId: 'schemes.schemeId',
+        holdCategorySchemeId: schemeIdTbl,
         holdCategorySchemeName: 'schemes.name',
         dateTimeAdded: 'holds.added',
         dateTimeClosed: 'holds.closed'
@@ -19,13 +20,13 @@ const getHolds = async (pageProperties, open = true) => {
 
   const autoHoldsQuery = db.autoHold()
     .leftJoin('autoHoldCategories', 'autoHolds.autoHoldCategoryId', 'autoHoldCategories.autoHoldCategoryId')
-    .leftJoin('schemes', 'autoHoldCategories.schemeId', 'schemes.schemeId')
+    .leftJoin('schemes', 'autoHoldCategories.schemeId', schemeIdTbl)
     .select(
       { holdId: 'autoHolds.autoHoldId' },
       'autoHolds.frn',
       {
         holdCategoryName: 'autoHoldCategories.name',
-        holdCategorySchemeId: 'schemes.schemeId',
+        holdCategorySchemeId: schemeIdTbl,
         holdCategorySchemeName: 'schemes.name'
       },
       'autoHolds.marketingYear',
