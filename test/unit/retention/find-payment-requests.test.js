@@ -1,6 +1,7 @@
 const { findPaymentRequests } = require('../../../app/retention/find-payment-requests')
 const db = require('../../../app/data')
-const { MANUAL } = require('../../../app/constants/schemes')
+const { getSchemeIds } = require('ffc-pay-schemes')
+const { MANUAL } = getSchemeIds()
 
 jest.mock('../../../app/data', () => ({
   paymentRequest: {

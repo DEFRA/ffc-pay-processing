@@ -1,5 +1,3 @@
-const { startMetricsPolling, stopMetricsPolling } = require('../../../app/metrics/metrics-polling')
-
 jest.mock('../../../app/config')
 jest.mock('../../../app/metrics/metrics-calculator')
 jest.mock('moment')
@@ -7,163 +5,197 @@ jest.mock('moment')
 const config = require('../../../app/config')
 const { calculateAllMetrics } = require('../../../app/metrics/metrics-calculator')
 const moment = require('moment')
+const {
+  startMetricsPolling,
+  stopMetricsPolling
+} = require('../../../app/metrics/metrics-polling')
 
-describe('Metrics Polling', () => {
+describe('metrics-polling', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     jest.useFakeTimers()
+
     jest.spyOn(global, 'setInterval')
     jest.spyOn(global, 'setTimeout')
     jest.spyOn(global, 'clearInterval')
     jest.spyOn(global, 'clearTimeout')
+
     jest.spyOn(console, 'log').mockImplementation()
     jest.spyOn(console, 'error').mockImplementation()
+
     calculateAllMetrics.mockResolvedValue()
   })
 
   afterEach(() => {
+    stopMetricsPolling()
     jest.useRealTimers()
     jest.restoreAllMocks()
   })
 
+  const flushPromises = async () => {
+    await Promise.resolve()
+    await Promise.resolve()
+  }
+
+  const mockProductionTime = (delay = 3600000) => {
+    const mockNow = {
+      hour: jest.fn().mockReturnThis(),
+      minute: jest.fn().mockReturnThis(),
+      second: jest.fn().mockReturnThis(),
+      millisecond: jest.fn().mockReturnThis(),
+      isBefore: jest.fn().mockReturnValue(true),
+      diff: jest.fn().mockReturnValue(delay),
+      add: jest.fn().mockReturnThis(),
+      format: jest.fn().mockReturnValue('2023-01-01 04:00:00')
+    }
+
+    moment.mockReturnValue(mockNow)
+
+    return mockNow
+  }
+
   describe('startMetricsPolling', () => {
-    test('should start polling in dev mode', () => {
+    test('performs an initial calculation and starts development polling', () => {
       config.isDev = true
       config.metricsPollingInterval = 60000
 
       const result = startMetricsPolling()
 
-      expect(calculateAllMetrics).toHaveBeenCalled()
+      expect(calculateAllMetrics).toHaveBeenCalledTimes(1)
       expect(setInterval).toHaveBeenCalledWith(expect.any(Function), 60000)
       expect(console.log).toHaveBeenCalledWith('Starting metrics polling')
-      expect(console.log).toHaveBeenCalledWith('Metrics polling scheduled - interval: 60000ms (1 minutes)')
+      expect(console.log).toHaveBeenCalledWith(
+        'Metrics polling scheduled - interval: 60000ms (1 minutes)'
+      )
       expect(result).toBeDefined()
     })
 
-    test('should start polling in prod mode', () => {
+    test('performs an initial calculation and schedules production polling', () => {
       config.isDev = false
-      const mockNow = {
-        hour: jest.fn().mockReturnThis(),
-        minute: jest.fn().mockReturnThis(),
-        second: jest.fn().mockReturnThis(),
-        millisecond: jest.fn().mockReturnThis(),
-        isBefore: jest.fn().mockReturnValue(true),
-        diff: jest.fn().mockReturnValue(3600000),
-        add: jest.fn().mockReturnThis(),
-        format: jest.fn().mockReturnValue('2023-01-01 03:00:00')
-      }
-      moment.mockReturnValue(mockNow)
+      mockProductionTime()
 
       const result = startMetricsPolling()
 
-      expect(calculateAllMetrics).toHaveBeenCalled()
+      expect(calculateAllMetrics).toHaveBeenCalledTimes(1)
       expect(setTimeout).toHaveBeenCalledWith(expect.any(Function), 3600000)
       expect(console.log).toHaveBeenCalledWith('Starting metrics polling')
-      expect(console.log).toHaveBeenCalledWith('Metrics polling scheduled for 2023-01-01 03:00:00 (in 60 minutes)')
+      expect(console.log).toHaveBeenCalledWith(
+        'Metrics polling scheduled for 2023-01-01 04:00:00 (in 60 minutes)'
+      )
       expect(result).toBeDefined()
     })
 
-    test('should handle initial calculation error', async () => {
-      calculateAllMetrics.mockRejectedValue(new Error('error'))
+    test('logs an error when the initial calculation fails', async () => {
       config.isDev = true
       config.metricsPollingInterval = 60000
+      calculateAllMetrics.mockRejectedValueOnce(new Error('initial error'))
 
-      const result = startMetricsPolling()
-      await Promise.resolve()
+      startMetricsPolling()
+      await flushPromises()
 
-      expect(result).toBeDefined()
-      expect(console.error).toHaveBeenCalledWith('Initial metrics calculation failed:', expect.any(Error))
+      expect(console.error).toHaveBeenCalledWith(
+        'Initial metrics calculation failed:',
+        expect.any(Error)
+      )
+    })
+  })
+
+  describe('scheduled calculations', () => {
+    test('runs the scheduled development calculation', async () => {
+      config.isDev = true
+      config.metricsPollingInterval = 1000
+
+      calculateAllMetrics
+        .mockResolvedValueOnce()
+        .mockResolvedValueOnce()
+
+      startMetricsPolling()
+
+      await flushPromises()
+      jest.advanceTimersByTime(1000)
+      await flushPromises()
+
+      expect(calculateAllMetrics).toHaveBeenCalledTimes(2)
+    })
+
+    test('logs an error when a development calculation fails', async () => {
+      config.isDev = true
+      config.metricsPollingInterval = 1000
+
+      calculateAllMetrics
+        .mockResolvedValueOnce()
+        .mockRejectedValueOnce(new Error('scheduled error'))
+
+      startMetricsPolling()
+
+      await flushPromises()
+      jest.advanceTimersByTime(1000)
+      await flushPromises()
+
+      expect(console.error).toHaveBeenCalledWith(
+        'Scheduled metrics calculation failed:',
+        expect.any(Error)
+      )
+    })
+
+    test('logs an error when a production calculation fails', async () => {
+      config.isDev = false
+      mockProductionTime(1000)
+
+      calculateAllMetrics
+        .mockResolvedValueOnce()
+        .mockRejectedValueOnce(new Error('scheduled error'))
+
+      startMetricsPolling()
+
+      await flushPromises()
+      jest.advanceTimersByTime(1000)
+      await flushPromises()
+
+      expect(console.error).toHaveBeenCalledWith(
+        'Scheduled metrics calculation failed:',
+        expect.any(Error)
+      )
+    })
+
+    test('reschedules production polling after the scheduled calculation', async () => {
+      config.isDev = false
+      mockProductionTime(1000)
+
+      calculateAllMetrics
+        .mockResolvedValueOnce()
+        .mockResolvedValueOnce()
+
+      startMetricsPolling()
+
+      await flushPromises()
+      jest.advanceTimersByTime(1000)
+      await flushPromises()
+
+      expect(calculateAllMetrics).toHaveBeenCalledTimes(2)
+      expect(setTimeout).toHaveBeenCalledTimes(2)
     })
   })
 
   describe('stopMetricsPolling', () => {
-    test('should stop polling', () => {
+    test('clears development polling', () => {
       config.isDev = true
-      startMetricsPolling()
+      config.metricsPollingInterval = 60000
 
+      startMetricsPolling()
       stopMetricsPolling()
 
       expect(clearInterval).toHaveBeenCalled()
+      expect(clearTimeout).toHaveBeenCalled()
       expect(console.log).toHaveBeenCalledWith('Metrics polling stopped')
     })
 
-    test('should do nothing if not started', () => {
+    test('does nothing when polling has not started', () => {
       stopMetricsPolling()
 
       expect(clearInterval).not.toHaveBeenCalled()
       expect(clearTimeout).not.toHaveBeenCalled()
-    })
-  })
-
-  describe('scheduleNextRun behavior', () => {
-    test('should reschedule in prod after timeout', () => {
-      config.isDev = false
-      const mockNow = {
-        hour: jest.fn().mockReturnThis(),
-        minute: jest.fn().mockReturnThis(),
-        second: jest.fn().mockReturnThis(),
-        millisecond: jest.fn().mockReturnThis(),
-        isBefore: jest.fn().mockReturnValue(true),
-        diff: jest.fn().mockReturnValue(1000),
-        add: jest.fn().mockReturnThis(),
-        format: jest.fn().mockReturnValue('2023-01-01 03:00:00')
-      }
-      moment.mockReturnValue(mockNow)
-
-      startMetricsPolling()
-
-      jest.advanceTimersByTime(1000)
-
-      expect(calculateAllMetrics).toHaveBeenCalledTimes(2)
-    })
-
-    test('should run interval in dev', () => {
-      config.isDev = true
-      config.metricsPollingInterval = 1000
-
-      startMetricsPolling()
-
-      jest.advanceTimersByTime(1000)
-
-      expect(calculateAllMetrics).toHaveBeenCalledTimes(2)
-    })
-
-    test('should handle scheduled calculation error in dev', async () => {
-      config.isDev = true
-      config.metricsPollingInterval = 1000
-      calculateAllMetrics.mockResolvedValueOnce()
-      calculateAllMetrics.mockRejectedValueOnce(new Error('scheduled error'))
-
-      startMetricsPolling()
-
-      jest.advanceTimersByTime(1000)
-      await Promise.resolve()
-
-      expect(console.error).toHaveBeenCalledWith('Scheduled metrics calculation failed:', expect.any(Error))
-    })
-
-    test('should handle scheduled calculation error in prod', async () => {
-      config.isDev = false
-      const mockNow = {
-        hour: jest.fn().mockReturnThis(),
-        minute: jest.fn().mockReturnThis(),
-        second: jest.fn().mockReturnThis(),
-        millisecond: jest.fn().mockReturnThis(),
-        isBefore: jest.fn().mockReturnValue(true),
-        diff: jest.fn().mockReturnValue(1000),
-        add: jest.fn().mockReturnThis(),
-        format: jest.fn().mockReturnValue('2023-01-01 03:00:00')
-      }
-      moment.mockReturnValue(mockNow)
-      calculateAllMetrics.mockResolvedValueOnce()
-      calculateAllMetrics.mockRejectedValueOnce(new Error('scheduled error'))
-
-      startMetricsPolling()
-
-      jest.advanceTimersByTime(1000)
-      await Promise.resolve()
-
-      expect(console.error).toHaveBeenCalledWith('Scheduled metrics calculation failed:', expect.any(Error))
+      expect(console.log).not.toHaveBeenCalledWith('Metrics polling stopped')
     })
   })
 })

@@ -15,7 +15,21 @@ const { removeHoldByFrn } = require('../../../../app/holds/remove-hold-by-frn')
 describe('remove hold by frn', () => {
   beforeEach(async () => {
     jest.clearAllMocks()
-    await resetDatabase()
+    try {
+      await resetDatabase()
+    } catch (error) {
+      console.error({
+        message: error.message,
+        name: error.name,
+        parentMessage: error.parent?.message,
+        originalMessage: error.original?.message,
+        detail: error.parent?.detail,
+        constraint: error.parent?.constraint,
+        table: error.parent?.table
+      })
+
+      throw error
+    }
     await db.hold.create(hold)
   })
 
@@ -33,7 +47,21 @@ describe('remove hold by frn', () => {
   })
 
   test('should not send hold removed event if open hold does not exist', async () => {
-    await resetDatabase()
+    try {
+      await resetDatabase()
+    } catch (error) {
+      console.error({
+        message: error.message,
+        name: error.name,
+        parentMessage: error.parent?.message,
+        originalMessage: error.original?.message,
+        detail: error.parent?.detail,
+        constraint: error.parent?.constraint,
+        table: error.parent?.table
+      })
+
+      throw error
+    }
     await removeHoldByFrn(sfiHoldCategory.schemeId, hold.frn, sfiHoldCategory.name)
     expect(mockSendHoldEvent).not.toHaveBeenCalled()
   })

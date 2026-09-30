@@ -1,5 +1,4 @@
 const db = require('../../app/data')
-const schemes = require('../../app/constants/schemes')
 const { buildMetricsQuery, buildQueryWhereClausesAndReplacements } = require('./build-metrics')
 const {
   MILLISECONDS_PER_DAY
@@ -13,11 +12,6 @@ const {
 } = require('../../app/constants/periods')
 
 const DECEMBER_MONTH = 12
-
-const getSchemeNameById = (schemeId) => {
-  const schemeEntry = Object.entries(schemes).find(([, id]) => id === schemeId)
-  return schemeEntry ? schemeEntry[0] : null
-}
 
 const getDateRangeForAll = () => ({
   startDate: null,
@@ -115,7 +109,6 @@ const mergeMetricsWithHolds = (metricsResults, holdsResults) => {
 }
 
 module.exports = {
-  getSchemeNameById,
   getDateRangeForAll,
   getDateRangeForYTD,
   getDateRangeForYear,

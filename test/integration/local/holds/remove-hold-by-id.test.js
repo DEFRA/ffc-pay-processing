@@ -14,7 +14,21 @@ const { removeHoldById } = require('../../../../app/holds/remove-hold-by-id')
 describe('remove hold by id', () => {
   beforeEach(async () => {
     jest.clearAllMocks()
-    await resetDatabase()
+    try {
+      await resetDatabase()
+    } catch (error) {
+      console.error({
+        message: error.message,
+        name: error.name,
+        parentMessage: error.parent?.message,
+        originalMessage: error.original?.message,
+        detail: error.parent?.detail,
+        constraint: error.parent?.constraint,
+        table: error.parent?.table
+      })
+
+      throw error
+    }
     await db.hold.create(hold)
   })
 

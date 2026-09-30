@@ -1,83 +1,138 @@
-jest.mock('../../../../app/processing/account-codes/maps')
-const { getMap: mockGetMap } = require('../../../../app/processing/account-codes/maps')
+jest.mock('ffc-pay-schemes', () => ({
+  getAccountCodeMap: jest.fn(),
+  getSchemeIds: jest.fn(() => ({ MANUAL: 8, SFI: 1 }))
+}))
 
-jest.mock('../../../../app/processing/account-codes/get-line-code-from-description')
-const { getLineCodeFromDescription: mockGetLineCodeFromDescription } = require('../../../../app/processing/account-codes/get-line-code-from-description')
+jest.mock('../../../../app/processing/account-codes/get-line-code-from-description', () => ({
+  getLineCodeFromDescription: jest.fn()
+}))
 
-jest.mock('../../../../app/processing/account-codes/get-codes-for-line')
-const { getCodesForLine: mockGetCodesForLine } = require('../../../../app/processing/account-codes/get-codes-for-line')
+jest.mock('../../../../app/processing/account-codes/get-codes-for-line', () => ({
+  getCodesForLine: jest.fn()
+}))
 
-jest.mock('../../../../app/processing/account-codes/select-line-code')
-const { selectLineCode: mockSelectLineCode } = require('../../../../app/processing/account-codes/select-line-code')
+jest.mock('../../../../app/processing/account-codes/select-line-code', () => ({
+  selectLineCode: jest.fn()
+}))
 
-const { MANUAL } = require('../../../../app/constants/schemes')
-const { SFI } = require('../../../../app/constants/schemes')
-const { G00 } = require('../../../../app/constants/line-codes')
-const { AP } = require('../../../../app/constants/ledgers')
-const { ADMINISTRATIVE } = require('../../../../app/constants/debt-types')
+const { getAccountCodeMap } = require('ffc-pay-schemes')
+const { getLineCodeFromDescription } = require('../../../../app/processing/account-codes/get-line-code-from-description')
+const { getCodesForLine } = require('../../../../app/processing/account-codes/get-codes-for-line')
+const { selectLineCode } = require('../../../../app/processing/account-codes/select-line-code')
+const { mapAccountCodes } = require('../../../../app/processing/account-codes')
 
-const sfiMap = require('../../../../app/processing/account-codes/maps/sfi')
-
-const { mapAccountCodes } = require('../../../../app/processing/account-codes/map-account-codes')
-
-let paymentRequest
-
-describe('map account codes', () => {
+describe('mapAccountCodes', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+  })
 
-    paymentRequest = {
-      schemeId: SFI,
-      ledger: AP,
-      debtType: ADMINISTRATIVE,
-      invoiceLines: [{
-        accountCode: 'existing1',
-        stateAid: false
-      }, {
-        accountCode: 'existing2',
-        stateAid: false
-      }]
+  test('returns without mapping account codes for manual payments', () => {
+    const paymentRequest = {
+      schemeId: 8,
+      invoiceLines: [
+        { description: 'Manual line' }
+      ]
     }
 
-    mockGetMap.mockReturnValue(sfiMap)
-    mockGetLineCodeFromDescription.mockReturnValue(G00)
-    mockGetCodesForLine.mockReturnValue(sfiMap[0])
-    mockSelectLineCode.mockReturnValue(sfiMap[0].ap)
+    const result = mapAccountCodes(paymentRequest)
+
+    expect(result).toBeUndefined()
+    expect(paymentRequest.invoiceLines[0].accountCode).toBeUndefined()
+    expect(getAccountCodeMap).not.toHaveBeenCalled()
   })
 
-  test('should not map account codes if scheme is manual', () => {
-    paymentRequest.schemeId = MANUAL
-    mapAccountCodes(paymentRequest)
-    expect(paymentRequest.invoiceLines[0].accountCode).toBe('existing1')
+  test('maps account codes for each invoice line', () => {
+    const accountCodeMap = [
+      { lineCode: 'LINE-1', code: 'ACCOUNT-1' },
+      { lineCode: 'LINE-2', code: 'ACCOUNT-2' }
+    ]
+
+    const paymentRequest = {
+      schemeId: 1,
+      invoiceLines: [
+        { description: 'First line' },
+        { description: 'Second line' }
+      ]
+    }
+
+    const firstCodes = { lineCode: 'LINE-1' }
+    const secondCodes = { lineCode: 'LINE-2' }
+
+    getAccountCodeMap.mockReturnValue(accountCodeMap)
+    getLineCodeFromDescription
+      .mockReturnValueOnce('LINE-1')
+      .mockReturnValueOnce('LINE-2')
+    getCodesForLine
+      .mockReturnValueOnce(firstCodes)
+      .mockReturnValueOnce(secondCodes)
+    selectLineCode
+      .mockReturnValueOnce('ACCOUNT-1')
+      .mockReturnValueOnce('ACCOUNT-2')
+
+    const result = mapAccountCodes(paymentRequest)
+
+    expect(result).toBeUndefined()
+    expect(getAccountCodeMap).toHaveBeenCalledWith(1)
+
+    expect(getLineCodeFromDescription).toHaveBeenNthCalledWith(1, 'First line')
+    expect(getLineCodeFromDescription).toHaveBeenNthCalledWith(2, 'Second line')
+
+    expect(getCodesForLine).toHaveBeenNthCalledWith(
+      1,
+      1,
+      'LINE-1',
+      paymentRequest.invoiceLines[0],
+      accountCodeMap
+    )
+    expect(getCodesForLine).toHaveBeenNthCalledWith(
+      2,
+      1,
+      'LINE-2',
+      paymentRequest.invoiceLines[1],
+      accountCodeMap
+    )
+
+    expect(selectLineCode).toHaveBeenNthCalledWith(
+      1,
+      firstCodes,
+      paymentRequest,
+      paymentRequest.invoiceLines[0]
+    )
+    expect(selectLineCode).toHaveBeenNthCalledWith(
+      2,
+      secondCodes,
+      paymentRequest,
+      paymentRequest.invoiceLines[1]
+    )
+
+    expect(paymentRequest.invoiceLines).toEqual([
+      { description: 'First line', accountCode: 'ACCOUNT-1' },
+      { description: 'Second line', accountCode: 'ACCOUNT-2' }
+    ])
   })
 
-  test('should get map for scheme if scheme is not manual', () => {
-    mapAccountCodes(paymentRequest)
-    expect(mockGetMap).toHaveBeenCalledWith(SFI)
-  })
+  test('maps an undefined account code when no matching code is selected', () => {
+    const invoiceLine = {
+      description: 'Unmatched line'
+    }
 
-  test('should get line code for invoice line if scheme is not manual', () => {
-    mapAccountCodes(paymentRequest)
-    expect(mockGetLineCodeFromDescription).toHaveBeenCalledWith(paymentRequest.invoiceLines[0].description)
-  })
+    const paymentRequest = {
+      schemeId: 1,
+      invoiceLines: [invoiceLine]
+    }
 
-  test('should get account codes for line if scheme is not manual', () => {
-    mapAccountCodes(paymentRequest)
-    expect(mockGetCodesForLine).toHaveBeenCalledWith(SFI, G00, paymentRequest.invoiceLines[0], sfiMap)
-  })
+    getAccountCodeMap.mockReturnValue([])
+    getLineCodeFromDescription.mockReturnValue('UNKNOWN')
+    getCodesForLine.mockReturnValue(undefined)
+    selectLineCode.mockReturnValue(undefined)
 
-  test('should select line code if scheme is not manual', () => {
     mapAccountCodes(paymentRequest)
-    expect(mockSelectLineCode).toHaveBeenCalledTimes(2)
-  })
 
-  test('should map account code if scheme is not manual', () => {
-    mapAccountCodes(paymentRequest)
-    expect(paymentRequest.invoiceLines[0].accountCode).toBe(sfiMap[0].ap)
-  })
-
-  test('should map account code for each invoice line if scheme is not manual', () => {
-    mapAccountCodes(paymentRequest)
-    expect(paymentRequest.invoiceLines[1].accountCode).toBe(sfiMap[0].ap)
+    expect(selectLineCode).toHaveBeenCalledWith(
+      undefined,
+      paymentRequest,
+      invoiceLine
+    )
+    expect(invoiceLine.accountCode).toBeUndefined()
   })
 })

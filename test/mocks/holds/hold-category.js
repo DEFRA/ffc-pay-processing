@@ -1,5 +1,7 @@
-const { SFI, SFI_PILOT, BPS } = require('../../../app/constants/schemes')
+const { getSchemeIds } = require('ffc-pay-schemes')
 const { AWAITING_LEDGER_CHECK, AWAITING_DEBT_ENRICHMENT } = require('../../../app/constants/hold-categories-names')
+
+const { SFI, SFI_PILOT, BPS } = getSchemeIds()
 
 module.exports = {
   sfiHoldCategory: {

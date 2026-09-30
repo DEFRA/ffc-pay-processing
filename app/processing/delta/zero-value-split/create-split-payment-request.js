@@ -1,5 +1,5 @@
+const { createSplitInvoiceNumber } = require('ffc-pay-schemes')
 const { randomUUID } = require('node:crypto')
-const { createSplitInvoiceNumber } = require('../invoice-number')
 
 const createSplitPaymentRequest = (paymentRequest, ledger, splitId) => {
   return {

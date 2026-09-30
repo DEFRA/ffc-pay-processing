@@ -1,7 +1,9 @@
-const { SFI } = require('../../../app/constants/schemes')
+const { getSchemeIds } = require('ffc-pay-schemes')
 const { FRN } = require('../values/frn')
 const { AGREEMENT_NUMBER } = require('../values/agreement-number')
 const { CLOSURETIMESTAMP } = require('../values/closure-date')
+
+const { SFI } = getSchemeIds()
 
 const closureDBEntry = {
   closedId: 1,

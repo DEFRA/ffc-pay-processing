@@ -1,3 +1,5 @@
+const { getSchemeIds } = require('ffc-pay-schemes')
+
 const { resetDatabase, closeDatabaseConnection } = require('../../../helpers')
 
 jest.mock('../../../../app/event')
@@ -7,7 +9,7 @@ jest.mock('../../../../app/auto-hold/get-hold-category-id')
 const { getHoldCategoryId: mockGetHoldCategoryId } = require('../../../../app/auto-hold/get-hold-category-id')
 
 const { REMOVED } = require('../../../../app/constants/hold-statuses')
-const { BPS } = require('../../../../app/constants/schemes')
+const { BPS } = getSchemeIds()
 
 const { sfiAutoHoldCategory, bpsAutoHoldCategory } = require('../../../mocks/holds/hold-category')
 const hold = require('../../../mocks/holds/auto-hold')
@@ -20,7 +22,21 @@ const paymentRequest = require('../../../mocks/payment-requests/payment-request'
 describe('remove auto hold', () => {
   beforeEach(async () => {
     jest.clearAllMocks()
-    await resetDatabase()
+    try {
+      await resetDatabase()
+    } catch (error) {
+      console.error({
+        message: error.message,
+        name: error.name,
+        parentMessage: error.parent?.message,
+        originalMessage: error.original?.message,
+        detail: error.parent?.detail,
+        constraint: error.parent?.constraint,
+        table: error.parent?.table
+      })
+
+      throw error
+    }
     await db.autoHold.create(hold)
     mockGetHoldCategoryId.mockResolvedValue(sfiAutoHoldCategory.autoHoldCategoryId)
   })
@@ -47,7 +63,21 @@ describe('remove auto hold', () => {
   })
 
   test('should not send hold removed event if open hold does not exist', async () => {
-    await resetDatabase()
+    try {
+      await resetDatabase()
+    } catch (error) {
+      console.error({
+        message: error.message,
+        name: error.name,
+        parentMessage: error.parent?.message,
+        originalMessage: error.original?.message,
+        detail: error.parent?.detail,
+        constraint: error.parent?.constraint,
+        table: error.parent?.table
+      })
+
+      throw error
+    }
     await removeAutoHold(paymentRequest, sfiAutoHoldCategory.name)
     expect(mockSendHoldEvent).not.toHaveBeenCalled()
   })

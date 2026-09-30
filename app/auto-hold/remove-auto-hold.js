@@ -1,8 +1,10 @@
+const { getSchemeIds } = require('ffc-pay-schemes')
 const db = require('../data')
 const { getHoldCategoryId } = require('./get-hold-category-id')
 const { sendHoldEvent } = require('../event')
 const { REMOVED } = require('../constants/hold-statuses')
-const { BPS } = require('../constants/schemes')
+
+const { BPS } = getSchemeIds()
 
 const removeAutoHold = async (paymentRequest, holdCategoryName) => {
   const { schemeId, frn, marketingYear, agreementNumber, contractNumber } = paymentRequest
