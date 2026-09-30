@@ -1,5 +1,5 @@
 const db = require('../database')
-const schemeIdTbl = schemeIdTbl
+const schemeIdTbl = 'schemes.schemeId'
 
 const getHolds = async (pageProperties, open = true) => {
   let { pageNumber, pageSize } = pageProperties
