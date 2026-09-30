@@ -1,6 +1,6 @@
-const { MessageBatchSender } = require('ffc-messaging')
 const db = require('../data')
 const { messageConfig } = require('../config')
+const { getSender, sendBatchMessages } = require('../messaging/service-bus')
 const { getPendingPaymentRequests } = require('./get-pending-payment-requests')
 const { createMessage } = require('../messaging/create-message')
 const { sendPublishingEvents, sendProcessingErrorEvent } = require('../event')
@@ -13,10 +13,9 @@ const publishPendingPaymentRequests = async (submitted = new Date()) => {
     const paymentRequests = await getPendingPaymentRequests(transaction)
     if (paymentRequests.length) {
       const messages = paymentRequests.map(message => createMessage(message, PROCESSED))
-      const sender = new MessageBatchSender(messageConfig.submitTopic)
+      const sender = getSender(messageConfig.submitTopic)
       await sendPublishingEvents(paymentRequests)
-      await sender.sendBatchMessages(messages)
-      await sender.closeConnection()
+      await sendBatchMessages(sender, messages)
       await updatePendingPaymentRequests(paymentRequests, submitted, transaction)
       console.log('Payment requests processed:', messages.map(x => ({
         frn: x.body.frn,
@@ -28,7 +27,7 @@ const publishPendingPaymentRequests = async (submitted = new Date()) => {
   } catch (error) {
     await transaction.rollback()
     await sendProcessingErrorEvent(null, error)
-    throw (error)
+    throw error
   }
 }
 

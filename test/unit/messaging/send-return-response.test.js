@@ -1,12 +1,11 @@
-jest.mock('ffc-messaging', () => {
-  return {
-    MessageSender: jest.fn()
-  }
-})
+jest.mock('../../../app/messaging/service-bus', () => ({
+  getSender: jest.fn(),
+  sendMessage: jest.fn()
+}))
 
 jest.mock('../../../app/config', () => ({
   messageConfig: {
-    returnResponseTopic: 'test-topic'
+    returnResponseTopic: { address: 'test-topic', host: 'test.servicebus.windows.net' }
   }
 }))
 
@@ -14,7 +13,7 @@ jest.mock('../../../app/constants/source', () => ({
   SOURCE: 'test-source'
 }))
 
-const { MessageSender } = require('ffc-messaging')
+const { getSender, sendMessage: sendServiceBusMessage } = require('../../../app/messaging/service-bus')
 const { SOURCE } = require('../../../app/constants/source')
 const { messageConfig } = require('../../../app/config')
 const { sendReturnResponse } = require('../../../app/messaging/send-return-response')
@@ -25,32 +24,23 @@ describe('sendReturnResponse', () => {
     someOtherField: 'some-value'
   }
   const type = 'test-type'
-
-  let mockSendMessage
-  let mockCloseConnection
+  const mockSender = { name: 'sender' }
 
   beforeEach(() => {
     jest.clearAllMocks()
 
-    mockSendMessage = jest.fn().mockResolvedValue()
-    mockCloseConnection = jest.fn().mockResolvedValue()
-
-    MessageSender.mockImplementation(() => {
-      return {
-        sendMessage: mockSendMessage,
-        closeConnection: mockCloseConnection
-      }
-    })
+    getSender.mockReturnValue(mockSender)
+    sendServiceBusMessage.mockResolvedValue()
   })
 
-  test('should create a MessageSender with the correct topic', async () => {
+  test('should get cached sender for return response topic', async () => {
     await sendReturnResponse(paymentRequest, type)
-    expect(MessageSender).toHaveBeenCalledWith(messageConfig.returnResponseTopic)
+    expect(getSender).toHaveBeenCalledWith(messageConfig.returnResponseTopic)
   })
 
   test('should send a message with the correct structure', async () => {
     await sendReturnResponse(paymentRequest, type)
-    expect(mockSendMessage).toHaveBeenCalledWith({
+    expect(sendServiceBusMessage).toHaveBeenCalledWith(mockSender, {
       body: paymentRequest,
       type,
       source: SOURCE,
@@ -58,24 +48,10 @@ describe('sendReturnResponse', () => {
     })
   })
 
-  test('should close the connection after sending the message', async () => {
-    await sendReturnResponse(paymentRequest, type)
-    expect(mockCloseConnection).toHaveBeenCalled()
-  })
-
   test('should propagate errors from sendMessage', async () => {
     const error = new Error('sendMessage failed')
-    mockSendMessage.mockRejectedValueOnce(error)
+    sendServiceBusMessage.mockRejectedValueOnce(error)
 
     await expect(sendReturnResponse(paymentRequest, type)).rejects.toThrow('sendMessage failed')
-    expect(mockCloseConnection).not.toHaveBeenCalled()
-  })
-
-  test('should propagate errors from closeConnection', async () => {
-    const error = new Error('closeConnection failed')
-    mockCloseConnection.mockRejectedValueOnce(error)
-
-    await expect(sendReturnResponse(paymentRequest, type)).rejects.toThrow('closeConnection failed')
-    expect(mockSendMessage).toHaveBeenCalled()
   })
 })

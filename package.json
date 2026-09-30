@@ -1,6 +1,6 @@
 {
   "name": "ffc-pay-processing",
-  "version": "2.58.0",
+  "version": "2.58.1",
   "description": "Payment Hub processing service",
   "homepage": "https://github.com/DEFRA/ffc-pay-processing",
   "main": "app/index.js",
@@ -34,11 +34,11 @@
   "license": "OGL-UK-3.0",
   "dependencies": {
     "@azure/identity": "4.13.1",
-    "@azure/monitor-opentelemetry": "1.19.0",
+    "@azure/monitor-opentelemetry": "1.20.0",
+    "@azure/service-bus": "7.9.5",
     "@hapi/boom": "10.0.0",
     "@hapi/hapi": "21.4.8",
     "ffc-database": "1.0.27",
-    "ffc-messaging": "2.10.10",
     "ffc-pay-event-publisher": "1.2.9",
     "ffc-pay-schemes": "1.1.0",
     "hapi-pino": "13.0.0",
