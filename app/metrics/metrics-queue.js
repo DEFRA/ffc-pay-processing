@@ -22,7 +22,7 @@ class MetricsCalculationQueue {
 
     const calculation = this.createCalculation(id, period, schemeYear, month)
     this.queue.set(id, calculation)
-    this.processQueue()
+    this.processQueue().catch(error => console.error('Metrics queue processing failed:', error))
 
     return calculation.promise
   }
