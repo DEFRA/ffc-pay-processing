@@ -1,23 +1,62 @@
-const db = require('../data')
+const db = require('../database')
 const { zeroValueSplit } = require('../processing/delta/zero-value-split')
 const { sendZeroValueEvent } = require('../event')
 const { sanitizeInvoiceLine } = require('../helpers/sanitize-invoice-line')
 
 const handleScheduleUpdate = async (scheduleId, transaction) => {
-  const [updatedRows] = await db.schedule.update(
-    {
-      completed: new Date()
-    },
-    {
-      where: {
-        scheduleId,
-        completed: { [db.Sequelize.Op.eq]: null }
-      },
-      transaction
-    }
-  )
+  const updatedRows = await db.schedule(transaction)
+    .where({ scheduleId })
+    .whereNull('completed')
+    .update({ completed: new Date() })
 
   return updatedRows === 1
+}
+
+const saveCompletedPaymentRequest = async (request, transaction) => {
+  const [savedRequest] = await db.completedPaymentRequest(transaction).insert({
+    paymentRequestId: request.paymentRequestId,
+    schemeId: request.schemeId,
+    batch: request.batch,
+    ledger: request.ledger,
+    sourceSystem: request.sourceSystem,
+    deliveryBody: request.deliveryBody,
+    invoiceNumber: request.invoiceNumber,
+    frn: request.frn,
+    sbi: request.sbi,
+    vendor: request.vendor,
+    trader: request.trader,
+    marketingYear: request.marketingYear,
+    agreementNumber: request.agreementNumber,
+    contractNumber: request.contractNumber,
+    paymentRequestNumber: request.paymentRequestNumber,
+    currency: request.currency,
+    schedule: request.schedule,
+    dueDate: request.dueDate,
+    debtType: request.debtType,
+    recoveryDate: request.recoveryDate,
+    originalSettlementDate: request.originalSettlementDate,
+    originalInvoiceNumber: request.originalInvoiceNumber,
+    invoiceCorrectionReference: request.invoiceCorrectionReference,
+    value: request.value,
+    submitted: request.submitted,
+    acknowledged: request.acknowledged,
+    lastSettlement: request.lastSettlement,
+    settledValue: request.settledValue,
+    // the column has no database default, so it is set here as the old model did
+    invalid: request.invalid ?? false,
+    referenceId: request.referenceId,
+    correlationId: request.correlationId,
+    paymentType: request.paymentType,
+    pillar: request.pillar,
+    exchangeRate: request.exchangeRate,
+    eventDate: request.eventDate,
+    claimDate: request.claimDate,
+    fesCode: request.fesCode,
+    annualValue: request.annualValue,
+    remittanceDescription: request.remittanceDescription,
+    providesAccountingValues: request.providesAccountingValues
+  }).returning('completedPaymentRequestId')
+  return savedRequest
 }
 
 const processInvoiceLines = async (
@@ -26,11 +65,30 @@ const processInvoiceLines = async (
   transaction
 ) => {
   for (const line of invoiceLines) {
+<<<<<<< Updated upstream
+    if (line.value !== 0) {
+      line.completedPaymentRequestId = completedPaymentRequestId
+      sanitizeInvoiceLine(line)
+      await db.completedInvoiceLine(transaction).insert({
+        completedPaymentRequestId,
+        schemeCode: line.schemeCode,
+        accountCode: line.accountCode,
+        fundCode: line.fundCode,
+        agreementNumber: line.agreementNumber,
+        description: line.description,
+        value: line.value,
+        convergence: line.convergence,
+        deliveryBody: line.deliveryBody,
+        marketingYear: line.marketingYear,
+        stateAid: line.stateAid
+      })
+=======
     const completedLine = line.dataValues ?? line
     if (completedLine.value !== 0) {
       completedLine.completedPaymentRequestId = completedPaymentRequestId
       sanitizeInvoiceLine(completedLine)
-      await db.completedInvoiceLine.create(completedLine, { transaction })
+      await db.completedInvoiceLine.create(completedLine, { transaction }) // NOSONAR
+>>>>>>> Stashed changes
     }
   }
 }
@@ -94,17 +152,31 @@ const processSingleRequest = async (paymentRequest, transaction) => {
   })
 
   for (const request of splitRequests) {
-    const savedRequest = await db.completedPaymentRequest.create(
-      request.dataValues ?? request,
-      { transaction }
-    )
+<<<<<<< Updated upstream
+    const savedRequest = await saveCompletedPaymentRequest(request, transaction)
     await processInvoiceLines(
       request.invoiceLines,
       savedRequest.completedPaymentRequestId,
       transaction
     )
     await createOutboxEntry(request, savedRequest, isFirstPayment, transaction)
+=======
+    await saveCompletedRequest(request, isFirstPayment, transaction) // NOSONAR
+>>>>>>> Stashed changes
   }
+}
+
+const saveCompletedRequest = async (request, isFirstPayment, transaction) => {
+  const savedRequest = await db.completedPaymentRequest.create(
+    request.dataValues ?? request,
+    { transaction }
+  )
+  await processInvoiceLines(
+    request.invoiceLines,
+    savedRequest.completedPaymentRequestId,
+    transaction
+  )
+  await createOutboxEntry(request, savedRequest, isFirstPayment, transaction)
 }
 
 const createOutboxEntry = async (
@@ -136,33 +208,31 @@ const createOutboxEntry = async (
     return
   }
 
-  await db.outbox.create(
-    {
-      completedPaymentRequestId: savedRequest.completedPaymentRequestId
-    },
-    { transaction }
-  )
+  await db.outbox(transaction).insert({
+    completedPaymentRequestId: savedRequest.completedPaymentRequestId
+  })
   console.log('Created outbox entry:', paymentRequest.invoiceNumber)
 }
 
 const processMultipleRequests = async (paymentRequests, transaction) => {
   const hasOffset = hasOffsettingValues(paymentRequests)
   for (const request of paymentRequests) {
-    const savedRequest = await db.completedPaymentRequest.create(
-      request.dataValues ?? request,
-      { transaction }
-    )
+<<<<<<< Updated upstream
+    const savedRequest = await saveCompletedPaymentRequest(request, transaction)
     await processInvoiceLines(
       request.invoiceLines,
       savedRequest.completedPaymentRequestId,
       transaction
     )
     await createOutboxEntry(request, savedRequest, hasOffset, transaction)
+=======
+    await saveCompletedRequest(request, hasOffset, transaction) // NOSONAR
+>>>>>>> Stashed changes
   }
 }
 
 const completePaymentRequests = async (scheduleId, paymentRequests) => {
-  const transaction = await db.sequelize.transaction()
+  const transaction = await db.transaction()
   console.log(`Scheduled payment request ${scheduleId} ready to be completed`)
   try {
     const shouldProcess = await handleScheduleUpdate(scheduleId, transaction)

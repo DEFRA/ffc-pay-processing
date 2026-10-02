@@ -1,4 +1,4 @@
-const db = require('../data')
+const db = require('../database')
 const { messageConfig } = require('../config')
 const { sendMessage } = require('../messaging/send-message')
 const { getHoldCategoryId, holdAndReschedule } = require('../auto-hold')
@@ -6,7 +6,7 @@ const { AWAITING_LEDGER_CHECK } = require('../constants/hold-categories-names')
 const { ROUTED_LEDGER } = require('../constants/messages')
 
 const routeManualLedgerToRequestEditor = async (deltaCalculationResult) => {
-  const transaction = await db.sequelize.transaction()
+  const transaction = await db.transaction()
   const { deltaPaymentRequest, completedPaymentRequests } = deltaCalculationResult
   try {
     const manualLedgerMessage = { paymentRequest: deltaPaymentRequest, paymentRequests: completedPaymentRequests }

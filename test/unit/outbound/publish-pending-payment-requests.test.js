@@ -23,8 +23,8 @@ const { updatePendingPaymentRequests: mockUpdatePendingPaymentRequests } = requi
 
 const paymentRequest = require('../../mocks/payment-requests/payment-request')
 const message = require('../../mocks/messaging/message')
-const db = require('../../../app/data')
-const transactionSpy = jest.spyOn(db.sequelize, 'transaction')
+const db = require('../../../app/database')
+const transactionSpy = jest.spyOn(db, 'transaction')
 
 const { publishPendingPaymentRequests } = require('../../../app/outbound/publish-pending-payment-requests')
 

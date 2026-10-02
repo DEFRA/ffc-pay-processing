@@ -1,19 +1,19 @@
-const db = require('../data')
+const db = require('../database')
 
 const confirmPaymentRequestNumber = async (paymentRequest) => {
   if (paymentRequest.paymentRequestNumber > 1) {
     return paymentRequest.paymentRequestNumber
   }
-  const completedPaymentRequest = await db.completedPaymentRequest.findOne({
-    attributes: ['paymentRequestNumber'],
-    where: {
+  const completedPaymentRequest = await db.completedPaymentRequest()
+    .select('paymentRequestNumber')
+    .where({
       schemeId: paymentRequest.schemeId,
       frn: paymentRequest.frn,
       marketingYear: paymentRequest.marketingYear,
       invalid: false
-    },
-    order: [['paymentRequestNumber', 'DESC']]
-  })
+    })
+    .orderBy('paymentRequestNumber', 'desc')
+    .first()
   if (completedPaymentRequest) {
     return completedPaymentRequest.paymentRequestNumber + 1
   }

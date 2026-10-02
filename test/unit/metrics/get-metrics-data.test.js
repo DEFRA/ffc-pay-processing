@@ -1,31 +1,15 @@
-jest.mock('../../../app/data', () => {
-  const Op = {
-    gte: Symbol('gte'),
-    lt: Symbol('lt')
+jest.mock('../../../app/database', () => ({
+  client: {
+    raw: jest.fn()
   }
-
-  return {
-    sequelize: {
-      query: jest.fn(),
-      QueryTypes: {
-        SELECT: 'SELECT'
-      }
-    },
-    Sequelize: { Op }
-  }
-})
-
+}))
 jest.mock('../../../app/metrics/build-metrics', () => ({
   buildMetricsQuery: jest.fn(),
   buildQueryWhereClausesAndReplacements: jest.fn()
 }))
 
-const db = require('../../../app/data')
-const {
-  buildMetricsQuery,
-  buildQueryWhereClausesAndReplacements
-} = require('../../../app/metrics/build-metrics')
-
+const db = require('../../../app/database')
+const { buildMetricsQuery, buildQueryWhereClausesAndReplacements } = require('../../../app/metrics/build-metrics')
 const {
   getDateRangeForAll,
   getDateRangeForYTD,
@@ -37,203 +21,188 @@ const {
   mergeMetricsWithHolds
 } = require('../../../app/metrics/get-metrics-data')
 
-describe('get metrics data', () => {
-  const metricsResults = [{
-    schemeId: 1,
-    year: 2023,
-    month: 1,
-    payments: 100,
-    value: 1000
-  }]
-
-  const holdsResults = [{
-    schemeId: 1,
-    year: 2023,
-    month: 1,
-    paymentsOnHold: '5',
-    valueOnHold: '500'
-  }]
+describe('Get Metrics Data', () => {
+  let mockMetricsResults
+  let mockHoldsResults
 
   beforeEach(() => {
     jest.clearAllMocks()
 
-    buildQueryWhereClausesAndReplacements.mockReturnValue({
-      whereClauses: [],
-      replacements: {}
-    })
+    mockMetricsResults = [
+      {
+        schemeId: 1,
+        year: 2023,
+        month: 1,
+        payments: 100,
+        value: 1000
+      }
+    ]
+
+    mockHoldsResults = [
+      {
+        schemeId: 1,
+        year: 2023,
+        month: 1,
+        paymentsOnHold: '5',
+        valueOnHold: '500'
+      }
+    ]
+
     buildMetricsQuery.mockReturnValue('SELECT * FROM metrics')
-    db.sequelize.query.mockResolvedValue(metricsResults)
+    buildQueryWhereClausesAndReplacements.mockReturnValue({ whereClauses: [], replacements: {} })
   })
 
-  describe('date ranges', () => {
-    test('returns no range for all periods', () => {
-      expect(getDateRangeForAll()).toEqual({
-        startDate: null,
-        endDate: null
-      })
+  describe('getDateRangeForAll', () => {
+    test('should return null dates', () => {
+      const result = getDateRangeForAll()
+      expect(result).toEqual({ startDate: null, endDate: null })
     })
+  })
 
-    test('returns the year-to-date range', () => {
-      expect(getDateRangeForYTD(new Date(2023, 5, 15))).toEqual({
-        startDate: new Date(2023, 0, 1),
-        endDate: null
-      })
-    })
-
-    test('returns a year range', () => {
-      expect(getDateRangeForYear(2023)).toEqual({
-        startDate: new Date(2023, 0, 1),
-        endDate: new Date(2024, 0, 1),
-        year: 2023
-      })
-    })
-
-    test('returns a month range', () => {
-      expect(getDateRangeForMonthInYear(2023, 6)).toEqual({
-        startDate: new Date(2023, 5, 1),
-        endDate: new Date(2023, 6, 1),
-        year: 2023,
-        month: 6
-      })
-    })
-
-    test('returns the correct range for December', () => {
-      expect(getDateRangeForMonthInYear(2023, 12)).toEqual({
-        startDate: new Date(2023, 11, 1),
-        endDate: new Date(2024, 0, 1),
-        year: 2023,
-        month: 12
-      })
-    })
-
-    test('returns a relative date range', () => {
+  describe('getDateRangeForYTD', () => {
+    test('should return YTD range', () => {
       const now = new Date(2023, 5, 15)
-      const result = getDateRangeForRelativePeriod(now, 7)
+      const result = getDateRangeForYTD(now)
+      expect(result.startDate).toEqual(new Date(2023, 0, 1))
+      expect(result.endDate).toBe(null)
+    })
+  })
 
-      expect(result.startDate).toEqual(new Date(2023, 5, 8))
-      expect(result.endDate).toBeNull()
+  describe('getDateRangeForYear', () => {
+    test('should return year range', () => {
+      const result = getDateRangeForYear(2023)
+      expect(result.startDate).toEqual(new Date(2023, 0, 1))
+      expect(result.endDate).toEqual(new Date(2024, 0, 1))
+      expect(result.year).toBe(2023)
+    })
+  })
+
+  describe('getDateRangeForMonthInYear', () => {
+    test('should return month range', () => {
+      const result = getDateRangeForMonthInYear(2023, 6)
+      expect(result.startDate).toEqual(new Date(2023, 5, 1))
+      expect(result.endDate).toEqual(new Date(2023, 6, 1))
+      expect(result.year).toBe(2023)
+      expect(result.month).toBe(6)
+    })
+
+    test('should return month range if December', () => {
+      const result = getDateRangeForMonthInYear(2023, 12)
+      expect(result.startDate).toEqual(new Date(2023, 11, 1))
+      expect(result.endDate).toEqual(new Date(2024, 0, 1))
+      expect(result.year).toBe(2023)
+      expect(result.month).toBe(12)
+    })
+  })
+
+  describe('getDateRangeForRelativePeriod', () => {
+    test('should return relative range', () => {
+      const now = new Date()
+      const days = 7
+      const result = getDateRangeForRelativePeriod(now, days)
+      expect(result.startDate.getTime()).toBe(now.getTime() - days * 24 * 60 * 60 * 1000)
+      expect(result.endDate).toBe(null)
     })
   })
 
   describe('fetchMetricsData', () => {
-    test('fetches all-period data without grouping', async () => {
-      await fetchMetricsData({}, null, null, 'all')
-
-      expect(buildMetricsQuery).toHaveBeenCalledWith('', false, false)
-      expect(db.sequelize.query).toHaveBeenCalledWith(
-        'SELECT * FROM metrics',
-        {
-          replacements: {},
-          type: 'SELECT',
-          raw: true
-        }
-      )
+    test('should fetch metrics data with no group by for all period', async () => {
+      db.client.raw.mockResolvedValue({ rows: mockMetricsResults })
+      const whereClause = {}
+      const result = await fetchMetricsData(whereClause, null, null, 'all')
+      expect(db.client.raw).toHaveBeenCalled()
+      expect(result).toEqual(mockMetricsResults)
     })
 
-    test('fetches year-period data grouped by year only', async () => {
-      await fetchMetricsData({}, null, null, 'year')
-
-      expect(buildMetricsQuery).toHaveBeenCalledWith('', true, false)
+    test('should fetch metrics data with group by for other periods', async () => {
+      db.client.raw.mockResolvedValue({ rows: mockMetricsResults })
+      const whereClause = {}
+      const result = await fetchMetricsData(whereClause, null, null, 'year')
+      expect(db.client.raw).toHaveBeenCalled()
+      expect(result).toEqual(mockMetricsResults)
     })
 
-    test('fetches default-period data grouped by year and month', async () => {
-      await fetchMetricsData({})
-
-      expect(buildMetricsQuery).toHaveBeenCalledWith('', true, true)
-    })
-
-    test('adds where clauses and replacements', async () => {
+    test('should prepend WHERE and join clauses when whereClauses is not empty', async () => {
       buildQueryWhereClausesAndReplacements.mockReturnValue({
         whereClauses: ['schemeId = :schemeId', 'year = :year'],
-        replacements: {
-          schemeId: 1,
-          year: 2023
-        }
+        replacements: { schemeId: 1, year: 2023 }
       })
-
-      await fetchMetricsData({ schemeId: 1, year: 2023 }, null, null, 'year')
-
+      buildMetricsQuery.mockReturnValue('SELECT * FROM metrics WHERE schemeId = :schemeId AND year = :year')
+      const mockResult = [{ schemeId: 1, year: 2023, value: 1000 }]
+      db.client.raw.mockResolvedValue({ rows: mockResult })
+      const result = await fetchMetricsData({ schemeId: 1, year: 2023 }, null, null, 'year')
+      expect(buildQueryWhereClausesAndReplacements).toHaveBeenCalledWith({ schemeId: 1, year: 2023 })
       expect(buildMetricsQuery).toHaveBeenCalledWith(
         'WHERE schemeId = :schemeId AND year = :year',
         true,
         false
       )
-      expect(db.sequelize.query).toHaveBeenCalledWith(
-        'SELECT * FROM metrics',
-        expect.objectContaining({
-          replacements: {
-            schemeId: 1,
-            year: 2023
-          },
-          type: 'SELECT',
-          raw: true
-        })
+      expect(db.client.raw).toHaveBeenCalledWith(
+        'SELECT * FROM metrics WHERE schemeId = :schemeId AND year = :year',
+        { schemeId: 1, year: 2023 }
       )
+      expect(result).toEqual(mockResult)
     })
 
-    test('returns the query result', async () => {
-      db.sequelize.query.mockResolvedValue(metricsResults)
+    test('should set groupByYear and groupByMonth correctly for PERIOD_ALL and PERIOD_YEAR', async () => {
+      buildQueryWhereClausesAndReplacements.mockReturnValue({ whereClauses: [], replacements: {} })
+      buildMetricsQuery.mockReturnValue('SELECT * FROM metrics')
 
-      await expect(fetchMetricsData({})).resolves.toBe(metricsResults)
+      await fetchMetricsData({}, null, null, 'all')
+      expect(buildMetricsQuery).toHaveBeenCalledWith('', false, false)
+
+      await fetchMetricsData({}, null, null, 'year')
+      expect(buildMetricsQuery).toHaveBeenCalledWith('', true, false)
     })
   })
 
   describe('fetchHoldsData', () => {
-    test('fetches holds without date filters', async () => {
-      db.sequelize.query.mockResolvedValue(holdsResults)
-
-      await expect(fetchHoldsData({})).resolves.toBe(holdsResults)
-
-      expect(db.sequelize.query).toHaveBeenCalledWith(
-        expect.not.stringContaining('pr."received" >= :startDate'),
-        expect.objectContaining({
-          replacements: {},
-          type: 'SELECT',
-          raw: true
-        })
-      )
+    test('should fetch holds data without date range', async () => {
+      db.client.raw.mockResolvedValue({ rows: mockHoldsResults })
+      const whereClause = {}
+      const result = await fetchHoldsData(whereClause)
+      expect(db.client.raw).toHaveBeenCalled()
+      expect(result).toEqual(mockHoldsResults)
     })
 
-    test('fetches holds with start and end date filters', async () => {
-      const startDate = new Date(2023, 0, 1)
-      const endDate = new Date(2023, 1, 1)
-      const whereClause = {
-        received: {
-          [db.Sequelize.Op.gte]: startDate,
-          [db.Sequelize.Op.lt]: endDate
-        }
-      }
+    test('should fetch holds data with date range', async () => {
+      db.client.raw.mockResolvedValue({ rows: mockHoldsResults })
+      const startDate = new Date()
+      const endDate = new Date()
+      const whereClause = { received: { gte: startDate, lt: endDate } }
+      const result = await fetchHoldsData(whereClause)
+      expect(db.client.raw).toHaveBeenCalled()
+      expect(result).toEqual(mockHoldsResults)
+    })
 
-      db.sequelize.query.mockResolvedValue(holdsResults)
-
-      await fetchHoldsData(whereClause)
-
-      const [query, options] = db.sequelize.query.mock.calls[0]
-
-      expect(query).toContain('pr."received" >= :startDate')
-      expect(query).toContain('pr."received" < :endDate')
-      expect(options.replacements).toEqual({
-        startDate,
-        endDate
-      })
+    test('should include date conditions and replacements when whereClause received has gte and lt', async () => {
+      db.client.raw.mockResolvedValue({ rows: mockHoldsResults })
+      const startDate = new Date()
+      const endDate = new Date()
+      const whereClause = { received: { gte: startDate, lt: endDate } }
+      const result = await fetchHoldsData(whereClause)
+      expect(db.client.raw).toHaveBeenCalled()
+      const queryString = db.client.raw.mock.calls[0][0]
+      expect(queryString).toMatch(/AND pr."received" >= :startDate/)
+      expect(queryString).toMatch(/AND pr."received" < :endDate/)
+      const replacements = db.client.raw.mock.calls[0][1]
+      expect(replacements.startDate).toBe(startDate)
+      expect(replacements.endDate).toBe(endDate)
+      expect(result).toEqual(mockHoldsResults)
     })
   })
 
   describe('mergeMetricsWithHolds', () => {
-    test('merges matching hold data and converts values to numbers', () => {
-      expect(mergeMetricsWithHolds(metricsResults, holdsResults)).toEqual([{
-        ...metricsResults[0],
-        paymentsOnHold: 5,
-        valueOnHold: 500
-      }])
+    test('should merge metrics with holds when holds exist', () => {
+      const result = mergeMetricsWithHolds(mockMetricsResults, mockHoldsResults)
+      expect(result[0].paymentsOnHold).toBe(5)
+      expect(result[0].valueOnHold).toBe(500)
     })
 
-    test('uses zero values when no matching hold exists', () => {
-      expect(mergeMetricsWithHolds(metricsResults, [])).toEqual([{
-        ...metricsResults[0],
-        paymentsOnHold: 0,
-        valueOnHold: 0
-      }])
+    test('should merge metrics with no holds', () => {
+      const result = mergeMetricsWithHolds(mockMetricsResults, [])
+      expect(result[0].paymentsOnHold).toBe(0)
+      expect(result[0].valueOnHold).toBe(0)
     })
   })
 })

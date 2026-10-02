@@ -1,4 +1,5 @@
-const db = require('../../data')
+const db = require('../../database')
+const { METRIC_COLUMNS, toMetricColumns } = require('../../metrics/metric-columns')
 const { HTTP_OK, HTTP_BAD_REQUEST, HTTP_INTERNAL_SERVER_ERROR } = require('../../../app/constants/http-status-codes')
 const { metricsQueue } = require('../../metrics/metrics-queue')
 const { PERIOD_ALL, PERIOD_YTD, PERIOD_YEAR, PERIOD_MONTH_IN_YEAR, PERIOD_MONTH, PERIOD_WEEK, PERIOD_DAY } = require('../../../app/constants/periods')
@@ -195,11 +196,10 @@ const fetchMetrics = async (period, schemeYear, month = null) => {
     ? { periodType: period, schemeYear }
     : { periodType: period }
 
-  const mostRecentSnapshot = await db.metric.findOne({
-    attributes: [[db.sequelize.fn('MAX', db.sequelize.col('snapshot_date')), 'maxDate']],
-    where: whereCondition,
-    raw: true
-  })
+  const mostRecentSnapshot = await db.metric()
+    .max({ maxDate: METRIC_COLUMNS.snapshotDate })
+    .where(toMetricColumns(whereCondition))
+    .first()
 
   console.log('Most recent snapshot:', mostRecentSnapshot)
 
@@ -216,10 +216,10 @@ const fetchMetrics = async (period, schemeYear, month = null) => {
 
   console.log('Fetching with where clause:', whereClause)
 
-  const results = await db.metric.findAll({
-    where: whereClause,
-    order: [['schemeName', 'ASC']]
-  })
+  const results = await db.metric()
+    .select(METRIC_COLUMNS)
+    .where(toMetricColumns(whereClause))
+    .orderBy(METRIC_COLUMNS.schemeName, 'asc')
 
   console.log('Found records:', results.length)
 

@@ -1,21 +1,32 @@
-jest.mock('../../../app/data', () => ({
-  holdCategory: {
-    create: jest.fn()
-  }
+const { createKnexMock } = require('../../helpers/mock-knex')
+
+const mockDb = createKnexMock(['holdCategory'])
+
+jest.mock('../../../app/database', () => ({
+  client: mockDb.knex,
+  transaction: mockDb.transaction,
+  close: mockDb.close,
+  ...mockDb.tables
 }))
-const db = require('../../../app/data')
+
 const { addHoldType } = require('../../../app/holds')
 
 describe('addHoldType', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    mockDb.builder.resolves()
   })
 
-  test('calls holdCategory.create with name and schemeId and transaction', async () => {
+  test('inserts name and schemeId into hold categories against the transaction', async () => {
     const name = 'Test Hold'
     const schemeId = 123
-    const transaction = {}
-    await addHoldType(name, schemeId, transaction)
-    expect(db.holdCategory.create).toHaveBeenCalledWith({ name, schemeId }, { transaction })
+    await addHoldType(name, schemeId, mockDb.trx)
+    expect(mockDb.tables.holdCategory).toHaveBeenCalledWith(mockDb.trx)
+    expect(mockDb.builder.insert).toHaveBeenCalledWith({ name, schemeId })
+  })
+
+  test.each([undefined, null])('inserts outside a transaction when transaction is %s', async (transaction) => {
+    await addHoldType('Test Hold', 123, transaction)
+    expect(mockDb.tables.holdCategory).toHaveBeenCalledWith(undefined)
   })
 })

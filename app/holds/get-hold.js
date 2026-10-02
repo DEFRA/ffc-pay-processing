@@ -1,16 +1,13 @@
-const db = require('../data')
+const db = require('../database')
+const { getHoldCategory } = require('./get-hold-category')
 
 const getHold = async (holdId) => {
-  return db.hold.findByPk(holdId, {
-    include: {
-      model: db.holdCategory,
-      as: 'holdCategory',
-      include: {
-        model: db.scheme,
-        as: 'scheme'
-      }
-    }
-  })
+  const hold = await db.hold().where({ holdId }).first()
+  if (!hold) {
+    return null
+  }
+  hold.holdCategory = await getHoldCategory(hold.holdCategoryId)
+  return hold
 }
 
 module.exports = {

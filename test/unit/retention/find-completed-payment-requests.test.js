@@ -1,65 +1,45 @@
-const { findCompletedPaymentRequests } = require('../../../app/retention/find-completed-payment-requests')
-const db = require('../../../app/data')
+const { createKnexMock } = require('../../helpers/mock-knex')
 
-jest.mock('../../../app/data', () => ({
-  Sequelize: {
-    Op: {
-      in: 'IN_OPERATOR'
-    }
-  },
-  completedPaymentRequest: {
-    findAll: jest.fn()
-  }
+const mockDb = createKnexMock(['completedPaymentRequest'])
+
+jest.mock('../../../app/database', () => ({
+  client: mockDb.knex,
+  transaction: mockDb.transaction,
+  close: mockDb.close,
+  ...mockDb.tables
 }))
+
+const { findCompletedPaymentRequests } = require('../../../app/retention/find-completed-payment-requests')
 
 describe('findCompletedPaymentRequests', () => {
   const paymentRequestIds = [1, 2, 3]
-  const mockTransaction = { id: 'transaction-object' }
 
   beforeEach(() => {
     jest.clearAllMocks()
+    mockDb.builder.resolves([])
   })
 
-  test('calls db.completedPaymentRequest.findAll with correct parameters', async () => {
-    const mockResult = [
-      { completedPaymentRequestId: 101 },
-      { completedPaymentRequestId: 102 }
-    ]
-    db.completedPaymentRequest.findAll.mockResolvedValue(mockResult)
+  test('selects completed payment request ids for the payment requests', async () => {
+    const mockResult = [{ completedPaymentRequestId: 101 }, { completedPaymentRequestId: 102 }]
+    mockDb.builder.resolves(mockResult)
 
-    const result = await findCompletedPaymentRequests(paymentRequestIds, mockTransaction)
+    const result = await findCompletedPaymentRequests(paymentRequestIds, mockDb.trx)
 
-    expect(db.completedPaymentRequest.findAll).toHaveBeenCalledTimes(1)
-    expect(db.completedPaymentRequest.findAll).toHaveBeenCalledWith({
-      attributes: ['completedPaymentRequestId'],
-      where: {
-        paymentRequestId: { [db.Sequelize.Op.in]: paymentRequestIds }
-      },
-      transaction: mockTransaction
-    })
-    expect(result).toBe(mockResult)
+    expect(mockDb.tables.completedPaymentRequest).toHaveBeenCalledWith(mockDb.trx)
+    expect(mockDb.builder.select).toHaveBeenCalledWith('completedPaymentRequestId')
+    expect(mockDb.builder.whereIn).toHaveBeenCalledWith('paymentRequestId', paymentRequestIds)
+    expect(result).toEqual(mockResult)
   })
 
-  test('passes undefined transaction if not provided', async () => {
-    const mockResult = []
-    db.completedPaymentRequest.findAll.mockResolvedValue(mockResult)
+  test.each([undefined, null])('runs outside a transaction when transaction is %s', async (transaction) => {
+    await findCompletedPaymentRequests(paymentRequestIds, transaction)
 
-    const result = await findCompletedPaymentRequests(paymentRequestIds)
-
-    expect(db.completedPaymentRequest.findAll).toHaveBeenCalledWith({
-      attributes: ['completedPaymentRequestId'],
-      where: {
-        paymentRequestId: { [db.Sequelize.Op.in]: paymentRequestIds }
-      },
-      transaction: undefined
-    })
-    expect(result).toBe(mockResult)
+    expect(mockDb.tables.completedPaymentRequest).toHaveBeenCalledWith(undefined)
   })
 
-  test('propagates errors from db.completedPaymentRequest.findAll', async () => {
-    const error = new Error('DB failure')
-    db.completedPaymentRequest.findAll.mockRejectedValue(error)
+  test('propagates errors from the query', async () => {
+    mockDb.builder.rejects(new Error('DB failure'))
 
-    await expect(findCompletedPaymentRequests(paymentRequestIds, mockTransaction)).rejects.toThrow('DB failure')
+    await expect(findCompletedPaymentRequests(paymentRequestIds, mockDb.trx)).rejects.toThrow('DB failure')
   })
 })

@@ -1,54 +1,42 @@
-const { removeOutbox } = require('../../../app/retention/remove-outbox')
-const db = require('../../../app/data')
+const { createKnexMock } = require('../../helpers/mock-knex')
 
-jest.mock('../../../app/data', () => ({
-  Sequelize: {
-    Op: {
-      in: 'IN_OPERATOR'
-    }
-  },
-  outbox: {
-    destroy: jest.fn()
-  }
+const mockDb = createKnexMock(['outbox'])
+
+jest.mock('../../../app/database', () => ({
+  client: mockDb.knex,
+  transaction: mockDb.transaction,
+  close: mockDb.close,
+  ...mockDb.tables
 }))
+
+const { removeOutbox } = require('../../../app/retention/remove-outbox')
 
 describe('removeOutbox', () => {
   const completedPaymentRequestIds = [101, 102]
-  const transaction = { id: 'transaction-object' }
 
   beforeEach(() => {
     jest.clearAllMocks()
+    mockDb.builder.resolves()
   })
 
-  test('calls db.outbox.destroy with correct parameters', async () => {
+  test('deletes rows matching the ids against the transaction', async () => {
+    await removeOutbox(completedPaymentRequestIds, mockDb.trx)
+
+    expect(mockDb.tables.outbox).toHaveBeenCalledWith(mockDb.trx)
+    expect(mockDb.builder.whereIn).toHaveBeenCalledWith('completedPaymentRequestId', completedPaymentRequestIds)
+    expect(mockDb.builder.del).toHaveBeenCalledTimes(1)
+  })
+
+  test.each([undefined, null])('runs outside a transaction when transaction is %s', async (transaction) => {
     await removeOutbox(completedPaymentRequestIds, transaction)
 
-    expect(db.outbox.destroy).toHaveBeenCalledTimes(1)
-    expect(db.outbox.destroy).toHaveBeenCalledWith({
-      where: {
-        completedPaymentRequestId: {
-          [db.Sequelize.Op.in]: completedPaymentRequestIds
-        }
-      },
-      transaction
-    })
+    expect(mockDb.tables.outbox).toHaveBeenCalledWith(undefined)
+    expect(mockDb.builder.del).toHaveBeenCalledTimes(1)
   })
 
-  test('calls db.outbox.destroy with undefined transaction if not provided', async () => {
-    await removeOutbox(completedPaymentRequestIds)
+  test('propagates errors from the delete', async () => {
+    mockDb.builder.rejects(new Error('DB failure'))
 
-    expect(db.outbox.destroy).toHaveBeenCalledWith({
-      where: {
-        completedPaymentRequestId: { [db.Sequelize.Op.in]: completedPaymentRequestIds }
-      },
-      transaction: undefined
-    })
-  })
-
-  test('propagates errors from db.outbox.destroy', async () => {
-    const error = new Error('DB failure')
-    db.outbox.destroy.mockRejectedValue(error)
-
-    await expect(removeOutbox(completedPaymentRequestIds, transaction)).rejects.toThrow('DB failure')
+    await expect(removeOutbox(completedPaymentRequestIds, mockDb.trx)).rejects.toThrow('DB failure')
   })
 })

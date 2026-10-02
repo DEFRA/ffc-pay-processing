@@ -1,10 +1,9 @@
-const db = require('../data')
+const db = require('../database')
 
 const getExistingSchedule = async (paymentRequestId, transaction) => {
-  return db.schedule.findOne({
-    transaction,
-    where: { paymentRequestId, completed: null }
-  })
+  return (await db.schedule(transaction ?? undefined)
+    .where({ paymentRequestId, completed: null })
+    .first()) ?? null
 }
 
 module.exports = {
