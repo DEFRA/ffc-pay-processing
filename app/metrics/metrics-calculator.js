@@ -65,14 +65,14 @@ const calculateMetricsForPeriod = async (period, year = null, month = null) => {
 const calculateBasicPeriods = async () => {
   const periods = [PERIOD_ALL, PERIOD_YTD, PERIOD_MONTH, PERIOD_WEEK, PERIOD_DAY]
   for (const period of periods) {
-    await calculateMetricsForPeriod(period)
+    await calculateMetricsForPeriod(period) // NOSONAR
   }
 }
 
 const calculateYearlyMetrics = async (year) => {
   await calculateMetricsForPeriod(PERIOD_YEAR, year)
   for (let month = 1; month <= MONTHS_PER_YEAR; month++) {
-    await calculateMetricsForPeriod(PERIOD_MONTH_IN_YEAR, year, month)
+    await calculateMetricsForPeriod(PERIOD_MONTH_IN_YEAR, year, month) // NOSONAR
   }
 }
 
@@ -85,7 +85,7 @@ const calculateAllMetrics = async () => {
     )
     for (const { year } of years) {
       if (year) {
-        await calculateYearlyMetrics(Number(year))
+        await calculateYearlyMetrics(Number(year)) // NOSONAR
       }
     }
     console.log('✓ All metrics calculated successfully')

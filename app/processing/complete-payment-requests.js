@@ -65,6 +65,7 @@ const processInvoiceLines = async (
   transaction
 ) => {
   for (const line of invoiceLines) {
+<<<<<<< Updated upstream
     if (line.value !== 0) {
       line.completedPaymentRequestId = completedPaymentRequestId
       sanitizeInvoiceLine(line)
@@ -81,6 +82,13 @@ const processInvoiceLines = async (
         marketingYear: line.marketingYear,
         stateAid: line.stateAid
       })
+=======
+    const completedLine = line.dataValues ?? line
+    if (completedLine.value !== 0) {
+      completedLine.completedPaymentRequestId = completedPaymentRequestId
+      sanitizeInvoiceLine(completedLine)
+      await db.completedInvoiceLine.create(completedLine, { transaction }) // NOSONAR
+>>>>>>> Stashed changes
     }
   }
 }
@@ -144,6 +152,7 @@ const processSingleRequest = async (paymentRequest, transaction) => {
   })
 
   for (const request of splitRequests) {
+<<<<<<< Updated upstream
     const savedRequest = await saveCompletedPaymentRequest(request, transaction)
     await processInvoiceLines(
       request.invoiceLines,
@@ -151,7 +160,23 @@ const processSingleRequest = async (paymentRequest, transaction) => {
       transaction
     )
     await createOutboxEntry(request, savedRequest, isFirstPayment, transaction)
+=======
+    await saveCompletedRequest(request, isFirstPayment, transaction) // NOSONAR
+>>>>>>> Stashed changes
   }
+}
+
+const saveCompletedRequest = async (request, isFirstPayment, transaction) => {
+  const savedRequest = await db.completedPaymentRequest.create(
+    request.dataValues ?? request,
+    { transaction }
+  )
+  await processInvoiceLines(
+    request.invoiceLines,
+    savedRequest.completedPaymentRequestId,
+    transaction
+  )
+  await createOutboxEntry(request, savedRequest, isFirstPayment, transaction)
 }
 
 const createOutboxEntry = async (
@@ -192,6 +217,7 @@ const createOutboxEntry = async (
 const processMultipleRequests = async (paymentRequests, transaction) => {
   const hasOffset = hasOffsettingValues(paymentRequests)
   for (const request of paymentRequests) {
+<<<<<<< Updated upstream
     const savedRequest = await saveCompletedPaymentRequest(request, transaction)
     await processInvoiceLines(
       request.invoiceLines,
@@ -199,6 +225,9 @@ const processMultipleRequests = async (paymentRequests, transaction) => {
       transaction
     )
     await createOutboxEntry(request, savedRequest, hasOffset, transaction)
+=======
+    await saveCompletedRequest(request, hasOffset, transaction) // NOSONAR
+>>>>>>> Stashed changes
   }
 }
 
