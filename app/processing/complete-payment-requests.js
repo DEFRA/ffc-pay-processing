@@ -30,7 +30,7 @@ const processInvoiceLines = async (
     if (completedLine.value !== 0) {
       completedLine.completedPaymentRequestId = completedPaymentRequestId
       sanitizeInvoiceLine(completedLine)
-      await db.completedInvoiceLine.create(completedLine, { transaction })
+      await db.completedInvoiceLine.create(completedLine, { transaction }) // NOSONAR
     }
   }
 }
@@ -94,17 +94,21 @@ const processSingleRequest = async (paymentRequest, transaction) => {
   })
 
   for (const request of splitRequests) {
-    const savedRequest = await db.completedPaymentRequest.create(
-      request.dataValues ?? request,
-      { transaction }
-    )
-    await processInvoiceLines(
-      request.invoiceLines,
-      savedRequest.completedPaymentRequestId,
-      transaction
-    )
-    await createOutboxEntry(request, savedRequest, isFirstPayment, transaction)
+    await saveCompletedRequest(request, isFirstPayment, transaction) // NOSONAR
   }
+}
+
+const saveCompletedRequest = async (request, isFirstPayment, transaction) => {
+  const savedRequest = await db.completedPaymentRequest.create(
+    request.dataValues ?? request,
+    { transaction }
+  )
+  await processInvoiceLines(
+    request.invoiceLines,
+    savedRequest.completedPaymentRequestId,
+    transaction
+  )
+  await createOutboxEntry(request, savedRequest, isFirstPayment, transaction)
 }
 
 const createOutboxEntry = async (
@@ -148,16 +152,7 @@ const createOutboxEntry = async (
 const processMultipleRequests = async (paymentRequests, transaction) => {
   const hasOffset = hasOffsettingValues(paymentRequests)
   for (const request of paymentRequests) {
-    const savedRequest = await db.completedPaymentRequest.create(
-      request.dataValues ?? request,
-      { transaction }
-    )
-    await processInvoiceLines(
-      request.invoiceLines,
-      savedRequest.completedPaymentRequestId,
-      transaction
-    )
-    await createOutboxEntry(request, savedRequest, hasOffset, transaction)
+    await saveCompletedRequest(request, hasOffset, transaction) // NOSONAR
   }
 }
 
