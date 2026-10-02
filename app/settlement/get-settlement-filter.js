@@ -1,16 +1,16 @@
 const { getSchemeIds, getSourceSystems } = require('ffc-pay-schemes')
 
 const { ES, FC, IMPS } = getSchemeIds()
-const { GENESIS, GLOS, IMPS: IMPS_SOURCE } = getSourceSystems()
+const { ES: ES_SOURCE, FC: FC_SOURCE, IMPS: IMPS_SOURCE } = getSourceSystems()
 
 const getSettlementFilter = (settlement) => {
   switch (settlement.sourceSystem) {
-    case GENESIS:
+    case ES_SOURCE:
       return {
         schemeId: ES,
         agreementNumber: settlement.transactionNumber
       }
-    case GLOS:
+    case FC_SOURCE:
       return {
         schemeId: FC,
         frn: settlement.frn,
