@@ -5,8 +5,8 @@ jest.mock('ffc-pay-schemes', () => ({
     IMPS: 'IMPS'
   })),
   getSourceSystems: jest.fn(() => ({
-    GENESIS: 'GENESIS',
-    GLOS: 'GLOS',
+    ES: 'GENESIS',
+    FC: 'GLOS',
     IMPS: 'IMPS'
   }))
 }))
