@@ -57,39 +57,7 @@ class MetricsCalculationQueue {
       const [id, calculation] = this.queue.entries().next().value
       this.queue.delete(id)
 
-<<<<<<< Updated upstream
-      this.currentCalculation = calculation
-      const waitTime = Date.now() - calculation.enqueuedAt
-
-      console.log(`Processing metrics calculation: ${id} (waited ${waitTime}ms, ${this.queue.size} remaining in queue)`)
-
-      try {
-        const where = {
-          period_type: calculation.period
-        }
-        if (calculation.schemeYear) {
-          where.scheme_year = calculation.schemeYear
-        }
-        if (calculation.month) {
-          where.month_in_year = calculation.month
-        }
-
-        await db.metric().where(where)
-        calculation.resolve()
-        console.log(`✓ Completed calculation: ${id}`)
-      } catch (error) {
-        console.error(`✗ Failed calculation ${id}:`, error)
-        calculation.reject(error)
-      } finally {
-        this.currentCalculation = null
-
-        if (this.queue.size > 0) {
-          await this.delay(1000)
-        }
-      }
-=======
       await this.processCalculation(id, calculation) // NOSONAR
->>>>>>> Stashed changes
     }
 
     this.processing = false
@@ -112,7 +80,7 @@ class MetricsCalculationQueue {
         where.month_in_year = calculation.month
       }
 
-      await db.metric.findAll(where)
+      await db.metric().where(where)
       calculation.resolve()
       console.log(`✓ Completed calculation: ${id}`)
     } catch (error) {
