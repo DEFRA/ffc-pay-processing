@@ -36,7 +36,9 @@ const updateRequestsAwaitingManualLedgerCheck = async (manualLedgerCheckResult) 
     await completePaymentRequests(scheduleId, updatedPaymentRequests)
     await removeAutoHold(checkPaymentRequest, AWAITING_LEDGER_CHECK)
 
-    await Promise.all(updatedPaymentRequests.map(paymentRequestItem => sendProcessingRouteEvent(paymentRequestItem, 'manual-ledger', 'response')))
+    for (const paymentRequestItem of updatedPaymentRequests) {
+      await sendProcessingRouteEvent(paymentRequestItem, 'manual-ledger', 'response')
+    }
   }
 }
 

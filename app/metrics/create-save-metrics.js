@@ -30,7 +30,7 @@ const createMetricRecord = (result, period, snapshotDate, startDate, endDate, ye
 }
 
 const saveMetrics = async (results, period, snapshotDate, startDate, endDate, year = null, month = null) => {
-  await Promise.all(results.map(async (result) => {
+  for (const result of results) {
     const metricRecord = createMetricRecord(result, period, snapshotDate, startDate, endDate, year, month)
 
     const existing = await db.metric()
@@ -47,7 +47,7 @@ const saveMetrics = async (results, period, snapshotDate, startDate, endDate, ye
     } else {
       await db.metric().insert(toMetricColumns(metricRecord))
     }
-  }))
+  }
 }
 
 module.exports = {

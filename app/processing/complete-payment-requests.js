@@ -68,7 +68,7 @@ const processInvoiceLines = async (
     if (line.value !== 0) {
       line.completedPaymentRequestId = completedPaymentRequestId
       sanitizeInvoiceLine(line)
-      await db.completedInvoiceLine(transaction).insert({ // NOSONAR
+      await db.completedInvoiceLine(transaction).insert({
         completedPaymentRequestId,
         schemeCode: line.schemeCode,
         accountCode: line.accountCode,
@@ -144,18 +144,14 @@ const processSingleRequest = async (paymentRequest, transaction) => {
   })
 
   for (const request of splitRequests) {
-    await saveCompletedRequest(request, isFirstPayment, transaction) // NOSONAR
+    const savedRequest = await saveCompletedPaymentRequest(request, transaction)
+    await processInvoiceLines(
+      request.invoiceLines,
+      savedRequest.completedPaymentRequestId,
+      transaction
+    )
+    await createOutboxEntry(request, savedRequest, isFirstPayment, transaction)
   }
-}
-
-const saveCompletedRequest = async (request, isFirstPayment, transaction) => {
-  const savedRequest = await saveCompletedPaymentRequest(request, transaction)
-  await processInvoiceLines(
-    request.invoiceLines,
-    savedRequest.completedPaymentRequestId,
-    transaction
-  )
-  await createOutboxEntry(request, savedRequest, isFirstPayment, transaction)
 }
 
 const createOutboxEntry = async (
@@ -196,7 +192,13 @@ const createOutboxEntry = async (
 const processMultipleRequests = async (paymentRequests, transaction) => {
   const hasOffset = hasOffsettingValues(paymentRequests)
   for (const request of paymentRequests) {
-    await saveCompletedRequest(request, hasOffset, transaction) // NOSONAR
+    const savedRequest = await saveCompletedPaymentRequest(request, transaction)
+    await processInvoiceLines(
+      request.invoiceLines,
+      savedRequest.completedPaymentRequestId,
+      transaction
+    )
+    await createOutboxEntry(request, savedRequest, hasOffset, transaction)
   }
 }
 

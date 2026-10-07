@@ -2,7 +2,7 @@ const db = require('../database')
 const { sanitizeInvoiceLine } = require('../helpers/sanitize-invoice-line')
 
 const saveInvoiceLines = async (invoiceLines, paymentRequestId, transaction) => {
-  await Promise.all(invoiceLines.map(async (invoiceLine) => {
+  for (const invoiceLine of invoiceLines) {
     delete invoiceLine.invoiceLineId
     sanitizeInvoiceLine(invoiceLine)
     await db.invoiceLine(transaction ?? undefined).insert({
@@ -19,7 +19,7 @@ const saveInvoiceLines = async (invoiceLines, paymentRequestId, transaction) => 
       stateAid: invoiceLine.stateAid,
       invalid: invoiceLine.invalid
     })
-  }))
+  }
 }
 
 module.exports = {
