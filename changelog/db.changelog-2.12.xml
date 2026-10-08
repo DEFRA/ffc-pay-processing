@@ -1,0 +1,759 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+    xmlns:pro="http://www.liquibase.org/xml/ns/pro"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd
+                        http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-3.9.xsd
+                        http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.9.xsd">
+
+  <changeSet author="Sam Plackett" id="1">
+    <tagDatabase tag="v2.12.0" />
+  </changeSet>
+
+  <changeSet author="Sam Plackett" id="2">
+
+    <update tableName="holdCategories">
+      <column name="name" value="Bank account anomaly" />
+      <where>"holdCategoryId"=138 AND "schemeId"=10</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Accelerated payment" />
+      <where>"holdCategoryId"=139 AND "schemeId"=14</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="DAX rejection" />
+      <where>"holdCategoryId"=3 AND "schemeId"=1</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="DAX rejection" />
+      <where>"holdCategoryId"=6 AND "schemeId"=2</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Migrated hold" />
+      <where>"holdCategoryId"=9 AND "schemeId"=2</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Ex-gratia" />
+      <where>"holdCategoryId"=10 AND "schemeId"=1</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Ex-gratia" />
+      <where>"holdCategoryId"=11 AND "schemeId"=2</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Hardship case" />
+      <where>"holdCategoryId"=12 AND "schemeId"=1</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Hardship case" />
+      <where>"holdCategoryId"=13 AND "schemeId"=2</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Non-payable" />
+      <where>"holdCategoryId"=14 AND "schemeId"=1</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Non-payable" />
+      <where>"holdCategoryId"=15 AND "schemeId"=2</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Withdrawal" />
+      <where>"holdCategoryId"=16 AND "schemeId"=1</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Withdrawal" />
+      <where>"holdCategoryId"=17 AND "schemeId"=2</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Manual payment" />
+      <where>"holdCategoryId"=18 AND "schemeId"=1</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Manual payment" />
+      <where>"holdCategoryId"=19 AND "schemeId"=2</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Bridging payments" />
+      <where>"holdCategoryId"=20 AND "schemeId"=1</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Bridging payments" />
+      <where>"holdCategoryId"=21 AND "schemeId"=2</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Other admin" />
+      <where>"holdCategoryId"=22 AND "schemeId"=1</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Other admin" />
+      <where>"holdCategoryId"=23 AND "schemeId"=2</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Bank account anomaly" />
+      <where>"holdCategoryId"=1 AND "schemeId"=1</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Bank account anomaly" />
+      <where>"holdCategoryId"=4 AND "schemeId"=2</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Recovery" />
+      <where>"holdCategoryId"=24 AND "schemeId"=1</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Recovery" />
+      <where>"holdCategoryId"=25 AND "schemeId"=2</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Top up" />
+      <where>"holdCategoryId"=26 AND "schemeId"=1</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Top up" />
+      <where>"holdCategoryId"=27 AND "schemeId"=2</where>
+    </update>
+
+    <update tableName="holdCategories">
+      <column name="name" value="DAX rejection" />
+      <where>"holdCategoryId"=30 AND "schemeId"=3</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Ex-gratia" />
+      <where>"holdCategoryId"=32 AND "schemeId"=3</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Hardship case" />
+      <where>"holdCategoryId"=33 AND "schemeId"=3</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Non-payable" />
+      <where>"holdCategoryId"=34 AND "schemeId"=3</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Withdrawal" />
+      <where>"holdCategoryId"=35 AND "schemeId"=3</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Manual payment" />
+      <where>"holdCategoryId"=36 AND "schemeId"=3</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Bridging payments" />
+      <where>"holdCategoryId"=37 AND "schemeId"=3</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Other admin" />
+      <where>"holdCategoryId"=38 AND "schemeId"=3</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Bank account anomaly" />
+      <where>"holdCategoryId"=39 AND "schemeId"=3</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Recovery" />
+      <where>"holdCategoryId"=40 AND "schemeId"=3</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Top up" />
+      <where>"holdCategoryId"=41 AND "schemeId"=3</where>
+    </update>
+
+    <update tableName="holdCategories">
+      <column name="name" value="DAX rejection" />
+      <where>"holdCategoryId"=43 AND "schemeId"=4</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Ex-gratia" />
+      <where>"holdCategoryId"=45 AND "schemeId"=4</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Hardship case" />
+      <where>"holdCategoryId"=46 AND "schemeId"=4</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Non-payable" />
+      <where>"holdCategoryId"=47 AND "schemeId"=4</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Withdrawal" />
+      <where>"holdCategoryId"=48 AND "schemeId"=4</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Manual payment" />
+      <where>"holdCategoryId"=49 AND "schemeId"=4</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Bridging payments" />
+      <where>"holdCategoryId"=50 AND "schemeId"=4</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Other admin" />
+      <where>"holdCategoryId"=51 AND "schemeId"=4</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Bank account anomaly" />
+      <where>"holdCategoryId"=52 AND "schemeId"=4</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Recovery" />
+      <where>"holdCategoryId"=53 AND "schemeId"=4</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Top up" />
+      <where>"holdCategoryId"=54 AND "schemeId"=4</where>
+    </update>
+
+    <update tableName="holdCategories">
+      <column name="name" value="DAX rejection" />
+      <where>"holdCategoryId"=56 AND "schemeId"=5</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Ex-gratia" />
+      <where>"holdCategoryId"=58 AND "schemeId"=5</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Hardship case" />
+      <where>"holdCategoryId"=59 AND "schemeId"=5</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Non-payable" />
+      <where>"holdCategoryId"=60 AND "schemeId"=5</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Withdrawal" />
+      <where>"holdCategoryId"=61 AND "schemeId"=5</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Manual payment" />
+      <where>"holdCategoryId"=62 AND "schemeId"=5</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Bridging payments" />
+      <where>"holdCategoryId"=63 AND "schemeId"=5</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Other admin" />
+      <where>"holdCategoryId"=64 AND "schemeId"=5</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Bank account anomaly" />
+      <where>"holdCategoryId"=65 AND "schemeId"=5</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Recovery" />
+      <where>"holdCategoryId"=66 AND "schemeId"=5</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Top up" />
+      <where>"holdCategoryId"=67 AND "schemeId"=5</where>
+    </update>
+
+    <update tableName="holdCategories">
+      <column name="name" value="Awaiting assurance check" />
+      <where>"holdCategoryId"=69 AND "schemeId"=4</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Delta Validation Check" />
+      <where>"holdCategoryId"=70 AND "schemeId"=5</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="AI Marketing Year Error" />
+      <where>"holdCategoryId"=71 AND "schemeId"=5</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="2016 Interim" />
+      <where>"holdCategoryId"=72 AND "schemeId"=5</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="2017 Bridging Payment" />
+      <where>"holdCategoryId"=73 AND "schemeId"=5</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="2017 Hardship" />
+      <where>"holdCategoryId"=74 AND "schemeId"=5</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="2018 Bridging Payment" />
+      <where>"holdCategoryId"=75 AND "schemeId"=5</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="2019 Bridging Payment" />
+      <where>"holdCategoryId"=76 AND "schemeId"=5</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Advance Tick" />
+      <where>"holdCategoryId"=77 AND "schemeId"=5</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Capital Payments" />
+      <where>"holdCategoryId"=78 AND "schemeId"=5</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Capital Recoveries" />
+      <where>"holdCategoryId"=79 AND "schemeId"=5</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Claim affected by INC0553223" />
+      <where>"holdCategoryId"=80 AND "schemeId"=5</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="FSP" />
+      <where>"holdCategoryId"=81 AND "schemeId"=5</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Treasury" />
+      <where>"holdCategoryId"=82 AND "schemeId"=5</where>
+    </update>
+
+    <update tableName="holdCategories">
+      <column name="name" value="Bank account anomaly" />
+      <where>"holdCategoryId"=83 AND "schemeId"=6</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="DAX rejection" />
+      <where>"holdCategoryId"=84 AND "schemeId"=6</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Recovery" />
+      <where>"holdCategoryId"=86 AND "schemeId"=6</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Top up" />
+      <where>"holdCategoryId"=87 AND "schemeId"=6</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="BACS Recalls XC only" />
+      <where>"holdCategoryId"=88 AND "schemeId"=6</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Delta Validation Check" />
+      <where>"holdCategoryId"=89 AND "schemeId"=6</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="3YP" />
+      <where>"holdCategoryId"=90 AND "schemeId"=6</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Ex-gratia" />
+      <where>"holdCategoryId"=91 AND "schemeId"=6</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Bridging Payments" />
+      <where>"holdCategoryId"=92 AND "schemeId"=6</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Commons Manual" />
+      <where>"holdCategoryId"=93 AND "schemeId"=6</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Cross Border D2P" />
+      <where>"holdCategoryId"=94 AND "schemeId"=6</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Cross Border E2P" />
+      <where>"holdCategoryId"=95 AND "schemeId"=6</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="FRNs With Debts" />
+      <where>"holdCategoryId"=96 AND "schemeId"=6</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Greyed Out Lines" />
+      <where>"holdCategoryId"=97 AND "schemeId"=6</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Hardship Case" />
+      <where>"holdCategoryId"=98 AND "schemeId"=6</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Incorrect Currency Preference" />
+      <where>"holdCategoryId"=99 AND "schemeId"=6</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Manual Payments - June" />
+      <where>"holdCategoryId"=100 AND "schemeId"=6</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="NF Commons Manual" />
+      <where>"holdCategoryId"=101 AND "schemeId"=6</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Non-Declaration Penalties" />
+      <where>"holdCategoryId"=102 AND "schemeId"=6</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Non-Payable" />
+      <where>"holdCategoryId"=103 AND "schemeId"=6</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Payment Hold 2016" />
+      <where>"holdCategoryId"=104 AND "schemeId"=6</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="QA" />
+      <where>"holdCategoryId"=105 AND "schemeId"=6</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="RPA Land Bank" />
+      <where>"holdCategoryId"=106 AND "schemeId"=6</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Unregistered Customer" />
+      <where>"holdCategoryId"=107 AND "schemeId"=6</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Withdrawal" />
+      <where>"holdCategoryId"=108 AND "schemeId"=6</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Xcomp Obstruction" />
+      <where>"holdCategoryId"=109 AND "schemeId"=6</where>
+    </update>
+
+    <update tableName="holdCategories">
+      <column name="name" value="DAX rejection" />
+      <where>"holdCategoryId"=118 AND "schemeId"=8</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="DAX rejection" />
+      <where>"holdCategoryId"=119 AND "schemeId"=9</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="DAX rejection" />
+      <where>"holdCategoryId"=120 AND "schemeId"=11</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="DAX rejection" />
+      <where>"holdCategoryId"=121 AND "schemeId"=10</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="DAX rejection" />
+      <where>"holdCategoryId"=123 AND "schemeId"=12</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Ex-gratia" />
+      <where>"holdCategoryId"=125 AND "schemeId"=12</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Hardship case" />
+      <where>"holdCategoryId"=126 AND "schemeId"=12</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Non-payable" />
+      <where>"holdCategoryId"=127 AND "schemeId"=12</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Withdrawal" />
+      <where>"holdCategoryId"=128 AND "schemeId"=12</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Manual payment" />
+      <where>"holdCategoryId"=129 AND "schemeId"=12</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Bridging payments" />
+      <where>"holdCategoryId"=130 AND "schemeId"=12</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Other admin" />
+      <where>"holdCategoryId"=131 AND "schemeId"=12</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Bank account anomaly" />
+      <where>"holdCategoryId"=132 AND "schemeId"=12</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Recovery" />
+      <where>"holdCategoryId"=133 AND "schemeId"=12</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Top up" />
+      <where>"holdCategoryId"=134 AND "schemeId"=12</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Accelerated payment" />
+      <where>"holdCategoryId"=136 AND "schemeId"=12</where>
+    </update>
+
+    <update tableName="holdCategories">
+      <column name="name" value="Delinked payment hold" />
+      <where>"holdCategoryId"=137 AND "schemeId"=13</where>
+    </update>
+
+    <update tableName="holdCategories">
+      <column name="name" value="DAX rejection" />
+      <where>"holdCategoryId"=140 AND "schemeId"=14</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Ex-gratia" />
+      <where>"holdCategoryId"=141 AND "schemeId"=14</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Hardship case" />
+      <where>"holdCategoryId"=142 AND "schemeId"=14</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Non-payable" />
+      <where>"holdCategoryId"=143 AND "schemeId"=14</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Withdrawal" />
+      <where>"holdCategoryId"=144 AND "schemeId"=14</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Manual payment" />
+      <where>"holdCategoryId"=145 AND "schemeId"=14</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Bridging payments" />
+      <where>"holdCategoryId"=146 AND "schemeId"=14</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Other admin" />
+      <where>"holdCategoryId"=147 AND "schemeId"=14</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Bank account anomaly" />
+      <where>"holdCategoryId"=148 AND "schemeId"=14</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Recovery" />
+      <where>"holdCategoryId"=149 AND "schemeId"=14</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Top up" />
+      <where>"holdCategoryId"=150 AND "schemeId"=14</where>
+    </update>
+
+    <update tableName="holdCategories">
+      <column name="name" value="Bank account anomaly" />
+      <where>"holdCategoryId"=151 AND "schemeId"=13</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="DAX rejection" />
+      <where>"holdCategoryId"=152 AND "schemeId"=13</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Bank account anomaly" />
+      <where>"holdCategoryId"=153 AND "schemeId"=8</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Migration hold" />
+      <where>"holdCategoryId"=154 AND "schemeId"=5</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Migration hold" />
+      <where>"holdCategoryId"=155 AND "schemeId"=6</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Bank account anomaly" />
+      <where>"holdCategoryId"=156 AND "schemeId"=9</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Bank account anomaly" />
+      <where>"holdCategoryId"=157 AND "schemeId"=11</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Partial Recovery Process" />
+      <where>"holdCategoryId"=158 AND "schemeId"=12</where>
+    </update>
+
+    <update tableName="holdCategories">
+      <column name="name" value="Bank account anomaly" />
+      <where>"holdCategoryId"=159 AND "schemeId"=15</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="DAX rejection" />
+      <where>"holdCategoryId"=160 AND "schemeId"=15</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Non-Payable" />
+      <where>"holdCategoryId"=161 AND "schemeId"=15</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Other Admin" />
+      <where>"holdCategoryId"=162 AND "schemeId"=15</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Recovery" />
+      <where>"holdCategoryId"=163 AND "schemeId"=15</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Withdrawal" />
+      <where>"holdCategoryId"=164 AND "schemeId"=15</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Manual Payment" />
+      <where>"holdCategoryId"=165 AND "schemeId"=15</where>
+    </update>
+
+    <update tableName="holdCategories">
+      <column name="name" value="Bank account anomaly" />
+      <where>"holdCategoryId"=166 AND "schemeId"=16</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="DAX rejection" />
+      <where>"holdCategoryId"=167 AND "schemeId"=16</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Non-Payable" />
+      <where>"holdCategoryId"=168 AND "schemeId"=16</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Other Admin" />
+      <where>"holdCategoryId"=169 AND "schemeId"=16</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Recovery" />
+      <where>"holdCategoryId"=170 AND "schemeId"=16</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Withdrawal" />
+      <where>"holdCategoryId"=171 AND "schemeId"=16</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Manual Payment" />
+      <where>"holdCategoryId"=172 AND "schemeId"=16</where>
+    </update>
+
+    <update tableName="holdCategories">
+      <column name="name" value="DAX rejection" />
+      <where>"holdCategoryId"=173 AND "schemeId"=17</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Bank account anomaly" />
+      <where>"holdCategoryId"=174 AND "schemeId"=17</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Accelerated payment" />
+      <where>"holdCategoryId"=175 AND "schemeId"=17</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Ex-gratia" />
+      <where>"holdCategoryId"=176 AND "schemeId"=17</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Hardship case" />
+      <where>"holdCategoryId"=177 AND "schemeId"=17</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Non-payable" />
+      <where>"holdCategoryId"=178 AND "schemeId"=17</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Withdrawal" />
+      <where>"holdCategoryId"=179 AND "schemeId"=17</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Manual payment" />
+      <where>"holdCategoryId"=180 AND "schemeId"=17</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Bridging payments" />
+      <where>"holdCategoryId"=181 AND "schemeId"=17</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Other admin" />
+      <where>"holdCategoryId"=182 AND "schemeId"=17</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Recovery" />
+      <where>"holdCategoryId"=183 AND "schemeId"=17</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Top up" />
+      <where>"holdCategoryId"=184 AND "schemeId"=17</where>
+    </update>
+
+    <update tableName="holdCategories">
+      <column name="name" value="Partial Recovery Process" />
+      <where>"holdCategoryId"=185 AND "schemeId"=14</where>
+    </update>
+
+    <update tableName="holdCategories">
+      <column name="name" value="DAX rejection" />
+      <where>"holdCategoryId"=186 AND "schemeId"=18</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Bank account anomaly" />
+      <where>"holdCategoryId"=187 AND "schemeId"=18</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Manual Payment" />
+      <where>"holdCategoryId"=188 AND "schemeId"=18</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Non-Payable" />
+      <where>"holdCategoryId"=189 AND "schemeId"=18</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Other Admin" />
+      <where>"holdCategoryId"=190 AND "schemeId"=18</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Recovery" />
+      <where>"holdCategoryId"=191 AND "schemeId"=18</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Withdrawal" />
+      <where>"holdCategoryId"=192 AND "schemeId"=18</where>
+    </update>
+
+    <update tableName="holdCategories">
+      <column name="name" value="Accelerated payment" />
+      <where>"holdCategoryId"=193 AND "schemeId"=19</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Bank account anomaly" />
+      <where>"holdCategoryId"=194 AND "schemeId"=19</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Bridging payments" />
+      <where>"holdCategoryId"=195 AND "schemeId"=19</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="DAX rejection" />
+      <where>"holdCategoryId"=196 AND "schemeId"=19</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Ex-gratia" />
+      <where>"holdCategoryId"=197 AND "schemeId"=19</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Hardship case" />
+      <where>"holdCategoryId"=198 AND "schemeId"=19</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Manual payment" />
+      <where>"holdCategoryId"=199 AND "schemeId"=19</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Non-payable" />
+      <where>"holdCategoryId"=200 AND "schemeId"=19</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Other admin" />
+      <where>"holdCategoryId"=201 AND "schemeId"=19</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Partial recovery process" />
+      <where>"holdCategoryId"=202 AND "schemeId"=19</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Recovery" />
+      <where>"holdCategoryId"=203 AND "schemeId"=19</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Top up" />
+      <where>"holdCategoryId"=204 AND "schemeId"=19</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Withdrawal" />
+      <where>"holdCategoryId"=205 AND "schemeId"=19</where>
+    </update>
+
+  </changeSet>
+
+</databaseChangeLog>

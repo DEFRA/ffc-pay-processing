@@ -1,0 +1,72 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+    xmlns:pro="http://www.liquibase.org/xml/ns/pro"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd
+                        http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-3.9.xsd
+                        http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.9.xsd">
+
+  <changeSet author="Sam Plackett" id="1">
+    <tagDatabase tag="v2.13.0" />
+  </changeSet>
+
+  <changeSet author="Sam Plackett" id="2">
+
+    <update tableName="holdCategories">
+      <column name="name" value="Accelerated payment" />
+      <where>"holdCategoryId"=219 AND "schemeId"=19 AND name='DAX rejection'</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Bank account anomaly" />
+      <where>"holdCategoryId"=220 AND "schemeId"=19 AND name='DAX rejection'</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Bridging payments" />
+      <where>"holdCategoryId"=221 AND "schemeId"=19 AND name='DAX rejection'</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="DAX rejection" />
+      <where>"holdCategoryId"=222 AND "schemeId"=19 AND name='DAX rejection'</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Ex-gratia" />
+      <where>"holdCategoryId"=223 AND "schemeId"=19 AND name='DAX rejection'</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Hardship case" />
+      <where>"holdCategoryId"=224 AND "schemeId"=19 AND name='DAX rejection'</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Manual payment" />
+      <where>"holdCategoryId"=225 AND "schemeId"=19 AND name='DAX rejection'</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Non-payable" />
+      <where>"holdCategoryId"=226 AND "schemeId"=19 AND name='DAX rejection'</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Other admin" />
+      <where>"holdCategoryId"=227 AND "schemeId"=19 AND name='DAX rejection'</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Partial recovery process" />
+      <where>"holdCategoryId"=228 AND "schemeId"=19 AND name='DAX rejection'</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Recovery" />
+      <where>"holdCategoryId"=229 AND "schemeId"=19 AND name='DAX rejection'</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Top up" />
+      <where>"holdCategoryId"=230 AND "schemeId"=19 AND name='DAX rejection'</where>
+    </update>
+    <update tableName="holdCategories">
+      <column name="name" value="Withdrawal" />
+      <where>"holdCategoryId"=231 AND "schemeId"=19 AND name='DAX rejection'</where>
+    </update>
+
+  </changeSet>
+
+</databaseChangeLog>
