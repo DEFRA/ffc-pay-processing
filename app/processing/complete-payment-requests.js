@@ -42,7 +42,7 @@ const saveCompletedPaymentRequest = async (request, transaction) => {
     acknowledged: request.acknowledged,
     lastSettlement: request.lastSettlement,
     settledValue: request.settledValue,
-    // the column has no database default, so it is set here as the old model did
+    // the databse sets no default value for this column, so we must set it encase value == null
     invalid: request.invalid ?? false,
     referenceId: request.referenceId,
     correlationId: request.correlationId,
