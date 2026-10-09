@@ -1,4 +1,4 @@
-const db = require('../data')
+const db = require('../database')
 const { resetPaymentRequestById } = require('../reset')
 const { getHoldCategoryName } = require('./get-hold-category-name')
 const { getHoldCategoryId } = require('../holds')
@@ -6,7 +6,7 @@ const { holdAndReschedule } = require('../reschedule')
 const { sendAcknowledgementErrorEvent } = require('../event')
 
 const processInvalid = async (paymentRequest, acknowledgement) => {
-  const transaction = await db.sequelize.transaction()
+  const transaction = await db.transaction()
   try {
     const { schemeId, paymentRequestId, frn } = paymentRequest
     await resetPaymentRequestById(paymentRequestId, transaction)

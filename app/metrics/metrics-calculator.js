@@ -1,4 +1,4 @@
-const db = require('../../app/data')
+const db = require('../../app/database')
 const { getDateRangeForAll, getDateRangeForYTD, getDateRangeForYear, getDateRangeForMonthInYear, getDateRangeForRelativePeriod, fetchMetricsData, fetchHoldsData, mergeMetricsWithHolds } = require('./get-metrics-data')
 const { buildWhereClauseForDateRange } = require('./build-metrics')
 const { saveMetrics } = require('./create-save-metrics')
@@ -80,9 +80,8 @@ const calculateAllMetrics = async () => {
   console.log('Starting metrics calculation...')
   try {
     await calculateBasicPeriods()
-    const years = await db.sequelize.query(
-      'SELECT DISTINCT EXTRACT(YEAR FROM "received") AS year FROM "paymentRequests" ORDER BY year DESC',
-      { type: db.sequelize.QueryTypes.SELECT }
+    const { rows: years } = await db.client.raw(
+      'SELECT DISTINCT EXTRACT(YEAR FROM "received") AS year FROM "paymentRequests" ORDER BY year DESC'
     )
     for (const { year } of years) {
       if (year) {

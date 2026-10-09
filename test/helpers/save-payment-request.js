@@ -1,12 +1,13 @@
-const db = require('../../app/data')
+const db = require('../../app/database')
+const { pickColumns } = require('./table-columns')
 
 const savePaymentRequest = async (paymentRequest, completed = false) => {
-  const savedPaymentRequest = await db.paymentRequest.create(paymentRequest)
-  await db.invoiceLine.bulkCreate(paymentRequest.invoiceLines.map(invoiceLine => ({ ...invoiceLine, paymentRequestId: savedPaymentRequest.paymentRequestId })))
+  const [savedPaymentRequest] = await db.paymentRequest().insert(pickColumns('paymentRequest', paymentRequest)).returning('paymentRequestId')
+  await db.invoiceLine().insert(paymentRequest.invoiceLines.map(invoiceLine => pickColumns('invoiceLine', { ...invoiceLine, paymentRequestId: savedPaymentRequest.paymentRequestId })))
   if (completed) {
-    const completedPaymentRequest = await db.completedPaymentRequest.create({ ...paymentRequest, paymentRequestId: savedPaymentRequest.paymentRequestId })
-    await db.completedInvoiceLine.bulkCreate(paymentRequest.invoiceLines.map(invoiceLine => ({ ...invoiceLine, completedPaymentRequestId: completedPaymentRequest.completedPaymentRequestId })))
-    await db.outbox.create({ completedPaymentRequestId: completedPaymentRequest.completedPaymentRequestId })
+    const [completedPaymentRequest] = await db.completedPaymentRequest().insert(pickColumns('completedPaymentRequest', { invalid: false, ...paymentRequest, paymentRequestId: savedPaymentRequest.paymentRequestId })).returning('completedPaymentRequestId')
+    await db.completedInvoiceLine().insert(paymentRequest.invoiceLines.map(invoiceLine => pickColumns('completedInvoiceLine', { ...invoiceLine, completedPaymentRequestId: completedPaymentRequest.completedPaymentRequestId })))
+    await db.outbox().insert({ completedPaymentRequestId: completedPaymentRequest.completedPaymentRequestId })
     return { id: savedPaymentRequest.paymentRequestId, completedId: completedPaymentRequest.completedPaymentRequestId }
   }
   return { id: savedPaymentRequest.paymentRequestId }

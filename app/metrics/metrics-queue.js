@@ -1,4 +1,4 @@
-const db = require('../data')
+const db = require('../database')
 
 class MetricsCalculationQueue {
   constructor () {
@@ -22,7 +22,7 @@ class MetricsCalculationQueue {
 
     const calculation = this.createCalculation(id, period, schemeYear, month)
     this.queue.set(id, calculation)
-    this.processQueue()
+    this.processQueue().catch(error => console.error('Metrics queue processing failed:', error))
 
     return calculation.promise
   }
@@ -73,7 +73,7 @@ class MetricsCalculationQueue {
           where.month_in_year = calculation.month
         }
 
-        await db.metric.findAll(where)
+        await db.metric().where(where)
         calculation.resolve()
         console.log(`✓ Completed calculation: ${id}`)
       } catch (error) {

@@ -1,4 +1,4 @@
-const db = require('../data')
+const db = require('../database')
 const { VALIDATION } = require('../constants/errors')
 const { prepareForReprocessing } = require('./prepare-for-reprocessing')
 
@@ -9,7 +9,7 @@ const updateRequestsAwaitingDebtData = async (paymentRequest) => {
     throw error
   }
 
-  const originalPaymentRequest = await db.paymentRequest.findOne({ where: { invoiceNumber: paymentRequest.invoiceNumber } })
+  const originalPaymentRequest = (await db.paymentRequest().where({ invoiceNumber: paymentRequest.invoiceNumber }).first()) ?? null
 
   if (!originalPaymentRequest) {
     const error = new Error(`No payment request matching invoice number: ${paymentRequest.invoiceNumber}`)

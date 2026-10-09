@@ -1,45 +1,43 @@
-const { removeFRNAgreementClosed } = require('../../../app/retention/remove-frn-agreement-closed')
-const db = require('../../../app/data')
+const { createKnexMock } = require('../../helpers/mock-knex')
 
-jest.mock('../../../app/data', () => ({
-  frnAgreementClosed: {
-    destroy: jest.fn()
-  }
+const mockDb = createKnexMock(['frnAgreementClosed'])
+
+jest.mock('../../../app/database', () => ({
+  client: mockDb.knex,
+  transaction: mockDb.transaction,
+  close: mockDb.close,
+  ...mockDb.tables
 }))
+
+const { removeFRNAgreementClosed } = require('../../../app/retention/remove-frn-agreement-closed')
 
 describe('removeFRNAgreementClosed', () => {
   const agreementNumber = 'AGR123'
   const frn = 456789
   const schemeId = 10
-  const transaction = { id: 'transaction-object' }
 
   beforeEach(() => {
     jest.clearAllMocks()
+    mockDb.builder.resolves()
   })
 
-  test('calls db.frnAgreementClosed.destroy with correct parameters', async () => {
+  test('deletes matching closures against the transaction', async () => {
+    await removeFRNAgreementClosed(agreementNumber, frn, schemeId, mockDb.trx)
+
+    expect(mockDb.tables.frnAgreementClosed).toHaveBeenCalledWith(mockDb.trx)
+    expect(mockDb.builder.where).toHaveBeenCalledWith({ agreementNumber, frn, schemeId })
+    expect(mockDb.builder.del).toHaveBeenCalledTimes(1)
+  })
+
+  test.each([undefined, null])('runs outside a transaction when transaction is %s', async (transaction) => {
     await removeFRNAgreementClosed(agreementNumber, frn, schemeId, transaction)
 
-    expect(db.frnAgreementClosed.destroy).toHaveBeenCalledTimes(1)
-    expect(db.frnAgreementClosed.destroy).toHaveBeenCalledWith({
-      where: { agreementNumber, frn, schemeId },
-      transaction
-    })
+    expect(mockDb.tables.frnAgreementClosed).toHaveBeenCalledWith(undefined)
   })
 
-  test('calls db.frnAgreementClosed.destroy with undefined transaction if not provided', async () => {
-    await removeFRNAgreementClosed(agreementNumber, frn, schemeId)
+  test('propagates errors from the delete', async () => {
+    mockDb.builder.rejects(new Error('DB failure'))
 
-    expect(db.frnAgreementClosed.destroy).toHaveBeenCalledWith({
-      where: { agreementNumber, frn, schemeId },
-      transaction: undefined
-    })
-  })
-
-  test('propagates errors from db.frnAgreementClosed.destroy', async () => {
-    const error = new Error('DB failure')
-    db.frnAgreementClosed.destroy.mockRejectedValue(error)
-
-    await expect(removeFRNAgreementClosed(agreementNumber, frn, schemeId, transaction)).rejects.toThrow('DB failure')
+    await expect(removeFRNAgreementClosed(agreementNumber, frn, schemeId, mockDb.trx)).rejects.toThrow('DB failure')
   })
 })

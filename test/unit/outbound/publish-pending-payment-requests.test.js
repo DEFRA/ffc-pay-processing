@@ -3,10 +3,8 @@ jest.mock('../../../app/messaging/service-bus', () => ({
   sendBatchMessages: jest.fn()
 }))
 
-jest.mock('../../../app/data', () => ({
-  sequelize: {
-    transaction: jest.fn()
-  }
+jest.mock('../../../app/database', () => ({
+  transaction: jest.fn()
 }))
 
 jest.mock('../../../app/outbound/get-pending-payment-requests')
@@ -25,7 +23,7 @@ const { getSender, sendBatchMessages } = require('../../../app/messaging/service
 
 const paymentRequest = require('../../mocks/payment-requests/payment-request')
 const message = require('../../mocks/messaging/message')
-const db = require('../../../app/data')
+const db = require('../../../app/database')
 
 const { publishPendingPaymentRequests } = require('../../../app/outbound/publish-pending-payment-requests')
 
@@ -38,7 +36,7 @@ describe('publish pending payment requests', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    db.sequelize.transaction.mockResolvedValue(mockTransaction)
+    db.transaction.mockResolvedValue(mockTransaction)
     mockCreateMessage.mockReturnValue(message)
     getSender.mockReturnValue(mockSender)
     sendBatchMessages.mockResolvedValue()
@@ -58,7 +56,7 @@ describe('publish pending payment requests', () => {
     expect(sendBatchMessages).toHaveBeenCalledTimes(shouldSend ? 1 : 0)
     expect(mockSendPublishingEvents).toHaveBeenCalledTimes(shouldSend ? 1 : 0)
     expect(mockUpdatePendingPaymentRequests).toHaveBeenCalledTimes(shouldSend ? 1 : 0)
-    expect(db.sequelize.transaction).toHaveBeenCalledTimes(1)
+    expect(db.transaction).toHaveBeenCalledTimes(1)
     expect(mockTransaction.commit).toHaveBeenCalledTimes(1)
   })
 

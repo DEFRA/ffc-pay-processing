@@ -1,4 +1,4 @@
-const db = require('../data')
+const db = require('../database')
 
 const isAgreementClosed = async (paymentRequest) => {
   // if value is non-zero, we just continue as normal - so always return false.
@@ -7,10 +7,7 @@ const isAgreementClosed = async (paymentRequest) => {
   }
   const { schemeId, frn, agreementNumber } = paymentRequest
   const currentDate = new Date()
-  const agreement = await db.frnAgreementClosed.findOne({
-    where: { schemeId, frn, agreementNumber },
-    raw: true
-  })
+  const agreement = (await db.frnAgreementClosed().where({ schemeId, frn, agreementNumber }).first()) ?? null
   if (agreement === null) {
     return false
   }

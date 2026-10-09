@@ -1,5 +1,6 @@
 const { getSchemeIds } = require('ffc-pay-schemes')
-const db = require('../data')
+const db = require('../database')
+
 const { MANUAL } = getSchemeIds()
 
 const findPaymentRequests = async (agreementNumber, frn, schemeId, usesContractNumber, pillar, transaction) => {
@@ -11,11 +12,9 @@ const findPaymentRequests = async (agreementNumber, frn, schemeId, usesContractN
   if (schemeId === MANUAL && pillar) {
     where.pillar = pillar
   }
-  return db.paymentRequest.findAll({
-    attributes: ['paymentRequestId'],
-    where,
-    transaction
-  })
+  return db.paymentRequest(transaction ?? undefined)
+    .select('paymentRequestId')
+    .where(where)
 }
 
 module.exports = {

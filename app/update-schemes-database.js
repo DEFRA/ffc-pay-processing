@@ -1,5 +1,5 @@
 const { getSchemes, schemeDoesNotRequirePPAs } = require('ffc-pay-schemes')
-const db = require('./data')
+const db = require('./database')
 const { addHoldType } = require('./holds')
 const { BANK_ACCOUNT_ANOMALY, DAX_REJECTION, AWAITING_DEBT_ENRICHMENT, AWAITING_LEDGER_CHECK } = require('./constants/hold-categories-names')
 
@@ -8,15 +8,9 @@ const updateSchemesDatabase = async () => {
   const schemes = getSchemes()
 
   for (const { schemeId, schemeName } of schemes) {
-    const existingScheme = await db.scheme.findOne({
-      where: { schemeId }
-    })
+    const existingScheme = (await db.scheme().where({ schemeId }).first()) ?? null
 
-    await db.scheme.upsert({
-      schemeId,
-      name: schemeName,
-      active: true
-    })
+    await db.scheme().insert({ schemeId, name: schemeName, active: true }).onConflict('schemeId').merge()
 
     const created = !existingScheme
     console.log(`${schemeName} ${created ? 'created' : 'updated'}`)
@@ -27,8 +21,8 @@ const updateSchemesDatabase = async () => {
       console.log('Required D365 holds added')
       // If the scheme supports PPAs, we also need the Request Editor hold categories
       if (!schemeDoesNotRequirePPAs(schemeId)) {
-        await db.autoHoldCategory.create({ name: AWAITING_DEBT_ENRICHMENT, schemeId })
-        await db.autoHoldCategory.create({ name: AWAITING_LEDGER_CHECK, schemeId })
+        await db.autoHoldCategory().insert({ name: AWAITING_DEBT_ENRICHMENT, schemeId })
+        await db.autoHoldCategory().insert({ name: AWAITING_LEDGER_CHECK, schemeId })
         console.log('Scheme supports PPAs - required Request Editor holds added')
       }
     }

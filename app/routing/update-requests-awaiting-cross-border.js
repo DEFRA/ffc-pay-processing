@@ -1,25 +1,24 @@
-const db = require('../data')
+const db = require('../database')
 const { removeAutoHold } = require('../auto-hold')
 const { CROSS_BORDER } = require('../constants/hold-categories-names')
 const { saveInvoiceLines } = require('../inbound/save-invoice-lines')
 const { invalidateInvoiceLines } = require('./invalidate-invoice-lines')
 
 const updateRequestsAwaitingCrossBorder = async (paymentRequest) => {
-  const transaction = await db.sequelize.transaction()
+  const transaction = await db.transaction()
   try {
-    const originalPaymentRequest = await db.paymentRequest.findOne({ transaction, where: { invoiceNumber: paymentRequest.invoiceNumber } })
+    const originalPaymentRequest = (await db.paymentRequest(transaction).where({ invoiceNumber: paymentRequest.invoiceNumber }).first()) ?? null
 
     if (!originalPaymentRequest) {
       throw new Error(`No payment request matching Cross Border invoice number: ${paymentRequest.invoiceNumber}`)
     }
 
-    await db.paymentRequest.update({
-      deliveryBody: paymentRequest.deliveryBody,
-      value: paymentRequest.value
-    }, {
-      transaction,
-      where: { paymentRequestId: originalPaymentRequest.paymentRequestId }
-    })
+    await db.paymentRequest(transaction)
+      .where({ paymentRequestId: originalPaymentRequest.paymentRequestId })
+      .update({
+        deliveryBody: paymentRequest.deliveryBody,
+        value: paymentRequest.value
+      })
 
     await invalidateInvoiceLines(originalPaymentRequest.paymentRequestId, transaction)
     await saveInvoiceLines(paymentRequest.invoiceLines, originalPaymentRequest.paymentRequestId, transaction)

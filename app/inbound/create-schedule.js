@@ -1,11 +1,10 @@
-const db = require('../data')
+const db = require('../database')
 
 const createSchedule = async (paymentRequestId, transaction) => {
-  await db.schedule.create({
+  await db.schedule(transaction ?? undefined).insert({
     paymentRequestId,
     planned: new Date()
-  },
-  { transaction })
+  })
 }
 
 module.exports = {

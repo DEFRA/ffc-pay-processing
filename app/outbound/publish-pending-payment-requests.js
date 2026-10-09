@@ -1,4 +1,4 @@
-const db = require('../data')
+const db = require('../database')
 const { messageConfig } = require('../config')
 const { getSender, sendBatchMessages } = require('../messaging/service-bus')
 const { getPendingPaymentRequests } = require('./get-pending-payment-requests')
@@ -8,7 +8,7 @@ const { updatePendingPaymentRequests } = require('./update-pending-payment-reque
 const { PROCESSED } = require('../constants/messages')
 
 const publishPendingPaymentRequests = async (submitted = new Date()) => {
-  const transaction = await db.sequelize.transaction()
+  const transaction = await db.transaction()
   try {
     const paymentRequests = await getPendingPaymentRequests(transaction)
     if (paymentRequests.length) {

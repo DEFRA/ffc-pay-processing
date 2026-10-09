@@ -1,54 +1,83 @@
-const db = require('../../../app/data')
+const { createKnexMock, createQueryBuilder } = require('../../helpers/mock-knex')
+
+const mockDb = createKnexMock(['schedule', 'completedPaymentRequest', 'completedInvoiceLine', 'outbox'])
+
+jest.mock('../../../app/database', () => ({
+  client: mockDb.knex,
+  transaction: mockDb.transaction,
+  close: mockDb.close,
+  ...mockDb.tables
+}))
+jest.mock('../../../app/event')
+jest.mock('../../../app/helpers/sanitize-invoice-line')
+
 const { completePaymentRequests } = require('../../../app/processing/complete-payment-requests')
 const { sendZeroValueEvent } = require('../../../app/event')
 const { sanitizeInvoiceLine } = require('../../../app/helpers/sanitize-invoice-line')
 
-jest.mock('../../../app/data')
-jest.mock('../../../app/event')
-jest.mock('../../../app/helpers/sanitize-invoice-line')
-
 describe('completePaymentRequests', () => {
-  let mockTransaction
+  let scheduleBuilder
+  let completedPaymentRequestBuilder
+  let completedInvoiceLineBuilder
+  let outboxBuilder
 
   beforeEach(() => {
     jest.clearAllMocks()
 
-    mockTransaction = {
-      commit: jest.fn(),
-      rollback: jest.fn()
-    }
+    scheduleBuilder = createQueryBuilder().resolves(1)
+    completedPaymentRequestBuilder = createQueryBuilder().resolves([{ completedPaymentRequestId: 1 }])
+    completedInvoiceLineBuilder = createQueryBuilder().resolves()
+    outboxBuilder = createQueryBuilder().resolves()
 
-    db.sequelize = {
-      transaction: jest.fn().mockResolvedValue(mockTransaction)
-    }
-
-    db.schedule = {
-      update: jest.fn().mockResolvedValue([1])
-    }
-
-    db.completedPaymentRequest = {
-      create: jest.fn().mockImplementation(data =>
-        Promise.resolve({ completedPaymentRequestId: 1, ...data })
-      )
-    }
-
-    db.completedInvoiceLine = {
-      create: jest.fn().mockResolvedValue({ invoiceLineId: 1 })
-    }
-
-    db.outbox = {
-      create: jest.fn().mockResolvedValue({ outboxId: 1 })
-    }
-
-    db.Sequelize = {
-      Op: {
-        ne: Symbol('ne'),
-        eq: Symbol('eq')
-      }
-    }
+    mockDb.tables.schedule.mockReturnValue(scheduleBuilder)
+    mockDb.tables.completedPaymentRequest.mockReturnValue(completedPaymentRequestBuilder)
+    mockDb.tables.completedInvoiceLine.mockReturnValue(completedInvoiceLineBuilder)
+    mockDb.tables.outbox.mockReturnValue(outboxBuilder)
 
     sendZeroValueEvent.mockResolvedValue()
     sanitizeInvoiceLine.mockImplementation(line => line)
+  })
+
+  test('should mark the schedule complete inside the transaction', async () => {
+    await completePaymentRequests(1, [{ invoiceNumber: 'SITI1234', value: 100, invoiceLines: [{ value: 100 }] }])
+
+    expect(mockDb.transaction).toHaveBeenCalledTimes(1)
+    expect(mockDb.tables.schedule).toHaveBeenCalledWith(mockDb.trx)
+    expect(scheduleBuilder.where).toHaveBeenCalledWith({ scheduleId: 1 })
+    expect(scheduleBuilder.whereNull).toHaveBeenCalledWith('completed')
+    expect(scheduleBuilder.update).toHaveBeenCalledWith({ completed: expect.any(Date) })
+  })
+
+  test('should only insert completed payment request and invoice line columns', async () => {
+    const paymentRequest = {
+      paymentRequestId: 10,
+      invoiceNumber: 'SITI1234',
+      value: 100,
+      scheme: { name: 'SFI' },
+      invoiceLines: [{ invoiceLineId: 5, paymentRequestId: 10, value: 100, description: 'G00', invalid: false }]
+    }
+
+    await completePaymentRequests(1, [paymentRequest])
+
+    const createdPayload = completedPaymentRequestBuilder.insert.mock.calls[0][0]
+    expect(createdPayload).toEqual(expect.objectContaining({ paymentRequestId: 10, invoiceNumber: 'SITI1234', value: 100, invalid: false }))
+    expect(createdPayload).not.toHaveProperty('scheme')
+    expect(createdPayload).not.toHaveProperty('invoiceLines')
+    expect(completedPaymentRequestBuilder.returning).toHaveBeenCalledWith('completedPaymentRequestId')
+
+    const createdLine = completedInvoiceLineBuilder.insert.mock.calls[0][0]
+    expect(createdLine).toEqual(expect.objectContaining({ completedPaymentRequestId: 1, value: 100, description: 'G00' }))
+    expect(createdLine).not.toHaveProperty('invoiceLineId')
+    expect(createdLine).not.toHaveProperty('paymentRequestId')
+    expect(createdLine).not.toHaveProperty('invalid')
+
+    expect(outboxBuilder.insert).toHaveBeenCalledWith({ completedPaymentRequestId: 1 })
+  })
+
+  test('should keep an explicit invalid value', async () => {
+    await completePaymentRequests(1, [{ invoiceNumber: 'SITI1234', value: 100, invalid: true, invoiceLines: [{ value: 100 }] }])
+
+    expect(completedPaymentRequestBuilder.insert).toHaveBeenCalledWith(expect.objectContaining({ invalid: true }))
   })
 
   test('should process single request with offsetting values', async () => {
@@ -57,27 +86,18 @@ describe('completePaymentRequests', () => {
       paymentRequestNumber: 1,
       value: 100,
       invoiceLines: [
-        { value: 100, dataValues: { value: 100 } },
-        { value: -100, dataValues: { value: -100 } }
-      ],
-      dataValues: {
-        invoiceNumber: 'SITI1234',
-        value: 100,
-        paymentRequestNumber: 1,
-        invoiceLines: [
-          { value: 100, dataValues: { value: 100 } },
-          { value: -100, dataValues: { value: -100 } }
-        ]
-      }
+        { value: 100 },
+        { value: -100 }
+      ]
     }
 
     await completePaymentRequests(1, [paymentRequest])
 
-    expect(db.schedule.update).toHaveBeenCalledTimes(1)
-    expect(db.completedPaymentRequest.create).toHaveBeenCalled()
+    expect(scheduleBuilder.update).toHaveBeenCalledTimes(1)
+    expect(completedPaymentRequestBuilder.insert).toHaveBeenCalled()
     expect(sanitizeInvoiceLine).toHaveBeenCalledTimes(2)
-    expect(db.outbox.create).toHaveBeenCalled()
-    expect(mockTransaction.commit).toHaveBeenCalled()
+    expect(outboxBuilder.insert).toHaveBeenCalled()
+    expect(mockDb.trx.commit).toHaveBeenCalled()
   })
 
   test('should process multiple requests without offset', async () => {
@@ -85,95 +105,70 @@ describe('completePaymentRequests', () => {
       {
         invoiceNumber: 'SITI1234',
         value: 100,
-        invoiceLines: [{ value: 100, dataValues: { value: 100 } }],
-        dataValues: {
-          invoiceNumber: 'SITI1234',
-          value: 100,
-          invoiceLines: [{ value: 100 }]
-        }
+        invoiceLines: [{ value: 100 }]
       },
       {
         invoiceNumber: 'SITI5678',
         value: 200,
-        invoiceLines: [{ value: 200, dataValues: { value: 200 } }],
-        dataValues: {
-          invoiceNumber: 'SITI5678',
-          value: 200,
-          invoiceLines: [{ value: 200 }]
-        }
+        invoiceLines: [{ value: 200 }]
       }
     ]
 
     await completePaymentRequests(1, requests)
 
-    expect(db.schedule.update).toHaveBeenCalledTimes(1)
-    expect(db.completedPaymentRequest.create).toHaveBeenCalledTimes(2)
+    expect(scheduleBuilder.update).toHaveBeenCalledTimes(1)
+    expect(completedPaymentRequestBuilder.insert).toHaveBeenCalledTimes(2)
     expect(sanitizeInvoiceLine).toHaveBeenCalledTimes(2)
-    expect(db.outbox.create).toHaveBeenCalledTimes(2)
-    expect(mockTransaction.commit).toHaveBeenCalled()
+    expect(outboxBuilder.insert).toHaveBeenCalledTimes(2)
+    expect(mockDb.trx.commit).toHaveBeenCalled()
   })
 
   test('should handle transaction rollback on error', async () => {
-    db.completedPaymentRequest.create.mockRejectedValue(new Error('Test error'))
+    completedPaymentRequestBuilder.rejects(new Error('Test error'))
 
     const paymentRequest = {
       invoiceNumber: 'SITI1234',
       value: 100,
-      invoiceLines: [{ value: 100, dataValues: { value: 100 } }],
-      dataValues: {
-        invoiceNumber: 'SITI1234',
-        value: 100,
-        invoiceLines: [{ value: 100 }]
-      }
+      invoiceLines: [{ value: 100 }]
     }
 
     await expect(completePaymentRequests(1, [paymentRequest])).rejects.toThrow('Test error')
-    expect(db.schedule.update).toHaveBeenCalledTimes(1)
-    expect(mockTransaction.rollback).toHaveBeenCalled()
+    expect(scheduleBuilder.update).toHaveBeenCalledTimes(1)
+    expect(mockDb.trx.rollback).toHaveBeenCalled()
   })
 
   test('should create zero value event for zero value payment', async () => {
     const paymentRequest = {
       invoiceNumber: 'SITI1234',
       value: 0,
-      invoiceLines: [{ value: 0, dataValues: { value: 0 } }],
-      dataValues: {
-        invoiceNumber: 'SITI1234',
-        value: 0,
-        invoiceLines: [{ value: 0 }]
-      }
+      invoiceLines: [{ value: 0 }]
     }
 
     await completePaymentRequests(1, [paymentRequest])
 
-    expect(db.schedule.update).toHaveBeenCalledTimes(1)
+    expect(scheduleBuilder.update).toHaveBeenCalledTimes(1)
     expect(sendZeroValueEvent).toHaveBeenCalled()
     expect(sanitizeInvoiceLine).not.toHaveBeenCalled()
-    expect(db.outbox.create).not.toHaveBeenCalled()
-    expect(mockTransaction.commit).toHaveBeenCalled()
+    expect(outboxBuilder.insert).not.toHaveBeenCalled()
+    expect(mockDb.trx.commit).toHaveBeenCalled()
   })
 
   test('should skip processing when schedule update affects zero rows', async () => {
-    db.schedule.update.mockResolvedValue([0])
+    scheduleBuilder.resolves(0)
 
     const paymentRequest = {
       invoiceNumber: 'SITI1234',
       value: 100,
-      invoiceLines: [{ value: 100, dataValues: { value: 100 } }],
-      dataValues: {
-        invoiceNumber: 'SITI1234',
-        value: 100,
-        invoiceLines: [{ value: 100 }]
-      }
+      invoiceLines: [{ value: 100 }]
     }
 
     await completePaymentRequests(1, [paymentRequest])
 
-    expect(db.schedule.update).toHaveBeenCalledTimes(1)
-    expect(db.completedPaymentRequest.create).not.toHaveBeenCalled()
+    expect(scheduleBuilder.update).toHaveBeenCalledTimes(1)
+    expect(completedPaymentRequestBuilder.insert).not.toHaveBeenCalled()
     expect(sanitizeInvoiceLine).not.toHaveBeenCalled()
-    expect(db.outbox.create).not.toHaveBeenCalled()
-    expect(mockTransaction.commit).toHaveBeenCalled()
+    expect(outboxBuilder.insert).not.toHaveBeenCalled()
+    expect(mockDb.trx.commit).toHaveBeenCalled()
   })
 
   test('should copy new fields to completedPaymentRequest when present', async () => {
@@ -186,24 +181,14 @@ describe('completePaymentRequests', () => {
       annualValue: '9999.99',
       remittanceDescription: 'Quarterly reconciliation',
       invoiceLines: [
-        { value: 123.45, dataValues: { value: 123.45 } }
-      ],
-      dataValues: {
-        invoiceNumber: 'SITI9999',
-        paymentRequestNumber: 2,
-        value: 123.45,
-        claimDate: '2025-01-31',
-        fesCode: 'FES-ABC',
-        annualValue: '9999.99',
-        remittanceDescription: 'Quarterly reconciliation',
-        invoiceLines: [{ value: 123.45 }]
-      }
+        { value: 123.45 }
+      ]
     }
 
     await completePaymentRequests(1, [paymentRequest])
 
-    expect(db.completedPaymentRequest.create).toHaveBeenCalledTimes(1)
-    const createdPayload = db.completedPaymentRequest.create.mock.calls[0][0]
+    expect(completedPaymentRequestBuilder.insert).toHaveBeenCalledTimes(1)
+    const createdPayload = completedPaymentRequestBuilder.insert.mock.calls[0][0]
 
     expect(createdPayload).toEqual(expect.objectContaining({
       invoiceNumber: 'SITI9999',
@@ -216,8 +201,8 @@ describe('completePaymentRequests', () => {
     }))
 
     expect(sanitizeInvoiceLine).toHaveBeenCalledTimes(1)
-    expect(db.outbox.create).toHaveBeenCalledTimes(1)
-    expect(mockTransaction.commit).toHaveBeenCalled()
+    expect(outboxBuilder.insert).toHaveBeenCalledTimes(1)
+    expect(mockDb.trx.commit).toHaveBeenCalled()
   })
 
   test('should not require new fields and still complete when they are absent', async () => {
@@ -226,20 +211,14 @@ describe('completePaymentRequests', () => {
       paymentRequestNumber: 3,
       value: 50,
       invoiceLines: [
-        { value: 50, dataValues: { value: 50 } }
-      ],
-      dataValues: {
-        invoiceNumber: 'SITI0001',
-        paymentRequestNumber: 3,
-        value: 50,
-        invoiceLines: [{ value: 50 }]
-      }
+        { value: 50 }
+      ]
     }
 
     await completePaymentRequests(1, [paymentRequest])
 
-    expect(db.completedPaymentRequest.create).toHaveBeenCalledTimes(1)
-    const createdPayload = db.completedPaymentRequest.create.mock.calls[0][0]
+    expect(completedPaymentRequestBuilder.insert).toHaveBeenCalledTimes(1)
+    const createdPayload = completedPaymentRequestBuilder.insert.mock.calls[0][0]
 
     expect(createdPayload.claimDate).toBeUndefined()
     expect(createdPayload.fesCode).toBeUndefined()
@@ -247,8 +226,8 @@ describe('completePaymentRequests', () => {
     expect(createdPayload.remittanceDescription).toBeUndefined()
 
     expect(sanitizeInvoiceLine).toHaveBeenCalledTimes(1)
-    expect(db.outbox.create).toHaveBeenCalledTimes(1)
-    expect(mockTransaction.commit).toHaveBeenCalled()
+    expect(outboxBuilder.insert).toHaveBeenCalledTimes(1)
+    expect(mockDb.trx.commit).toHaveBeenCalled()
   })
 
   test('should include new fields even when payment value is zero (but still send zero value event)', async () => {
@@ -261,29 +240,19 @@ describe('completePaymentRequests', () => {
       annualValue: '0.00',
       remittanceDescription: 'Zero-value adjustment',
       invoiceLines: [
-        { value: 0, dataValues: { value: 0 } }
-      ],
-      dataValues: {
-        invoiceNumber: 'SITI0000',
-        paymentRequestNumber: 4,
-        value: 0,
-        claimDate: '2025-02-15',
-        fesCode: 'FES-ZERO',
-        annualValue: '0.00',
-        remittanceDescription: 'Zero-value adjustment',
-        invoiceLines: [{ value: 0 }]
-      }
+        { value: 0 }
+      ]
     }
 
     await completePaymentRequests(1, [paymentRequest])
 
     expect(sendZeroValueEvent).toHaveBeenCalledTimes(1)
     expect(sanitizeInvoiceLine).not.toHaveBeenCalled()
-    expect(db.outbox.create).not.toHaveBeenCalled()
-    expect(mockTransaction.commit).toHaveBeenCalled()
+    expect(outboxBuilder.insert).not.toHaveBeenCalled()
+    expect(mockDb.trx.commit).toHaveBeenCalled()
 
-    expect(db.completedPaymentRequest.create).toHaveBeenCalledTimes(1)
-    const createdPayload = db.completedPaymentRequest.create.mock.calls[0][0]
+    expect(completedPaymentRequestBuilder.insert).toHaveBeenCalledTimes(1)
+    const createdPayload = completedPaymentRequestBuilder.insert.mock.calls[0][0]
     expect(createdPayload).toEqual(expect.objectContaining({
       invoiceNumber: 'SITI0000',
       paymentRequestNumber: 4,
@@ -301,18 +270,9 @@ describe('completePaymentRequests', () => {
       paymentRequestNumber: 1,
       value: 300,
       invoiceLines: [
-        { value: 100, dataValues: { value: 100, description: '100€' } },
-        { value: 200, dataValues: { value: 200, description: '200€' } }
-      ],
-      dataValues: {
-        invoiceNumber: 'SITI1111',
-        value: 300,
-        paymentRequestNumber: 1,
-        invoiceLines: [
-          { value: 100, dataValues: { value: 100, description: '100€' } },
-          { value: 200, dataValues: { value: 200, description: '200€' } }
-        ]
-      }
+        { value: 100, description: '100€' },
+        { value: 200, description: '200€' }
+      ]
     }
 
     await completePaymentRequests(1, [paymentRequest])
@@ -334,18 +294,9 @@ describe('completePaymentRequests', () => {
       paymentRequestNumber: 1,
       value: 100,
       invoiceLines: [
-        { value: 100, dataValues: { value: 100, description: 'Non-zero€' } },
-        { value: 0, dataValues: { value: 0, description: 'Zero€' } }
-      ],
-      dataValues: {
-        invoiceNumber: 'SITI2222',
-        value: 100,
-        paymentRequestNumber: 1,
-        invoiceLines: [
-          { value: 100, dataValues: { value: 100, description: 'Non-zero€' } },
-          { value: 0, dataValues: { value: 0, description: 'Zero€' } }
-        ]
-      }
+        { value: 100, description: 'Non-zero€' },
+        { value: 0, description: 'Zero€' }
+      ]
     }
 
     await completePaymentRequests(1, [paymentRequest])

@@ -1,28 +1,37 @@
-const db = require('../../../app/data')
-const { getHolds } = require('../../../app/holds/get-holds')
+const { createKnexMock, createQueryBuilder } = require('../../helpers/mock-knex')
 
-jest.mock('../../../app/data', () => ({
-  autoHold: {
-    findAll: jest.fn()
-  },
-  hold: {
-    findAll: jest.fn()
-  },
-  Sequelize: {
-    col: jest.fn((col) => col)
-  }
+const mockDb = createKnexMock(['hold', 'autoHold'])
+
+jest.mock('../../../app/database', () => ({
+  client: mockDb.knex,
+  transaction: mockDb.transaction,
+  close: mockDb.close,
+  ...mockDb.tables
 }))
 
+const { getHolds } = require('../../../app/holds/get-holds')
+
 describe('getHolds', () => {
+  let holdsBuilder
+  let autoHoldsBuilder
+
+  const mockResults = (holds, autoHolds) => {
+    holdsBuilder.resolves(holds)
+    autoHoldsBuilder.resolves(autoHolds)
+  }
+
   beforeEach(() => {
     jest.clearAllMocks()
+    holdsBuilder = createQueryBuilder()
+    autoHoldsBuilder = createQueryBuilder()
+    mockDb.tables.hold.mockReturnValue(holdsBuilder)
+    mockDb.tables.autoHold.mockReturnValue(autoHoldsBuilder)
   })
 
   test('should return merged results of holds and autoHolds', async () => {
     const holds = [{ holdId: 1, frn: 123 }]
     const autoHolds = [{ holdId: 2, frn: 456 }]
-    db.hold.findAll.mockResolvedValue(holds)
-    db.autoHold.findAll.mockResolvedValue(autoHolds)
+    mockResults(holds, autoHolds)
 
     const result = await getHolds({
       pageNumber: undefined,
@@ -32,11 +41,46 @@ describe('getHolds', () => {
     expect(result).toEqual([...holds, ...autoHolds])
   })
 
+  test('should join holds to hold categories and schemes', async () => {
+    mockResults([], [])
+
+    await getHolds({})
+
+    expect(holdsBuilder.leftJoin).toHaveBeenCalledWith('holdCategories', 'holds.holdCategoryId', 'holdCategories.holdCategoryId')
+    expect(holdsBuilder.leftJoin).toHaveBeenCalledWith('schemes', 'holdCategories.schemeId', 'schemes.schemeId')
+  })
+
+  test('should join auto holds to auto hold categories and schemes', async () => {
+    mockResults([], [])
+
+    await getHolds({})
+
+    expect(autoHoldsBuilder.leftJoin).toHaveBeenCalledWith('autoHoldCategories', 'autoHolds.autoHoldCategoryId', 'autoHoldCategories.autoHoldCategoryId')
+    expect(autoHoldsBuilder.leftJoin).toHaveBeenCalledWith('schemes', 'autoHoldCategories.schemeId', 'schemes.schemeId')
+  })
+
+  test('should only return open holds by default', async () => {
+    mockResults([], [])
+
+    await getHolds({})
+
+    expect(holdsBuilder.whereNull).toHaveBeenCalledWith('holds.closed')
+    expect(autoHoldsBuilder.whereNull).toHaveBeenCalledWith('autoHolds.closed')
+  })
+
+  test('should not filter on closed if open only not requested', async () => {
+    mockResults([], [])
+
+    await getHolds({}, false)
+
+    expect(holdsBuilder.whereNull).not.toHaveBeenCalled()
+    expect(autoHoldsBuilder.whereNull).not.toHaveBeenCalled()
+  })
+
   test('should paginate results if pageNumber and pageSize are provided', async () => {
     const holds = [{ holdId: 1, frn: 123 }]
     const autoHolds = [{ holdId: 2, frn: 456 }]
-    db.hold.findAll.mockResolvedValue(holds)
-    db.autoHold.findAll.mockResolvedValue(autoHolds)
+    mockResults(holds, autoHolds)
 
     const result = await getHolds({
       pageNumber: 1,
@@ -47,8 +91,7 @@ describe('getHolds', () => {
   })
 
   test('should return empty array if no holds or autoHolds found', async () => {
-    db.hold.findAll.mockResolvedValue([])
-    db.autoHold.findAll.mockResolvedValue([])
+    mockResults([], [])
 
     const result = await getHolds({
       pageNumber: undefined,
@@ -61,8 +104,7 @@ describe('getHolds', () => {
   test('should handle invalid pageNumber and pageSize gracefully', async () => {
     const holds = [{ holdId: 1, frn: 123 }]
     const autoHolds = [{ holdId: 2, frn: 456 }]
-    db.hold.findAll.mockResolvedValue(holds)
-    db.autoHold.findAll.mockResolvedValue(autoHolds)
+    mockResults(holds, autoHolds)
 
     const result = await getHolds({
       pageNumber: 'invalid',
