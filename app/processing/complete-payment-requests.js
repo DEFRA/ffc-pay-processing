@@ -1,4 +1,6 @@
 const db = require('../database')
+const TABLES = require('../constants/tables')
+const { pickColumns } = require('../constants/columns')
 const { zeroValueSplit } = require('../processing/delta/zero-value-split')
 const { sendZeroValueEvent } = require('../event')
 const { sanitizeInvoiceLine } = require('../helpers/sanitize-invoice-line')
@@ -13,49 +15,11 @@ const handleScheduleUpdate = async (scheduleId, transaction) => {
 }
 
 const saveCompletedPaymentRequest = async (request, transaction) => {
-  const [savedRequest] = await db.completedPaymentRequest(transaction).insert({
-    paymentRequestId: request.paymentRequestId,
-    schemeId: request.schemeId,
-    batch: request.batch,
-    ledger: request.ledger,
-    sourceSystem: request.sourceSystem,
-    deliveryBody: request.deliveryBody,
-    invoiceNumber: request.invoiceNumber,
-    frn: request.frn,
-    sbi: request.sbi,
-    vendor: request.vendor,
-    trader: request.trader,
-    marketingYear: request.marketingYear,
-    agreementNumber: request.agreementNumber,
-    contractNumber: request.contractNumber,
-    paymentRequestNumber: request.paymentRequestNumber,
-    currency: request.currency,
-    schedule: request.schedule,
-    dueDate: request.dueDate,
-    debtType: request.debtType,
-    recoveryDate: request.recoveryDate,
-    originalSettlementDate: request.originalSettlementDate,
-    originalInvoiceNumber: request.originalInvoiceNumber,
-    invoiceCorrectionReference: request.invoiceCorrectionReference,
-    value: request.value,
-    submitted: request.submitted,
-    acknowledged: request.acknowledged,
-    lastSettlement: request.lastSettlement,
-    settledValue: request.settledValue,
+  const [savedRequest] = await db.completedPaymentRequest(transaction).insert(pickColumns({
+    ...request,
     // the databse sets no default value for this column, so we must set it encase value == null
-    invalid: request.invalid ?? false,
-    referenceId: request.referenceId,
-    correlationId: request.correlationId,
-    paymentType: request.paymentType,
-    pillar: request.pillar,
-    exchangeRate: request.exchangeRate,
-    eventDate: request.eventDate,
-    claimDate: request.claimDate,
-    fesCode: request.fesCode,
-    annualValue: request.annualValue,
-    remittanceDescription: request.remittanceDescription,
-    providesAccountingValues: request.providesAccountingValues
-  }).returning('completedPaymentRequestId')
+    invalid: request.invalid ?? false
+  }, TABLES.completedPaymentRequest)).returning('completedPaymentRequestId')
   return savedRequest
 }
 
@@ -68,19 +32,7 @@ const processInvoiceLines = async (
     if (line.value !== 0) {
       line.completedPaymentRequestId = completedPaymentRequestId
       sanitizeInvoiceLine(line)
-      await db.completedInvoiceLine(transaction).insert({
-        completedPaymentRequestId,
-        schemeCode: line.schemeCode,
-        accountCode: line.accountCode,
-        fundCode: line.fundCode,
-        agreementNumber: line.agreementNumber,
-        description: line.description,
-        value: line.value,
-        convergence: line.convergence,
-        deliveryBody: line.deliveryBody,
-        marketingYear: line.marketingYear,
-        stateAid: line.stateAid
-      })
+      await db.completedInvoiceLine(transaction).insert(pickColumns({ ...line, completedPaymentRequestId }, TABLES.completedInvoiceLine))
     }
   }
 }
