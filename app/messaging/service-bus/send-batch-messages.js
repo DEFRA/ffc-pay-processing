@@ -1,5 +1,6 @@
 const messageSchema = require('./message-schema')
 const { enrichMessage } = require('./enrich-message')
+const { retry } = require('./retry')
 
 const sendBatchMessages = async (sender, messages, options) => {
   let batch = await sender.createMessageBatch()
@@ -10,7 +11,7 @@ const sendBatchMessages = async (sender, messages, options) => {
 
     if (!batch.tryAddMessage(enrichedMessage)) {
       if (batch.count > 0) {
-        await sender.sendMessages(batch, options)
+        await retry(() => sender.sendMessages(batch, options))
         batch = await sender.createMessageBatch()
       }
 
@@ -21,7 +22,7 @@ const sendBatchMessages = async (sender, messages, options) => {
   }
 
   if (batch.count > 0) {
-    await sender.sendMessages(batch, options)
+    await retry(() => sender.sendMessages(batch, options))
   }
 }
 

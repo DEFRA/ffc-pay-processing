@@ -84,4 +84,27 @@ describe('sendBatchMessages', () => {
 
     expect(sender.sendMessages).toHaveBeenCalledWith(batch, options)
   })
+
+  test('retries a failed batch send with the same batch and options', async () => {
+    jest.useFakeTimers()
+    try {
+      const messages = [
+        { body: { id: 1 }, type: 'type-1', source: 'source' }
+      ]
+      const options = { transactionId: 'abc' }
+      sender.sendMessages
+        .mockRejectedValueOnce(new Error('temporary failure'))
+        .mockResolvedValueOnce()
+
+      const sendPromise = sendBatchMessages(sender, messages, options)
+      await jest.runAllTimersAsync()
+      await sendPromise
+
+      expect(sender.sendMessages).toHaveBeenCalledTimes(2)
+      expect(sender.sendMessages).toHaveBeenNthCalledWith(1, batch, options)
+      expect(sender.sendMessages).toHaveBeenNthCalledWith(2, batch, options)
+    } finally {
+      jest.useRealTimers()
+    }
+  })
 })
