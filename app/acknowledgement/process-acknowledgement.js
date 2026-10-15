@@ -10,7 +10,9 @@ const processAcknowledgement = async (acknowledgement) => {
     await sendAckEvent(acknowledgement)
   } else if (!acknowledgement.message?.toLowerCase().includes('duplicate')) {
     const paymentRequest = await getPaymentRequest(acknowledgement.invoiceNumber)
-    await processInvalid(paymentRequest, acknowledgement)
+    if (paymentRequest) {
+      await processInvalid(paymentRequest, acknowledgement)
+    }
   }
 }
 
