@@ -68,9 +68,13 @@ describe('process acknowledgement', () => {
     expect(mockProcessInvalid).not.toHaveBeenCalled()
   })
 
-  test('should not error if invalid and no message', async () => {
+  test('should not process invalid acknowledgement if no payment request is found', async () => {
     acknowledgement.success = false
-    delete acknowledgement.message
+    mockGetPaymentRequest.mockResolvedValue(null)
+
     await processAcknowledgement(acknowledgement)
+
+    expect(mockGetPaymentRequest).toHaveBeenCalledWith(acknowledgement.invoiceNumber)
+    expect(mockProcessInvalid).not.toHaveBeenCalled()
   })
 })
