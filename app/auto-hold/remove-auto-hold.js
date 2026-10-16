@@ -1,5 +1,5 @@
 const { getSchemeIds } = require('ffc-pay-schemes')
-const db = require('../data')
+const db = require('../database')
 const { getHoldCategoryId } = require('./get-hold-category-id')
 const { sendHoldEvent } = require('../event')
 const { REMOVED } = require('../constants/hold-statuses')
@@ -14,10 +14,10 @@ const removeAutoHold = async (paymentRequest, holdCategoryName) => {
     where.agreementNumber = agreementNumber
     where.contractNumber = contractNumber
   }
-  const hold = await db.autoHold.findOne({ where, raw: true })
+  const hold = (await db.autoHold().where(where).first()) ?? null
   if (hold) {
     const holdClosed = new Date()
-    await db.autoHold.update({ closed: holdClosed }, { where })
+    await db.autoHold().where(where).update({ closed: holdClosed })
     await sendHoldEvent({ ...hold, closed: holdClosed }, REMOVED)
   }
 }

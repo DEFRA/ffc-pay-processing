@@ -1,7 +1,7 @@
-const db = require('../data')
+const db = require('../database')
 
 const invalidatePaymentRequests = async (paymentRequestId, transaction) => {
-  await db.completedPaymentRequest.update({ invalid: true }, { where: { paymentRequestId }, transaction })
+  await db.completedPaymentRequest(transaction ?? undefined).where({ paymentRequestId }).update({ invalid: true })
 }
 
 module.exports = {

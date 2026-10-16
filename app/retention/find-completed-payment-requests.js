@@ -1,13 +1,9 @@
-const db = require('../data')
+const db = require('../database')
 
 const findCompletedPaymentRequests = async (paymentRequestIds, transaction) => {
-  return db.completedPaymentRequest.findAll({
-    attributes: ['completedPaymentRequestId'],
-    where: {
-      paymentRequestId: { [db.Sequelize.Op.in]: paymentRequestIds }
-    },
-    transaction
-  })
+  return db.completedPaymentRequest(transaction ?? undefined)
+    .select('completedPaymentRequestId')
+    .whereIn('paymentRequestId', paymentRequestIds)
 }
 
 module.exports = {

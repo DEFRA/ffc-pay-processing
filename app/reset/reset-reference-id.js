@@ -1,8 +1,8 @@
 const { randomUUID } = require('node:crypto')
-const db = require('../data')
+const db = require('../database')
 
 const resetReferenceId = async (paymentRequestId, transaction) => {
-  await db.paymentRequest.update({ referenceId: randomUUID() }, { where: { paymentRequestId }, transaction })
+  await db.paymentRequest(transaction ?? undefined).where({ paymentRequestId }).update({ referenceId: randomUUID() })
 }
 
 module.exports = {

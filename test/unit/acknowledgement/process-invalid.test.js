@@ -1,10 +1,11 @@
-const mockCommit = jest.fn()
-const mockRollback = jest.fn()
-const mockTx = { commit: mockCommit, rollback: mockRollback }
-const mockTransaction = jest.fn(() => mockTx)
+const { createKnexMock } = require('../../helpers/mock-knex')
 
-jest.mock('../../../app/data', () => ({
-  sequelize: { transaction: mockTransaction }
+const mockDb = createKnexMock()
+
+jest.mock('../../../app/database', () => ({
+  client: mockDb.knex,
+  transaction: mockDb.transaction,
+  close: mockDb.close
 }))
 
 jest.mock('../../../app/reset')
@@ -36,13 +37,13 @@ describe('process invalid acknowledgements', () => {
 
   test('creates transaction', async () => {
     await processInvalid(paymentRequest, acknowledgement)
-    expect(mockTransaction).toHaveBeenCalledTimes(1)
+    expect(mockDb.transaction).toHaveBeenCalledTimes(1)
   })
 
   test('resets payment request in transaction', async () => {
     await processInvalid(paymentRequest, acknowledgement)
     expect(mockResetPaymentRequestById)
-      .toHaveBeenCalledWith(paymentRequest.paymentRequestId, mockTx)
+      .toHaveBeenCalledWith(paymentRequest.paymentRequestId, mockDb.trx)
   })
 
   test('gets hold category name from message', async () => {
@@ -54,13 +55,13 @@ describe('process invalid acknowledgements', () => {
   test('gets hold category id', async () => {
     await processInvalid(paymentRequest, acknowledgement)
     expect(mockGetHoldCategoryId)
-      .toHaveBeenCalledWith(paymentRequest.schemeId, 'DAX_REJECTION', mockTx)
+      .toHaveBeenCalledWith(paymentRequest.schemeId, 'DAX_REJECTION', mockDb.trx)
   })
 
   test('holds and reschedules payment request', async () => {
     await processInvalid(paymentRequest, acknowledgement)
     expect(mockHoldAndReschedule)
-      .toHaveBeenCalledWith(paymentRequest.paymentRequestId, 1, paymentRequest.frn, mockTx)
+      .toHaveBeenCalledWith(paymentRequest.paymentRequestId, 1, paymentRequest.frn, mockDb.trx)
   })
 
   test('sends acknowledgement error event', async () => {
@@ -71,7 +72,7 @@ describe('process invalid acknowledgements', () => {
 
   test('commits transaction', async () => {
     await processInvalid(paymentRequest, acknowledgement)
-    expect(mockCommit).toHaveBeenCalledTimes(1)
+    expect(mockDb.trx.commit).toHaveBeenCalledTimes(1)
   })
 
   describe('error handling', () => {
@@ -82,7 +83,7 @@ describe('process invalid acknowledgements', () => {
     test('rolls back transaction', async () => {
       await expect(processInvalid(paymentRequest, acknowledgement))
         .rejects.toThrow('test error')
-      expect(mockRollback).toHaveBeenCalledTimes(1)
+      expect(mockDb.trx.rollback).toHaveBeenCalledTimes(1)
     })
 
     test('rethrows error', async () => {

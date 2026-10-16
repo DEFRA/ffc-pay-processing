@@ -1,7 +1,7 @@
-const db = require('../data')
+const db = require('../database')
 
 const updateScheme = async (schemeId, active) => {
-  await db.scheme.update({ active }, { where: { schemeId } })
+  await db.scheme().where({ schemeId }).update({ active })
 }
 
 module.exports = {

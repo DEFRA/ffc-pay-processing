@@ -1,7 +1,7 @@
-const db = require('../../app/data')
+const db = require('../../app/database')
 
 const closeDatabaseConnection = async () => {
-  await db.sequelize.close()
+  await db.close()
 }
 
 module.exports = {

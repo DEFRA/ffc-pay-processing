@@ -1,10 +1,9 @@
-const db = require('../data')
+const db = require('../database')
 
 const getExistingHold = async (holdCategoryId, frn, transaction) => {
-  return db.hold.findOne({
-    transaction,
-    where: { holdCategoryId, frn, closed: null }
-  })
+  return (await db.hold(transaction ?? undefined)
+    .where({ holdCategoryId, frn, closed: null })
+    .first()) ?? null
 }
 
 module.exports = {

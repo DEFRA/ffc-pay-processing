@@ -1,23 +1,26 @@
-const db = require('../data')
+const db = require('../database')
+const TABLES = require('../constants/tables')
+const { pickColumns } = require('../constants/columns')
 const { zeroValueSplit } = require('../processing/delta/zero-value-split')
 const { sendZeroValueEvent } = require('../event')
 const { sanitizeInvoiceLine } = require('../helpers/sanitize-invoice-line')
 
 const handleScheduleUpdate = async (scheduleId, transaction) => {
-  const [updatedRows] = await db.schedule.update(
-    {
-      completed: new Date()
-    },
-    {
-      where: {
-        scheduleId,
-        completed: { [db.Sequelize.Op.eq]: null }
-      },
-      transaction
-    }
-  )
+  const updatedRows = await db.schedule(transaction)
+    .where({ scheduleId })
+    .whereNull('completed')
+    .update({ completed: new Date() })
 
   return updatedRows === 1
+}
+
+const saveCompletedPaymentRequest = async (request, transaction) => {
+  const [savedRequest] = await db.completedPaymentRequest(transaction).insert(pickColumns({
+    ...request,
+    // the databse sets no default value for this column, so we must set it encase value == null
+    invalid: request.invalid ?? false
+  }, TABLES.completedPaymentRequest)).returning('completedPaymentRequestId')
+  return savedRequest
 }
 
 const processInvoiceLines = async (
@@ -26,11 +29,10 @@ const processInvoiceLines = async (
   transaction
 ) => {
   for (const line of invoiceLines) {
-    const completedLine = line.dataValues ?? line
-    if (completedLine.value !== 0) {
-      completedLine.completedPaymentRequestId = completedPaymentRequestId
-      sanitizeInvoiceLine(completedLine)
-      await db.completedInvoiceLine.create(completedLine, { transaction })
+    if (line.value !== 0) {
+      line.completedPaymentRequestId = completedPaymentRequestId
+      sanitizeInvoiceLine(line)
+      await db.completedInvoiceLine(transaction).insert(pickColumns({ ...line, completedPaymentRequestId }, TABLES.completedInvoiceLine))
     }
   }
 }
@@ -94,10 +96,7 @@ const processSingleRequest = async (paymentRequest, transaction) => {
   })
 
   for (const request of splitRequests) {
-    const savedRequest = await db.completedPaymentRequest.create(
-      request.dataValues ?? request,
-      { transaction }
-    )
+    const savedRequest = await saveCompletedPaymentRequest(request, transaction)
     await processInvoiceLines(
       request.invoiceLines,
       savedRequest.completedPaymentRequestId,
@@ -136,22 +135,16 @@ const createOutboxEntry = async (
     return
   }
 
-  await db.outbox.create(
-    {
-      completedPaymentRequestId: savedRequest.completedPaymentRequestId
-    },
-    { transaction }
-  )
+  await db.outbox(transaction).insert({
+    completedPaymentRequestId: savedRequest.completedPaymentRequestId
+  })
   console.log('Created outbox entry:', paymentRequest.invoiceNumber)
 }
 
 const processMultipleRequests = async (paymentRequests, transaction) => {
   const hasOffset = hasOffsettingValues(paymentRequests)
   for (const request of paymentRequests) {
-    const savedRequest = await db.completedPaymentRequest.create(
-      request.dataValues ?? request,
-      { transaction }
-    )
+    const savedRequest = await saveCompletedPaymentRequest(request, transaction)
     await processInvoiceLines(
       request.invoiceLines,
       savedRequest.completedPaymentRequestId,
@@ -162,7 +155,7 @@ const processMultipleRequests = async (paymentRequests, transaction) => {
 }
 
 const completePaymentRequests = async (scheduleId, paymentRequests) => {
-  const transaction = await db.sequelize.transaction()
+  const transaction = await db.transaction()
   console.log(`Scheduled payment request ${scheduleId} ready to be completed`)
   try {
     const shouldProcess = await handleScheduleUpdate(scheduleId, transaction)
