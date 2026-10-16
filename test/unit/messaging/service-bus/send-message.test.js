@@ -51,6 +51,32 @@ describe('sendMessage', () => {
     expect(sender.sendMessages).toHaveBeenCalledWith(expect.any(Object), options)
   })
 
+  test('retries a failed send using the shared retry policy', async () => {
+    jest.useFakeTimers()
+    try {
+      const message = {
+        body: { claimId: 1 },
+        type: 'uk.gov.demo.claim.validated',
+        source: 'ffc-demo-claim-service'
+      }
+      const options = { transactionId: 'abc' }
+      messageSchema.validateAsync.mockResolvedValue()
+      sender.sendMessages
+        .mockRejectedValueOnce(new Error('temporary failure'))
+        .mockResolvedValueOnce()
+
+      const sendPromise = sendMessage(sender, message, options)
+      await jest.runAllTimersAsync()
+      await sendPromise
+
+      expect(sender.sendMessages).toHaveBeenCalledTimes(2)
+      expect(sender.sendMessages).toHaveBeenNthCalledWith(1, expect.any(Object), options)
+      expect(sender.sendMessages).toHaveBeenNthCalledWith(2, expect.any(Object), options)
+    } finally {
+      jest.useRealTimers()
+    }
+  })
+
   test('throws if validation fails', async () => {
     const message = { body: { claimId: 1 } }
     const validationError = new Error('type is required')

@@ -55,10 +55,29 @@ describe('retry', () => {
       .mockResolvedValue('success')
 
     const resultPromise = retry(fn)
-    await jest.runAllTimersAsync()
+    await jest.advanceTimersByTimeAsync(999)
+    expect(fn).toHaveBeenCalledTimes(1)
+    await jest.advanceTimersByTimeAsync(1)
     await resultPromise
 
     expect(fn).toHaveBeenCalledTimes(2)
+  })
+
+  test('uses five retries by default', async () => {
+    const fn = jest.fn()
+      .mockRejectedValueOnce(new Error('failure 1'))
+      .mockRejectedValueOnce(new Error('failure 2'))
+      .mockRejectedValueOnce(new Error('failure 3'))
+      .mockRejectedValueOnce(new Error('failure 4'))
+      .mockRejectedValueOnce(new Error('failure 5'))
+      .mockResolvedValue('success')
+
+    const resultPromise = retry(fn)
+    await jest.runAllTimersAsync()
+    const result = await resultPromise
+
+    expect(result).toBe('success')
+    expect(fn).toHaveBeenCalledTimes(6)
   })
 
   test('uses linear delay between retries by default', async () => {
