@@ -60,7 +60,8 @@ describe('completePaymentRequests', () => {
     await completePaymentRequests(1, [paymentRequest])
 
     const createdPayload = completedPaymentRequestBuilder.insert.mock.calls[0][0]
-    expect(createdPayload).toEqual(expect.objectContaining({ paymentRequestId: 10, invoiceNumber: 'SITI1234', value: 100, invalid: false }))
+    expect(createdPayload).toEqual(expect.objectContaining({ paymentRequestId: 10, invoiceNumber: 'SITI1234', value: 100 }))
+    expect(createdPayload).not.toHaveProperty('invalid')
     expect(createdPayload).not.toHaveProperty('scheme')
     expect(createdPayload).not.toHaveProperty('invoiceLines')
     expect(completedPaymentRequestBuilder.returning).toHaveBeenCalledWith('completedPaymentRequestId')
@@ -78,6 +79,21 @@ describe('completePaymentRequests', () => {
     await completePaymentRequests(1, [{ invoiceNumber: 'SITI1234', value: 100, invalid: true, invoiceLines: [{ value: 100 }] }])
 
     expect(completedPaymentRequestBuilder.insert).toHaveBeenCalledWith(expect.objectContaining({ invalid: true }))
+  })
+
+  test('should insert dataValues when payment request and invoice lines carry them', async () => {
+    const paymentRequest = {
+      invoiceNumber: 'STALE',
+      value: 0,
+      dataValues: { paymentRequestId: 10, invoiceNumber: 'SITI1234', value: 100 },
+      invoiceLines: [{ value: 0, dataValues: { value: 100, description: 'G00' } }]
+    }
+
+    await completePaymentRequests(1, [paymentRequest])
+
+    expect(completedPaymentRequestBuilder.insert).toHaveBeenCalledWith(expect.objectContaining({ paymentRequestId: 10, invoiceNumber: 'SITI1234', value: 100 }))
+    expect(completedInvoiceLineBuilder.insert).toHaveBeenCalledWith(expect.objectContaining({ completedPaymentRequestId: 1, value: 100, description: 'G00' }))
+    expect(sanitizeInvoiceLine).toHaveBeenCalledWith(paymentRequest.invoiceLines[0].dataValues)
   })
 
   test('should process single request with offsetting values', async () => {

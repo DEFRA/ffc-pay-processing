@@ -15,11 +15,8 @@ const handleScheduleUpdate = async (scheduleId, transaction) => {
 }
 
 const saveCompletedPaymentRequest = async (request, transaction) => {
-  const [savedRequest] = await db.completedPaymentRequest(transaction).insert(pickColumns({
-    ...request,
-    // the databse sets no default value for this column, so we must set it encase value == null
-    invalid: request.invalid ?? false
-  }, TABLES.completedPaymentRequest)).returning('completedPaymentRequestId')
+  const completedRequest = request.dataValues ?? request
+  const [savedRequest] = await db.completedPaymentRequest(transaction).insert(pickColumns(completedRequest, TABLES.completedPaymentRequest)).returning('completedPaymentRequestId')
   return savedRequest
 }
 
@@ -29,10 +26,11 @@ const processInvoiceLines = async (
   transaction
 ) => {
   for (const line of invoiceLines) {
-    if (line.value !== 0) {
-      line.completedPaymentRequestId = completedPaymentRequestId
-      sanitizeInvoiceLine(line)
-      await db.completedInvoiceLine(transaction).insert(pickColumns({ ...line, completedPaymentRequestId }, TABLES.completedInvoiceLine))
+    const completedLine = line.dataValues ?? line
+    if (completedLine.value !== 0) {
+      completedLine.completedPaymentRequestId = completedPaymentRequestId
+      sanitizeInvoiceLine(completedLine)
+      await db.completedInvoiceLine(transaction).insert(pickColumns({ ...completedLine, completedPaymentRequestId }, TABLES.completedInvoiceLine))
     }
   }
 }
