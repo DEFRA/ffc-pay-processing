@@ -1,19 +1,21 @@
-const db = require('../data')
+const db = require('../database')
 const { getCompletedPaymentRequestsFilter } = require('./get-completed-payment-requests-filter')
 
 const getCompletedPaymentRequests = async (paymentRequest) => {
   const filter = getCompletedPaymentRequestsFilter(paymentRequest)
 
-  const completedPaymentRequests = await db.completedPaymentRequest.findAll({
-    where: filter,
-    order: [['paymentRequestNumber', 'ASC']],
-    include: [{
-      model: db.completedInvoiceLine,
-      as: 'invoiceLines'
-    }]
-  })
+  const completedPaymentRequests = await db.completedPaymentRequest()
+    .modify(filter)
+    .orderBy('paymentRequestNumber', 'asc')
 
-  return completedPaymentRequests.map(x => x.get({ plain: true }))
+  const invoiceLines = await db.completedInvoiceLine()
+    .whereIn('completedPaymentRequestId', completedPaymentRequests.map(x => x.completedPaymentRequestId))
+    .orderBy('completedInvoiceLineId', 'asc')
+
+  return completedPaymentRequests.map(x => ({
+    ...x,
+    invoiceLines: invoiceLines.filter(line => line.completedPaymentRequestId === x.completedPaymentRequestId)
+  }))
 }
 
 module.exports = {

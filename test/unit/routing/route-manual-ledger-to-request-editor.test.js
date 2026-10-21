@@ -1,20 +1,12 @@
-const mockCommit = jest.fn()
-const mockRollback = jest.fn()
-const mockTransactionObject = {
-  commit: mockCommit,
-  rollback: mockRollback
-}
-const mockTransaction = jest.fn().mockImplementation(() => {
-  return mockTransactionObject
-})
+const { createKnexMock } = require('../../helpers/mock-knex')
 
-jest.mock('../../../app/data', () => {
-  return {
-    sequelize: {
-      transaction: mockTransaction
-    }
-  }
-})
+const mockDb = createKnexMock()
+
+jest.mock('../../../app/database', () => ({
+  client: mockDb.knex,
+  transaction: mockDb.transaction,
+  close: mockDb.close
+}))
 
 jest.mock('../../../app/messaging/send-message')
 const { sendMessage: mockSendMessage } = require('../../../app/messaging/send-message')
@@ -49,22 +41,22 @@ describe('route debt to request editor', () => {
 
   test('should get debt enrichment hold category id', async () => {
     await routeManualLedgerToRequestEditor(deltaCalculationResult)
-    expect(mockGetHoldCategoryId).toHaveBeenCalledWith(paymentRequest.schemeId, AWAITING_LEDGER_CHECK, mockTransactionObject)
+    expect(mockGetHoldCategoryId).toHaveBeenCalledWith(paymentRequest.schemeId, AWAITING_LEDGER_CHECK, mockDb.trx)
   })
 
   test('should hold and reschedule payment request', async () => {
     await routeManualLedgerToRequestEditor(deltaCalculationResult)
-    expect(mockHoldAndReschedule).toHaveBeenCalledWith(paymentRequest, holdCategoryId, mockTransactionObject)
+    expect(mockHoldAndReschedule).toHaveBeenCalledWith(paymentRequest, holdCategoryId, mockDb.trx)
   })
 
   test('should commit transaction', async () => {
     await routeManualLedgerToRequestEditor(deltaCalculationResult)
-    expect(mockCommit).toHaveBeenCalled()
+    expect(mockDb.trx.commit).toHaveBeenCalled()
   })
 
   test('should rollback transaction if error', async () => {
     mockHoldAndReschedule.mockRejectedValue(new Error('Test error'))
     await expect(routeManualLedgerToRequestEditor(deltaCalculationResult)).rejects.toThrow('Test error')
-    expect(mockRollback).toHaveBeenCalled()
+    expect(mockDb.trx.rollback).toHaveBeenCalled()
   })
 })

@@ -1,5 +1,24 @@
+jest.mock('ffc-pay-schemes', () => ({
+  getSchemes: jest.fn(),
+  schemeDoesNotRequirePPAs: jest.fn()
+}))
+
+const { createKnexMock, createQueryBuilder } = require('../helpers/mock-knex')
+
+const mockDb = createKnexMock(['scheme', 'autoHoldCategory'])
+
+jest.mock('../../app/database', () => ({
+  client: mockDb.knex,
+  transaction: mockDb.transaction,
+  close: mockDb.close,
+  ...mockDb.tables
+}))
+
+jest.mock('../../app/holds', () => ({
+  addHoldType: jest.fn()
+}))
+
 const { getSchemes, schemeDoesNotRequirePPAs } = require('ffc-pay-schemes')
-const db = require('../../app/data')
 const { addHoldType } = require('../../app/holds')
 const {
   BANK_ACCOUNT_ANOMALY,
@@ -10,31 +29,11 @@ const {
 
 const { updateSchemesDatabase } = require('../../app/update-schemes-database')
 
-jest.mock('ffc-pay-schemes', () => ({
-  getSchemes: jest.fn(),
-  schemeDoesNotRequirePPAs: jest.fn()
-}))
-
-jest.mock('../../app/data', () => ({
-  scheme: {
-    findOne: jest.fn(),
-    upsert: jest.fn()
-  },
-  autoHoldCategory: {
-    create: jest.fn()
-  }
-}))
-
-jest.mock('../../app/holds', () => ({
-  addHoldType: jest.fn()
-}))
-
 describe('update schemes database', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     jest.spyOn(console, 'log').mockImplementation()
-    db.scheme.upsert.mockResolvedValue()
-    db.autoHoldCategory.create.mockResolvedValue()
+    mockDb.builder.resolves(undefined)
   })
 
   afterEach(() => {
@@ -48,7 +47,6 @@ describe('update schemes database', () => {
     }
 
     getSchemes.mockReturnValue([scheme])
-    db.scheme.findOne.mockResolvedValue(null)
     schemeDoesNotRequirePPAs.mockReturnValue(false)
 
     await updateSchemesDatabase()
@@ -57,15 +55,14 @@ describe('update schemes database', () => {
     expect(addHoldType).toHaveBeenCalledWith(DAX_REJECTION, scheme.schemeId)
     expect(addHoldType).toHaveBeenCalledTimes(2)
 
-    expect(db.autoHoldCategory.create).toHaveBeenCalledWith({
+    expect(mockDb.builder.insert).toHaveBeenCalledWith({
       name: AWAITING_DEBT_ENRICHMENT,
       schemeId: scheme.schemeId
     })
-    expect(db.autoHoldCategory.create).toHaveBeenCalledWith({
+    expect(mockDb.builder.insert).toHaveBeenCalledWith({
       name: AWAITING_LEDGER_CHECK,
       schemeId: scheme.schemeId
     })
-    expect(db.autoHoldCategory.create).toHaveBeenCalledTimes(2)
   })
 
   test('should only create D365 holds for a new scheme not supporting PPAs', async () => {
@@ -75,13 +72,12 @@ describe('update schemes database', () => {
     }
 
     getSchemes.mockReturnValue([scheme])
-    db.scheme.findOne.mockResolvedValue(null)
     schemeDoesNotRequirePPAs.mockReturnValue(true)
 
     await updateSchemesDatabase()
 
     expect(addHoldType).toHaveBeenCalledTimes(2)
-    expect(db.autoHoldCategory.create).not.toHaveBeenCalled()
+    expect(mockDb.tables.autoHoldCategory).not.toHaveBeenCalled()
   })
 
   test('should not create holds for an existing scheme', async () => {
@@ -91,12 +87,12 @@ describe('update schemes database', () => {
     }
 
     getSchemes.mockReturnValue([scheme])
-    db.scheme.findOne.mockResolvedValue(scheme)
+    mockDb.builder.resolves(scheme)
 
     await updateSchemesDatabase()
 
     expect(addHoldType).not.toHaveBeenCalled()
-    expect(db.autoHoldCategory.create).not.toHaveBeenCalled()
+    expect(mockDb.tables.autoHoldCategory).not.toHaveBeenCalled()
     expect(schemeDoesNotRequirePPAs).not.toHaveBeenCalled()
   })
 
@@ -107,16 +103,23 @@ describe('update schemes database', () => {
     ]
 
     getSchemes.mockReturnValue(schemes)
-    db.scheme.findOne
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(schemes[1])
     schemeDoesNotRequirePPAs.mockReturnValue(false)
+
+    const builderNew = createQueryBuilder()
+    builderNew.resolves(undefined)
+    const builderExisting = createQueryBuilder()
+    builderExisting.resolves(schemes[1])
+
+    mockDb.tables.scheme
+      .mockReturnValueOnce(builderNew)
+      .mockReturnValueOnce(builderNew)
+      .mockReturnValueOnce(builderExisting)
+      .mockReturnValueOnce(builderExisting)
 
     await updateSchemesDatabase()
 
-    expect(db.scheme.findOne).toHaveBeenCalledTimes(2)
-    expect(db.scheme.upsert).toHaveBeenCalledTimes(2)
+    expect(mockDb.tables.scheme).toHaveBeenCalledTimes(4)
     expect(addHoldType).toHaveBeenCalledTimes(2)
-    expect(db.autoHoldCategory.create).toHaveBeenCalledTimes(2)
+    expect(mockDb.tables.autoHoldCategory).toHaveBeenCalledTimes(2)
   })
 })

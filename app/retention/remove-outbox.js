@@ -1,12 +1,9 @@
-const db = require('../data')
+const db = require('../database')
 
 const removeOutbox = async (completedPaymentRequestIds, transaction) => {
-  await db.outbox.destroy({
-    where: {
-      completedPaymentRequestId: { [db.Sequelize.Op.in]: completedPaymentRequestIds }
-    },
-    transaction
-  })
+  await db.outbox(transaction ?? undefined)
+    .whereIn('completedPaymentRequestId', completedPaymentRequestIds)
+    .del()
 }
 
 module.exports = {

@@ -1,7 +1,7 @@
-const db = require('../data')
+const db = require('../database')
 
 const getScheduleId = async (paymentRequestId) => {
-  return db.schedule.findOne({ where: { paymentRequestId, completed: null } })
+  return (await db.schedule().where({ paymentRequestId, completed: null }).first()) ?? null
 }
 
 module.exports = {

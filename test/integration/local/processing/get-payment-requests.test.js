@@ -10,13 +10,12 @@ const completedSchedule = require('../../../mocks/schedules/completed')
 
 const { SFI_PILOT, SFI } = getSchemeIds()
 
-const db = require('../../../../app/data')
+const db = require('../../../../app/database')
 const { processingConfig } = require('../../../../app/config')
 
 const { getPaymentRequests } = require('../../../../app/processing/scheduled/get-payment-requests')
 
 let paymentRequest
-let schedule
 let hold
 
 describe('get payment requests', () => {
@@ -80,14 +79,14 @@ describe('get payment requests', () => {
 
   test('should not return payment request if no invoice lines', async () => {
     const { paymentRequestId } = await saveSchedule(newSchedule, paymentRequest)
-    await db.invoiceLine.destroy({ where: { paymentRequestId } })
+    await db.invoiceLine().where({ paymentRequestId }).del()
     const paymentRequests = await getPaymentRequests()
     expect(paymentRequests.length).toBe(0)
   })
 
   test('should not return payment request if all invoice lines invalid', async () => {
     const { paymentRequestId } = await saveSchedule(newSchedule, paymentRequest)
-    await db.invoiceLine.update({ invalid: true }, { where: { paymentRequestId } })
+    await db.invoiceLine().where({ paymentRequestId }).update({ invalid: true })
     const paymentRequests = await getPaymentRequests()
     expect(paymentRequests.length).toBe(0)
   })
@@ -95,13 +94,13 @@ describe('get payment requests', () => {
   test('should not include invalid invoice lines', async () => {
     paymentRequest.invoiceLines[1] = { ...paymentRequest.invoiceLines[0], description: 'invalid' }
     const { paymentRequestId } = await saveSchedule(newSchedule, paymentRequest)
-    await db.invoiceLine.update({ invalid: true }, { where: { paymentRequestId, description: 'invalid' } })
+    await db.invoiceLine().where({ paymentRequestId, description: 'invalid' }).update({ invalid: true })
     const paymentRequests = await getPaymentRequests()
     expect(paymentRequests[0].paymentRequest.invoiceLines.length).toBe(1)
   })
 
   test('should not return payment request if scheme inactive', async () => {
-    await db.scheme.update({ active: false }, { where: { schemeId: SFI } })
+    await db.scheme().where({ schemeId: SFI }).update({ active: false })
     await saveSchedule(newSchedule, paymentRequest)
     const paymentRequests = await getPaymentRequests()
     expect(paymentRequests.length).toBe(0)
@@ -109,14 +108,14 @@ describe('get payment requests', () => {
 
   test('should not return payment request if already in progress', async () => {
     const { scheduleId } = await saveSchedule(newSchedule, paymentRequest)
-    await db.schedule.update({ started: moment().subtract(1, 'minute') }, { where: { scheduleId } })
+    await db.schedule().where({ scheduleId }).update({ started: moment().subtract(1, 'minute') })
     const paymentRequests = await getPaymentRequests()
     expect(paymentRequests.length).toBe(0)
   })
 
   test('should return payment request if process time exceeded', async () => {
     const { scheduleId } = await saveSchedule(newSchedule, paymentRequest)
-    await db.schedule.update({ started: moment().subtract(10, 'minute') }, { where: { scheduleId } })
+    await db.schedule().where({ scheduleId }).update({ started: moment().subtract(10, 'minute') })
     const paymentRequests = await getPaymentRequests()
     expect(paymentRequests.length).toBe(1)
   })
@@ -131,7 +130,7 @@ describe('get payment requests', () => {
     await saveSchedule(newSchedule, paymentRequest)
     paymentRequest.invoiceNumber = 'INV-001'
     const { scheduleId } = await saveSchedule(newSchedule, paymentRequest)
-    await db.schedule.update({ started: moment().subtract(1, 'minute') }, { where: { scheduleId } })
+    await db.schedule().where({ scheduleId }).update({ started: moment().subtract(1, 'minute') })
     const paymentRequests = await getPaymentRequests()
     expect(paymentRequests.length).toBe(0)
   })
@@ -140,17 +139,17 @@ describe('get payment requests', () => {
     await saveSchedule(newSchedule, paymentRequest)
     paymentRequest.invoiceNumber = 'INV-001'
     const { scheduleId } = await saveSchedule(newSchedule, paymentRequest)
-    await db.schedule.update({ started: moment().subtract(10, 'minute') }, { where: { scheduleId } })
+    await db.schedule().where({ scheduleId }).update({ started: moment().subtract(10, 'minute') })
     const paymentRequests = await getPaymentRequests()
     expect(paymentRequests.length).toBe(1)
   })
 
   test('should not return payment request if another for same agreement in process but time expired if scheme inactive', async () => {
-    await db.scheme.update({ active: false }, { where: { schemeId: SFI } })
+    await db.scheme().where({ schemeId: SFI }).update({ active: false })
     await saveSchedule(newSchedule, paymentRequest)
     paymentRequest.invoiceNumber = 'INV-001'
     const { scheduleId } = await saveSchedule(newSchedule, paymentRequest)
-    await db.schedule.update({ started: moment().subtract(10, 'minute') }, { where: { scheduleId } })
+    await db.schedule().where({ scheduleId }).update({ started: moment().subtract(10, 'minute') })
     const paymentRequests = await getPaymentRequests()
     expect(paymentRequests.length).toBe(0)
   })
@@ -159,7 +158,7 @@ describe('get payment requests', () => {
     await saveSchedule(newSchedule, paymentRequest)
     paymentRequest.invoiceNumber = 'INV-001'
     await saveSchedule(completedSchedule, paymentRequest)
-    await db.schedule.create(schedule)
+    await db.schedule().insert({})
     const paymentRequests = await getPaymentRequests()
     expect(paymentRequests.length).toBe(1)
   })
@@ -169,8 +168,8 @@ describe('get payment requests', () => {
     paymentRequest.schemeId = SFI_PILOT
     paymentRequest.invoiceNumber = 'INV-001'
     const { scheduleId } = await saveSchedule(newSchedule, paymentRequest)
-    await db.schedule.update({ started: moment().subtract(1, 'minute') }, { where: { scheduleId } })
-    await db.schedule.create(schedule)
+    await db.schedule().where({ scheduleId }).update({ started: moment().subtract(1, 'minute') })
+    await db.schedule().insert({})
     const paymentRequests = await getPaymentRequests()
     expect(paymentRequests.length).toBe(1)
   })
@@ -180,8 +179,8 @@ describe('get payment requests', () => {
     paymentRequest.marketingYear = 2021
     paymentRequest.invoiceNumber = 'INV-001'
     const { scheduleId } = await saveSchedule(newSchedule, paymentRequest)
-    await db.schedule.update({ started: moment().subtract(1, 'minute') }, { where: { scheduleId } })
-    await db.schedule.create(schedule)
+    await db.schedule().where({ scheduleId }).update({ started: moment().subtract(1, 'minute') })
+    await db.schedule().insert({})
     const paymentRequests = await getPaymentRequests()
     expect(paymentRequests.length).toBe(1)
   })
@@ -191,8 +190,8 @@ describe('get payment requests', () => {
     paymentRequest.frn = 1234567891
     paymentRequest.invoiceNumber = 'INV-001'
     const { scheduleId } = await saveSchedule(newSchedule, paymentRequest)
-    await db.schedule.update({ started: moment().subtract(1, 'minute') }, { where: { scheduleId } })
-    await db.schedule.create(schedule)
+    await db.schedule().where({ scheduleId }).update({ started: moment().subtract(1, 'minute') })
+    await db.schedule().insert({})
     const paymentRequests = await getPaymentRequests()
     expect(paymentRequests.length).toBe(1)
   })
@@ -205,7 +204,7 @@ describe('get payment requests', () => {
 
   test('should not return payment request if frn on hold', async () => {
     await saveSchedule(newSchedule, paymentRequest)
-    await db.hold.create(hold)
+    await db.hold().insert(hold)
     const paymentRequests = await getPaymentRequests()
     expect(paymentRequests.length).toBe(0)
   })
@@ -213,7 +212,7 @@ describe('get payment requests', () => {
   test('should return payment request if hold expired', async () => {
     await saveSchedule(newSchedule, paymentRequest)
     hold.closed = new Date()
-    await db.hold.create(hold)
+    await db.hold().insert(hold)
     const paymentRequests = await getPaymentRequests()
     expect(paymentRequests.length).toBe(1)
   })
@@ -221,7 +220,7 @@ describe('get payment requests', () => {
   test('should return payment request if hold for different customer', async () => {
     await saveSchedule(newSchedule, paymentRequest)
     hold.frn = 234567891
-    await db.hold.create(hold)
+    await db.hold().insert(hold)
     const paymentRequests = await getPaymentRequests()
     expect(paymentRequests.length).toBe(1)
   })
@@ -229,7 +228,7 @@ describe('get payment requests', () => {
   test('should return payment request if hold for different scheme', async () => {
     await saveSchedule(newSchedule, paymentRequest)
     hold.holdCategoryId = 2
-    await db.hold.create(hold)
+    await db.hold().insert(hold)
     const paymentRequests = await getPaymentRequests()
     expect(paymentRequests.length).toBe(1)
   })
@@ -247,7 +246,7 @@ describe('get payment requests', () => {
     paymentRequest.paymentRequestNumber = 2
     paymentRequest.invoiceNumber = 'INV-001'
     const { scheduleId } = await saveSchedule(newSchedule, paymentRequest)
-    await db.schedule.update({ planned: moment().subtract(2, 'day') }, { where: { scheduleId } })
+    await db.schedule().where({ scheduleId }).update({ planned: moment().subtract(2, 'day') })
     const paymentRequests = await getPaymentRequests()
     expect(paymentRequests[0].paymentRequest.paymentRequestNumber).toBe(1)
   })
@@ -304,9 +303,9 @@ describe('get payment requests', () => {
       paymentRequest.invoiceNumber = 'INV-00' + i
       const { scheduleId } = await saveSchedule(newSchedule, paymentRequest)
       if (i % 2 === 0) {
-        await db.schedule.update({ planned: earlierDate }, { where: { scheduleId } })
+        await db.schedule().where({ scheduleId }).update({ planned: earlierDate })
       } else {
-        await db.schedule.update({ planned: laterDate }, { where: { scheduleId } })
+        await db.schedule().where({ scheduleId }).update({ planned: laterDate })
       }
     }
 
@@ -319,7 +318,7 @@ describe('get payment requests', () => {
   test('should update as processing started if payment request if due', async () => {
     const { scheduleId } = await saveSchedule(newSchedule, paymentRequest)
     await getPaymentRequests()
-    const updatedSchedule = await db.schedule.findByPk(scheduleId)
+    const updatedSchedule = await db.schedule().where({ scheduleId }).first()
     expect(updatedSchedule.started).not.toBeNull()
   })
 
@@ -328,7 +327,7 @@ describe('get payment requests', () => {
     paymentRequest.invoiceNumber = 'INV-001'
     await saveSchedule(newSchedule, paymentRequest)
     await getPaymentRequests()
-    const updatedSchedules = await db.schedule.findAll({ where: { started: { [db.Sequelize.Op.ne]: null } } })
+    const updatedSchedules = await db.schedule().whereNotNull('started')
     expect(updatedSchedules.length).toBe(1)
   })
 })

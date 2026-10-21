@@ -1,13 +1,10 @@
-const db = require('../data')
+const db = require('../database')
 
 const getExistingPaymentRequest = async (invoiceNumber, transaction) => {
-  return db.paymentRequest.findOne({
-    attributes: ['paymentRequestId', 'invoiceNumber', 'referenceId'],
-    transaction,
-    where: {
-      invoiceNumber
-    }
-  })
+  return (await db.paymentRequest(transaction ?? undefined)
+    .select('paymentRequestId', 'invoiceNumber', 'referenceId')
+    .where({ invoiceNumber })
+    .first()) ?? null
 }
 
 module.exports = {
