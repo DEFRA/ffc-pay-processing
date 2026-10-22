@@ -93,6 +93,27 @@ describe('V2 acknowledgement error event', () => {
       )
     })
 
+    test('should include payment request data for unsuccessful settlement', async () => {
+      settlement.settled = false
+      await sendProcessingReturnEvent(settlement, true, paymentRequest)
+      const eventData = mockPublishEvent.mock.calls[0][0].data
+      expect(eventData).toEqual({
+        ...paymentRequest,
+        message: 'D365 has reported a settlement for Invoice number S12345678C1234567V001, FRN 1234567890 was unsuccessful'
+      })
+    })
+
+    test('should only include settlement identifiers for unsuccessful settlement with no payment request', async () => {
+      settlement.settled = false
+      await sendProcessingReturnEvent(settlement, true)
+      expect(Object.keys(mockPublishEvent.mock.calls[0][0].data)).toEqual(['message', 'frn', 'invoiceNumber'])
+    })
+
+    test('should not include payment request data for unmatched settlement', async () => {
+      await sendProcessingReturnEvent(settlement, true, paymentRequest)
+      expect(mockPublishEvent.mock.calls[0][0].data.correlationId).toBeUndefined()
+    })
+
     test('should include payment request data for matched settlement', async () => {
       await sendProcessingReturnEvent(settlement)
       expect(mockPublishEvent.mock.calls[0][0].data).toEqual(paymentRequest)
