@@ -4,13 +4,14 @@ const { SOURCE } = require('../constants/source')
 const { PAYMENT_INVALID_BANK } = require('../constants/events')
 
 const sendAckInvalidBankDetailsErrorEvent = async (paymentRequest) => {
-  const { frn, sourceSystem, contractNumber, agreementNumber, batch, claimDate, value, sbi, invoiceNumber, schemeId, invoiceLines } = paymentRequest
+  const { frn, correlationId, sourceSystem, contractNumber, agreementNumber, batch, claimDate, value, sbi, invoiceNumber, schemeId, invoiceLines } = paymentRequest
   const event = {
     source: SOURCE,
     type: PAYMENT_INVALID_BANK,
     data: {
       message: 'No valid bank details held',
       frn,
+      correlationId,
       sourceSystem,
       contractNumber,
       agreementNumber,

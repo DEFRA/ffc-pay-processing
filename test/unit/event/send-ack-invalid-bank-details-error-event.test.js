@@ -52,6 +52,7 @@ describe('send acknowledgement invalid bank details error event', () => {
     await sendAckInvalidBankDetailsErrorEvent(paymentRequest)
     const eventData = mockPublishEvent.mock.calls[0][0].data
     expect(eventData.frn).toBe(paymentRequest.frn)
+    expect(eventData.correlationId).toBe(paymentRequest.correlationId)
     expect(eventData.sourceSystem).toBe(paymentRequest.sourceSystem)
     expect(eventData.contractNumber).toBe(paymentRequest.contractNumber)
     expect(eventData.agreementNumber).toBe(paymentRequest.agreementNumber)
