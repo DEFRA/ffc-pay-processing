@@ -13,5 +13,5 @@ module.exports = {
   PAYMENT_SETTLEMENT_UNSETTLED: 'uk.gov.defra.ffc.pay.warning.settlement.unsettled',
   PAYMENT_SETTLEMENT_UNMATCHED: 'uk.gov.defra.ffc.pay.warning.settlement.unmatched',
   PAYMENT_SUPPRESSED: 'uk.gov.defra.ffc.pay.payment.suppressed.recovery',
-  SCHEME_ADDED: 'uk.gov.defra.ffc.pay.scheme.added'
+  SCHEME_ADDED: 'uk.gov.defra.ffc.pay.warning.scheme.added'
 }
