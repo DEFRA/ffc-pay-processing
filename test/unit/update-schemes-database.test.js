@@ -18,6 +18,14 @@ jest.mock('../../app/holds', () => ({
   addHoldType: jest.fn()
 }))
 
+jest.mock('../../app/event', () => ({
+  sendSchemeAddedEvent: jest.fn()
+}))
+
+jest.mock('../../app/schemes', () => ({
+  markSchemeAddedEventPublished: jest.fn()
+}))
+
 const { getSchemes, schemeDoesNotRequirePPAs } = require('ffc-pay-schemes')
 const { addHoldType } = require('../../app/holds')
 const {
@@ -27,6 +35,8 @@ const {
   AWAITING_LEDGER_CHECK
 } = require('../../app/constants/hold-categories-names')
 
+const { sendSchemeAddedEvent } = require('../../app/event')
+const { markSchemeAddedEventPublished } = require('../../app/schemes')
 const { updateSchemesDatabase } = require('../../app/update-schemes-database')
 
 describe('update schemes database', () => {
@@ -108,7 +118,12 @@ describe('update schemes database', () => {
     const builderNew = createQueryBuilder()
     builderNew.resolves(undefined)
     const builderExisting = createQueryBuilder()
-    builderExisting.resolves(schemes[1])
+    builderExisting.resolves({
+      schemeId: schemes[1].schemeId,
+      name: schemes[1].schemeName,
+      active: true,
+      schemeAddedEventPublishedAt: new Date()
+    })
 
     mockDb.tables.scheme
       .mockReturnValueOnce(builderNew)
@@ -121,5 +136,155 @@ describe('update schemes database', () => {
     expect(mockDb.tables.scheme).toHaveBeenCalledTimes(4)
     expect(addHoldType).toHaveBeenCalledTimes(2)
     expect(mockDb.tables.autoHoldCategory).toHaveBeenCalledTimes(2)
+  })
+
+  test('should publish and mark an event for a new scheme supporting PPAs', async () => {
+    const scheme = {
+      schemeId: 18,
+      schemeName: 'SFI-26'
+    }
+
+    getSchemes.mockReturnValue([scheme])
+    mockDb.builder.resolves(undefined)
+    schemeDoesNotRequirePPAs.mockReturnValue(false)
+
+    await updateSchemesDatabase()
+
+    expect(sendSchemeAddedEvent).toHaveBeenCalledWith({
+      schemeId: scheme.schemeId,
+      schemeName: scheme.schemeName
+    })
+
+    expect(sendSchemeAddedEvent).toHaveBeenCalledTimes(1)
+
+    expect(markSchemeAddedEventPublished)
+      .toHaveBeenCalledWith(scheme.schemeId)
+
+    expect(markSchemeAddedEventPublished)
+      .toHaveBeenCalledTimes(1)
+  })
+
+  test('should publish and mark an event for a new scheme not supporting PPAs', async () => {
+    const scheme = {
+      schemeId: 18,
+      schemeName: 'SFI-26'
+    }
+
+    getSchemes.mockReturnValue([scheme])
+    mockDb.builder.resolves(undefined)
+    schemeDoesNotRequirePPAs.mockReturnValue(true)
+
+    await updateSchemesDatabase()
+
+    expect(sendSchemeAddedEvent).toHaveBeenCalledWith({
+      schemeId: scheme.schemeId,
+      schemeName: scheme.schemeName
+    })
+
+    expect(markSchemeAddedEventPublished)
+      .toHaveBeenCalledWith(scheme.schemeId)
+
+    expect(sendSchemeAddedEvent).toHaveBeenCalledTimes(1)
+    expect(markSchemeAddedEventPublished).toHaveBeenCalledTimes(1)
+  })
+
+  test('should not publish an event for an existing scheme that has already been published', async () => {
+    const scheme = {
+      schemeId: 18,
+      schemeName: 'SFI-26'
+    }
+
+    const existingScheme = {
+      schemeId: scheme.schemeId,
+      name: scheme.schemeName,
+      active: true,
+      schemeAddedEventPublishedAt: new Date()
+    }
+
+    getSchemes.mockReturnValue([scheme])
+    mockDb.builder.resolves(existingScheme)
+
+    await updateSchemesDatabase()
+
+    expect(sendSchemeAddedEvent).not.toHaveBeenCalled()
+    expect(markSchemeAddedEventPublished).not.toHaveBeenCalled()
+  })
+
+  test('should retry publishing an event for an existing scheme without a published marker', async () => {
+    const scheme = {
+      schemeId: 18,
+      schemeName: 'SFI-26'
+    }
+
+    const existingScheme = {
+      schemeId: scheme.schemeId,
+      name: scheme.schemeName,
+      active: true,
+      schemeAddedEventPublishedAt: null
+    }
+
+    getSchemes.mockReturnValue([scheme])
+    mockDb.builder.resolves(existingScheme)
+
+    await updateSchemesDatabase()
+
+    expect(addHoldType).not.toHaveBeenCalled()
+    expect(mockDb.tables.autoHoldCategory).not.toHaveBeenCalled()
+
+    expect(sendSchemeAddedEvent).toHaveBeenCalledWith({
+      schemeId: scheme.schemeId,
+      schemeName: scheme.schemeName
+    })
+
+    expect(markSchemeAddedEventPublished)
+      .toHaveBeenCalledWith(scheme.schemeId)
+  })
+
+  test('should not mark the scheme event as published when publishing fails', async () => {
+    const scheme = {
+      schemeId: 18,
+      schemeName: 'SFI-26'
+    }
+
+    getSchemes.mockReturnValue([scheme])
+    mockDb.builder.resolves(undefined)
+    schemeDoesNotRequirePPAs.mockReturnValue(false)
+
+    sendSchemeAddedEvent.mockRejectedValue(
+      new Error('Publish failed')
+    )
+
+    await expect(updateSchemesDatabase())
+      .rejects
+      .toThrow('Publish failed')
+
+    expect(sendSchemeAddedEvent).toHaveBeenCalledWith({
+      schemeId: scheme.schemeId,
+      schemeName: scheme.schemeName
+    })
+
+    expect(markSchemeAddedEventPublished)
+      .not.toHaveBeenCalled()
+  })
+
+  test('should not publish an event if new scheme setup fails', async () => {
+    const scheme = {
+      schemeId: 18,
+      schemeName: 'SFI-26'
+    }
+
+    getSchemes.mockReturnValue([scheme])
+    mockDb.builder.resolves(undefined)
+
+    addHoldType.mockRejectedValue(
+      new Error('Hold creation failed')
+    )
+
+    await expect(updateSchemesDatabase())
+      .rejects
+      .toThrow('Hold creation failed')
+
+    expect(sendSchemeAddedEvent).not.toHaveBeenCalled()
+    expect(markSchemeAddedEventPublished).not.toHaveBeenCalled()
   })
 })

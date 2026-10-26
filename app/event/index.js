@@ -11,6 +11,7 @@ const { sendHoldEvent } = require('./send-hold-event')
 const { sendSuppressedEvent } = require('./send-suppressed-event')
 const { sendZeroValueEvent } = require('./send-zero-value-event')
 const { sendDuplicatePaymentEvent } = require('./send-duplicate-payment-event')
+const { sendSchemeAddedEvent } = require('./send-scheme-added-event')
 
 module.exports = {
   sendPublishingEvents,
@@ -25,5 +26,6 @@ module.exports = {
   sendHoldEvent,
   sendSuppressedEvent,
   sendZeroValueEvent,
-  sendDuplicatePaymentEvent
+  sendDuplicatePaymentEvent,
+  sendSchemeAddedEvent
 }
