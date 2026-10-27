@@ -199,7 +199,8 @@ const COLUMNS = {
   [TABLES.scheme]: [
     'schemeId',
     'name',
-    'active'
+    'active',
+    'schemeAddedEventPublishedAt'
   ]
 }
 
