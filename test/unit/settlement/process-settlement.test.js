@@ -1,9 +1,11 @@
 jest.mock('../../../app/settlement/get-settlement-filter')
 jest.mock('../../../app/settlement/update-settlement-status')
+jest.mock('../../../app/settlement/get-settlement-payment-request')
 jest.mock('../../../app/event')
 
 const { getSettlementFilter: mockGetSettlementFilter } = require('../../../app/settlement/get-settlement-filter')
 const { updateSettlementStatus: mockUpdateSettlementStatus } = require('../../../app/settlement/update-settlement-status')
+const { getSettlementPaymentRequest: mockGetSettlementPaymentRequest } = require('../../../app/settlement/get-settlement-payment-request')
 const { sendProcessingReturnEvent: mockSendProcessingReturnEvent } = require('../../../app/event')
 
 const { FRN } = require('../../mocks/values/frn')
@@ -11,6 +13,7 @@ const { INVOICE_NUMBER } = require('../../mocks/values/invoice-number')
 const { processSettlement } = require('../../../app/settlement/process-settlement')
 
 const mockSettlementFilter = { invoiceNumber: INVOICE_NUMBER }
+const mockPaymentRequest = { frn: FRN, invoiceNumber: INVOICE_NUMBER, correlationId: 'correlation-id', schemeId: 1 }
 const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
 
 let settlement
@@ -22,6 +25,7 @@ describe('processSettlement', () => {
 
     mockGetSettlementFilter.mockReturnValue(mockSettlementFilter)
     mockUpdateSettlementStatus.mockResolvedValue({ frn: FRN, invoiceNumber: INVOICE_NUMBER })
+    mockGetSettlementPaymentRequest.mockResolvedValue(mockPaymentRequest)
 
     settlement = structuredClone(require('../../mocks/settlements/settlement'))
   })
@@ -42,8 +46,14 @@ describe('processSettlement', () => {
     test('sends error event and returns false if no matched payment request', async () => {
       mockUpdateSettlementStatus.mockResolvedValue(false)
       const result = await processSettlement(settlement)
-      expect(mockSendProcessingReturnEvent).toHaveBeenCalledWith(settlement, true)
+      expect(mockSendProcessingReturnEvent).toHaveBeenCalledWith(settlement, true, undefined)
       expect(result).toBe(false)
+    })
+
+    test('does not look up payment request if no matched payment request', async () => {
+      mockUpdateSettlementStatus.mockResolvedValue(false)
+      await processSettlement(settlement)
+      expect(mockGetSettlementPaymentRequest).not.toHaveBeenCalled()
     })
 
     test('logs error if sending processing return event fails', async () => {
@@ -63,9 +73,23 @@ describe('processSettlement', () => {
       expect(mockUpdateSettlementStatus).not.toHaveBeenCalled()
     })
 
-    test('sends error processing return event and returns false', async () => {
+    test('looks up payment request using settlement filter', async () => {
+      await processSettlement(settlement)
+      expect(mockGetSettlementFilter).toHaveBeenCalledWith(settlement)
+      expect(mockGetSettlementPaymentRequest).toHaveBeenCalledWith(mockSettlementFilter)
+    })
+
+    test('sends error processing return event with payment request and returns false', async () => {
       const result = await processSettlement(settlement)
-      expect(mockSendProcessingReturnEvent).toHaveBeenCalledWith(settlement, true)
+      expect(mockSendProcessingReturnEvent).toHaveBeenCalledWith(settlement, true, mockPaymentRequest)
+      expect(result).toBe(false)
+    })
+
+    test('sends error processing return event without payment request if lookup fails', async () => {
+      mockGetSettlementPaymentRequest.mockRejectedValue(new Error('test error'))
+      const result = await processSettlement(settlement)
+      expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to get payment request for unsettled settlement:', expect.any(Error))
+      expect(mockSendProcessingReturnEvent).toHaveBeenCalledWith(settlement, true, undefined)
       expect(result).toBe(false)
     })
 

@@ -1,5 +1,4 @@
 module.exports = {
-  DUPLICATE_PAYMENT: 'uk.gov.defra.ffc.pay.payment.duplicate',
   DUPLICATE_PAYMENT_WARNING: 'uk.gov.defra.ffc.pay.warning.duplicate.payment',
   HOLD_PREFIX: 'uk.gov.defra.ffc.pay.hold',
   PAYMENT_ACKNOWLEDGED: 'uk.gov.defra.ffc.pay.payment.acknowledged',
@@ -13,5 +12,6 @@ module.exports = {
   PAYMENT_SETTLED: 'uk.gov.defra.ffc.pay.payment.settled',
   PAYMENT_SETTLEMENT_UNSETTLED: 'uk.gov.defra.ffc.pay.warning.settlement.unsettled',
   PAYMENT_SETTLEMENT_UNMATCHED: 'uk.gov.defra.ffc.pay.warning.settlement.unmatched',
-  PAYMENT_SUPPRESSED: 'uk.gov.defra.ffc.pay.payment.suppressed.recovery'
+  PAYMENT_SUPPRESSED: 'uk.gov.defra.ffc.pay.payment.suppressed.recovery',
+  SCHEME_ADDED: 'uk.gov.defra.ffc.pay.warning.scheme.added'
 }

@@ -1,7 +1,7 @@
-const mockPublishEvents = jest.fn()
+const mockPublishEvent = jest.fn()
 
 const MockEventPublisher = jest.fn().mockImplementation(() => ({
-  publishEvents: mockPublishEvents
+  publishEvent: mockPublishEvent
 }))
 
 jest.mock('ffc-pay-event-publisher', () => ({
@@ -12,7 +12,7 @@ jest.mock('../../../app/config')
 const { messageConfig } = require('../../../app/config')
 
 const { SOURCE } = require('../../../app/constants/source')
-const { DUPLICATE_PAYMENT_WARNING, DUPLICATE_PAYMENT } = require('../../../app/constants/events')
+const { DUPLICATE_PAYMENT_WARNING } = require('../../../app/constants/events')
 const { sendDuplicatePaymentEvent } = require('../../../app/event')
 
 const REFERENCE_ID = '70cb0f07-e0cf-449c-86e8-0344f2c6cc6c'
@@ -20,7 +20,7 @@ const MESSAGE = 'Duplicate payment request received for invoice number:'
 
 let paymentRequest
 
-const getEvents = () => mockPublishEvents.mock.calls[0][0]
+const getEvent = () => mockPublishEvent.mock.calls[0][0]
 
 beforeEach(() => {
   jest.clearAllMocks()
@@ -28,52 +28,43 @@ beforeEach(() => {
   messageConfig.eventsTopic = 'v2-events'
 })
 
-describe('send events for duplicate payment requests', () => {
-  test('should send events to V2 topic', async () => {
+describe('send event for duplicate payment requests', () => {
+  test('should send event to V2 topic', async () => {
     await sendDuplicatePaymentEvent(paymentRequest, REFERENCE_ID)
     expect(MockEventPublisher.mock.calls[0][0]).toBe(messageConfig.eventsTopic)
   })
 
-  test('should raise a warning event and a payment event', async () => {
+  test('should raise a single warning event', async () => {
     await sendDuplicatePaymentEvent(paymentRequest, REFERENCE_ID)
-    expect(getEvents().map(event => event.type)).toEqual([DUPLICATE_PAYMENT_WARNING, DUPLICATE_PAYMENT])
+    expect(mockPublishEvent).toHaveBeenCalledTimes(1)
+    expect(getEvent().type).toBe(DUPLICATE_PAYMENT_WARNING)
   })
 
-  test.each([
-    ['processing source', (event) => expect(event.source).toBe(SOURCE)],
-    ['invoice number subject', (event) => expect(event.subject).toBe(paymentRequest.invoiceNumber)]
-  ])('should validate %s for both events', async (_desc, assertion) => {
+  test('should raise event with processing source', async () => {
     await sendDuplicatePaymentEvent(paymentRequest, REFERENCE_ID)
-    getEvents().forEach(assertion)
+    expect(getEvent().source).toBe(SOURCE)
   })
 
-  test('should raise warning event with duplicate payment data', async () => {
+  test('should raise event with invoice number subject', async () => {
     await sendDuplicatePaymentEvent(paymentRequest, REFERENCE_ID)
-    const [warningEvent] = getEvents()
-    expect(warningEvent.data).toEqual({
-      message: MESSAGE,
-      invoiceNumber: paymentRequest.invoiceNumber,
-      referenceId: REFERENCE_ID,
-      sourceSystem: paymentRequest.sourceSystem,
-      schemeId: paymentRequest.schemeId
-    })
+    expect(getEvent().subject).toBe(paymentRequest.invoiceNumber)
   })
 
-  test('should raise payment event with payment request data', async () => {
+  test('should raise warning event with payment request data', async () => {
     await sendDuplicatePaymentEvent(paymentRequest, REFERENCE_ID)
-    const [, paymentEvent] = getEvents()
-    expect(paymentEvent.data).toEqual({
+    expect(getEvent().data).toEqual({
       ...paymentRequest,
       message: MESSAGE,
       referenceId: REFERENCE_ID
     })
   })
 
-  test('should raise payment event with identifiers needed to link it to the payment request', async () => {
+  test('should raise warning event with identifiers needed to link it to the payment request', async () => {
     await sendDuplicatePaymentEvent(paymentRequest, REFERENCE_ID)
-    const [, paymentEvent] = getEvents()
-    expect(paymentEvent.data.frn).toBe(paymentRequest.frn)
-    expect(paymentEvent.data.correlationId).toBe(paymentRequest.correlationId)
-    expect(paymentEvent.data.invoiceNumber).toBe(paymentRequest.invoiceNumber)
+    const { data } = getEvent()
+    expect(data.frn).toBe(paymentRequest.frn)
+    expect(data.correlationId).toBe(paymentRequest.correlationId)
+    expect(data.schemeId).toBe(paymentRequest.schemeId)
+    expect(data.invoiceNumber).toBe(paymentRequest.invoiceNumber)
   })
 })

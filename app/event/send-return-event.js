@@ -6,12 +6,12 @@ const { SOURCE } = require('../constants/source')
 const { PAYMENT_SETTLED, PAYMENT_SETTLEMENT_UNMATCHED, PAYMENT_SETTLEMENT_UNSETTLED } = require('../constants/events')
 const { sendReturnResponse } = require('../messaging/send-return-response')
 
-const sendProcessingReturnEvent = async (message, isError = false) => {
+const sendProcessingReturnEvent = async (message, isError = false, paymentRequest = undefined) => {
   const invoiceNumber = message.invoiceNumber ?? UNKNOWN
   const frn = message.frn ?? UNKNOWN
 
   if (isError) {
-    await raiseErrorEvent(invoiceNumber, frn, message.settled)
+    await raiseErrorEvent(invoiceNumber, frn, message.settled, paymentRequest)
   } else {
     await raiseCompletedReturnEvent(invoiceNumber, frn)
   }
@@ -29,7 +29,7 @@ const raiseCompletedReturnEvent = async (invoiceNumber, frn) => {
   await sendReturnResponse(paymentRequest, PAYMENT_SETTLED)
 }
 
-const raiseErrorEvent = async (invoiceNumber, frn, settled) => {
+const raiseErrorEvent = async (invoiceNumber, frn, settled, paymentRequest) => {
   const event = {
     source: SOURCE,
     type: PAYMENT_SETTLEMENT_UNMATCHED,
@@ -41,7 +41,11 @@ const raiseErrorEvent = async (invoiceNumber, frn, settled) => {
   }
   if (!settled) {
     event.type = PAYMENT_SETTLEMENT_UNSETTLED
-    event.data.message = `D365 has reported a settlement for Invoice number ${invoiceNumber}, FRN ${frn} was unsuccessful`
+    event.data = {
+      ...event.data,
+      ...paymentRequest,
+      message: `D365 has reported a settlement for Invoice number ${invoiceNumber}, FRN ${frn} was unsuccessful`
+    }
   }
   const eventPublisher = new EventPublisher(messageConfig.eventsTopic)
   await eventPublisher.publishEvent(event)
