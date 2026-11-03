@@ -31,7 +31,8 @@ jest.mock('../../../app/routing', () => ({
 }))
 
 jest.mock('../../../app/event', () => ({
-  sendProcessingRouteEvent: jest.fn()
+  sendProcessingRouteEvent: jest.fn(),
+  sendPaymentHoldEvents: jest.fn()
 }))
 
 jest.mock('../../../app/processing/requires-manual-ledger-check', () => ({
@@ -62,7 +63,7 @@ const {
   routeManualLedgerToRequestEditor,
   routeToCrossBorder
 } = require('../../../app/routing')
-const { sendProcessingRouteEvent } = require('../../../app/event')
+const { sendProcessingRouteEvent, sendPaymentHoldEvents } = require('../../../app/event')
 const { requiresManualLedgerCheck } = require('../../../app/processing/requires-manual-ledger-check')
 const { mapAccountCodes } = require('../../../app/processing/account-codes')
 const { isAgreementClosed } = require('../../../app/processing/is-agreement-closed')
@@ -164,6 +165,8 @@ describe('processPaymentRequest', () => {
     await processPaymentRequest(scheduledPaymentRequest)
 
     expect(applyAutoHold).toHaveBeenCalledWith([paymentRequest])
+    expect(sendPaymentHoldEvents).toHaveBeenCalledWith([paymentRequest])
+    expect(routeDebtToRequestEditor).not.toHaveBeenCalled()
     expect(completePaymentRequests).not.toHaveBeenCalled()
   })
 
