@@ -8,6 +8,7 @@ const { sendAckInvalidBankDetailsErrorEvent } = require('./send-ack-invalid-bank
 const { sendAcknowledgementErrorEvent } = require('./send-acknowledgement-error-event')
 const { sendResetEvent } = require('./send-reset-event')
 const { sendHoldEvent } = require('./send-hold-event')
+const { sendPaymentHoldEvents } = require('./send-payment-hold-events')
 const { sendSuppressedEvent } = require('./send-suppressed-event')
 const { sendZeroValueEvent } = require('./send-zero-value-event')
 const { sendDuplicatePaymentEvent } = require('./send-duplicate-payment-event')
@@ -24,6 +25,7 @@ module.exports = {
   sendAcknowledgementErrorEvent,
   sendResetEvent,
   sendHoldEvent,
+  sendPaymentHoldEvents,
   sendSuppressedEvent,
   sendZeroValueEvent,
   sendDuplicatePaymentEvent,
