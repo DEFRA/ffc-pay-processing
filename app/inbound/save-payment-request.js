@@ -32,7 +32,11 @@ const savePaymentRequest = async (paymentRequest) => {
     throw (error)
   }
   if (savedPaymentRequestId) {
-    await sendPaymentHoldEvents(await getHeldPaymentRequests(paymentRequest.frn, paymentRequest.schemeId, { paymentRequestId: savedPaymentRequestId }))
+    try {
+      await sendPaymentHoldEvents(await getHeldPaymentRequests(paymentRequest.frn, paymentRequest.schemeId, { paymentRequestId: savedPaymentRequestId }))
+    } catch (err) {
+      console.error(`Unable to send hold event for payment request ${savedPaymentRequestId}:`, err)
+    }
   }
 }
 
