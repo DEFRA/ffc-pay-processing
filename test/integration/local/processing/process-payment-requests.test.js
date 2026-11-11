@@ -108,7 +108,7 @@ describe('process payment requests', () => {
       recoveryRequest.debtType = IRREGULAR
       await saveSchedule(inProgressSchedule, recoveryRequest)
       await processPaymentRequests()
-      expect(mockSendMessage).not.toBeCalled()
+      expect(mockSendMessage).not.toHaveBeenCalled()
     })
 
     test('creates auto hold if no debt data', async () => {
@@ -151,7 +151,7 @@ describe('process payment requests', () => {
       await processPaymentRequests()
       const holds = await db.autoHold().where({ frn: paymentRequest.frn, closed: null })
       expect(holds.length).toBe(0)
-      expect(mockSendMessage).not.toBeCalled()
+      expect(mockSendMessage).not.toHaveBeenCalled()
     })
   })
 
