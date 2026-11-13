@@ -37,7 +37,7 @@ services:
       - ./scripts:/scripts
 
   ffc-pay-processing-postgres:
-    image: postgres:11.4-alpine
+    image: postgres:16.5-alpine
     environment: *common-postgres
     volumes:
       - postgres_data:/var/lib/postgresql/data
