@@ -12,6 +12,12 @@ const { createSchedule: mockCreateSchedule } = require('../../../../app/inbound/
 jest.mock('../../../../app/event/send-duplicate-payment-event')
 const { sendDuplicatePaymentEvent: mockSendDuplicatePaymentEvent } = require('../../../../app/event/send-duplicate-payment-event')
 
+jest.mock('../../../../app/event/send-payment-hold-events')
+const { sendPaymentHoldEvents: mockSendPaymentHoldEvents } = require('../../../../app/event/send-payment-hold-events')
+
+jest.mock('../../../../app/holds/get-held-payment-requests')
+const { getHeldPaymentRequests: mockGetHeldPaymentRequests } = require('../../../../app/holds/get-held-payment-requests')
+
 const db = require('../../../../app/database')
 
 const transactionSpy = jest.spyOn(db, 'transaction')
@@ -39,6 +45,8 @@ describe('save payment request', () => {
       throw error
     }
     mockGetExistingPaymentRequest.mockResolvedValue(null)
+    mockGetHeldPaymentRequests.mockResolvedValue([])
+    mockSendPaymentHoldEvents.mockResolvedValue(undefined)
   })
 
   test('should check if payment request exists with invoice number', async () => {
@@ -84,6 +92,34 @@ describe('save payment request', () => {
   test('should create transaction', async () => {
     await savePaymentRequest(paymentRequest)
     expect(transactionSpy).toHaveBeenCalled()
+  })
+
+  test('should send hold events for held payment requests after saving', async () => {
+    const heldPaymentRequests = [{ paymentRequestId: 1 }]
+    mockGetHeldPaymentRequests.mockResolvedValue(heldPaymentRequests)
+    await savePaymentRequest(paymentRequest)
+    expect(mockGetHeldPaymentRequests).toHaveBeenCalledWith(paymentRequest.frn, paymentRequest.schemeId, { paymentRequestId: expect.any(Number) })
+    expect(mockSendPaymentHoldEvents).toHaveBeenCalledWith(heldPaymentRequests)
+  })
+
+  test('should not send hold events if already exists', async () => {
+    mockGetExistingPaymentRequest.mockResolvedValue(paymentRequest)
+    await savePaymentRequest(paymentRequest)
+    expect(mockSendPaymentHoldEvents).not.toHaveBeenCalled()
+  })
+
+  test('should keep saved payment request and not throw if sending hold events fails', async () => {
+    mockSendPaymentHoldEvents.mockRejectedValue(new Error('Service bus unavailable'))
+    await expect(savePaymentRequest(paymentRequest)).resolves.toBeUndefined()
+    const savedPaymentRequest = await db.paymentRequest().where({ invoiceNumber: paymentRequest.invoiceNumber }).first()
+    expect(savedPaymentRequest.invoiceNumber).toBe(paymentRequest.invoiceNumber)
+  })
+
+  test('should keep saved payment request and not throw if getting held payment requests fails', async () => {
+    mockGetHeldPaymentRequests.mockRejectedValue(new Error('Database unavailable'))
+    await expect(savePaymentRequest(paymentRequest)).resolves.toBeUndefined()
+    const savedPaymentRequest = await db.paymentRequest().where({ invoiceNumber: paymentRequest.invoiceNumber }).first()
+    expect(savedPaymentRequest.invoiceNumber).toBe(paymentRequest.invoiceNumber)
   })
 
   test('should rollback transaction if error', async () => {
