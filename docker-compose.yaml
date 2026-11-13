@@ -44,7 +44,7 @@ services:
       PROCESSING_SUBSCRIPTION_MAX_CONCURRENT_CALLS: ${PROCESSING_SUBSCRIPTION_MAX_CONCURRENT_CALLS:-1}
   
   ffc-pay-processing-postgres:
-    image: postgres:11.4-alpine
+    image: postgres:16.5-alpine
     environment:
       POSTGRES_DB: ffc_pay_processing
       POSTGRES_PASSWORD: ppp
