@@ -118,19 +118,6 @@ This script accepts any Docker Compose [Up](https://docs.docker.com/engine/refer
 
 A debugger can be attached to the running application using port `9244`.
 
-## Remove v2 temporary tables
-
-These PostgreSQL queries permanently remove the specified temporary tables and
-their data. Run each query against its corresponding database in your SQL client.
-
-| Database | Query |
-| --- | --- |
-| `ffc-pay-processing-prd` | [scripts/drop-v2-temp-processing-tables.sql](scripts/drop-v2-temp-processing-tables.sql) |
-| `ffc-pay-request-editor-prd` | [scripts/drop-v2-temp-request-editor-tables.sql](scripts/drop-v2-temp-request-editor-tables.sql) |
-
-For lower environments, select the database with the required suffix instead of
-`-prd`. Both queries use the `public` schema.
-
 ## How to get an output
 
 This service calculates the final state of a payment request, thereby ensuring that the correct activities are performed by DAX.
