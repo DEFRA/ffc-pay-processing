@@ -12,7 +12,7 @@
     <tagDatabase tag="v2.16.0" />
   </changeSet>
 
-  <changeSet author="Leigh Godson" id="3">
+  <changeSet author="Leigh Godson" id="2">
     <sql>
       DROP TABLE IF EXISTS
         public."v2TempPaymentRequests",
