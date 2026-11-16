@@ -56,6 +56,9 @@
     "neostandard": "0.14.1",
     "nodemon": "3.1.14"
   },
+  "overrides": {
+    "@opentelemetry/instrumentation-http": "0.222.0"
+  },
   "nodemonConfig": {
     "ignore": [
       "**/test-output/**"
