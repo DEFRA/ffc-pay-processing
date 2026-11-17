@@ -1,9 +1,10 @@
-const { resetDatabase, closeDatabaseConnection } = require('../../../helpers')
+const { resetDatabase, closeDatabaseConnection, saveSchedule } = require('../../../helpers')
 
 jest.mock('../../../../app/event')
-const { sendHoldEvent: mockSendHoldEvent } = require('../../../../app/event')
+const { sendHoldEvent: mockSendHoldEvent, sendPaymentHoldEvents: mockSendPaymentHoldEvents } = require('../../../../app/event')
 
 const { FRN } = require('../../../mocks/values/frn')
+const newSchedule = require('../../../mocks/schedules/new')
 
 const { ADDED } = require('../../../../app/constants/hold-statuses')
 
@@ -12,6 +13,7 @@ const db = require('../../../../app/database')
 const { addHold } = require('../../../../app/holds/add-hold')
 
 const holdCategoryId = 1
+const otherHoldCategoryId = 3
 
 describe('add hold', () => {
   beforeEach(async () => {
@@ -44,6 +46,20 @@ describe('add hold', () => {
     const hold = await db.hold().where({ frn: FRN }).first()
     const plainHold = hold
     expect(mockSendHoldEvent).toHaveBeenCalledWith(plainHold, ADDED)
+  })
+
+  test('should send payment hold event for pending payment request', async () => {
+    const { paymentRequestId } = await saveSchedule(newSchedule)
+    await addHold(FRN, holdCategoryId)
+    expect(mockSendPaymentHoldEvents).toHaveBeenCalledWith([expect.objectContaining({ paymentRequestId })])
+  })
+
+  test('should not send payment hold event again if FRN already held for scheme', async () => {
+    await saveSchedule(newSchedule)
+    await addHold(FRN, holdCategoryId)
+    mockSendPaymentHoldEvents.mockClear()
+    await addHold(FRN, otherHoldCategoryId)
+    expect(mockSendPaymentHoldEvents).not.toHaveBeenCalled()
   })
 
   afterAll(async () => {

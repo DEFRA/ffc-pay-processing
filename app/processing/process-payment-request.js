@@ -9,7 +9,7 @@ const {
   routeManualLedgerToRequestEditor,
   routeToCrossBorder
 } = require('../routing')
-const { sendProcessingRouteEvent } = require('../event')
+const { sendProcessingRouteEvent, sendPaymentHoldEvents } = require('../event')
 const { requiresManualLedgerCheck } = require('./requires-manual-ledger-check')
 const { mapAccountCodes } = require('./account-codes')
 const { isAgreementClosed } = require('./is-agreement-closed')
@@ -51,11 +51,7 @@ const handleManualLedger = async (paymentRequest, paymentRequests) => {
   await routeManualLedgerToRequestEditor(paymentRequests)
 }
 
-const validatePayment = async (paymentRequests, agreementIsClosed) => {
-  if (await applyAutoHold(paymentRequests.completedPaymentRequests)) {
-    return true
-  }
-
+const requiresDebt = (paymentRequests, agreementIsClosed) => {
   return (
     !agreementIsClosed &&
     requiresDebtData(paymentRequests.completedPaymentRequests)
@@ -100,7 +96,12 @@ const processPaymentRequest = async (scheduledPaymentRequest) => {
     await handleAgreementClosure(paymentRequest, paymentRequests)
   }
 
-  if (await validatePayment(paymentRequests, agreementIsClosed)) {
+  if (await applyAutoHold(paymentRequests.completedPaymentRequests)) {
+    await sendPaymentHoldEvents([paymentRequest])
+    return
+  }
+
+  if (requiresDebt(paymentRequests, agreementIsClosed)) {
     await handleDebtData(paymentRequest)
     return
   }
