@@ -1,4 +1,4 @@
-const { processSettlement } = require('../settlement')
+const { processSettlement, checkInvoiceNumberBlocked } = require('../settlement')
 const { sendProcessingErrorEvent } = require('../event')
 
 const processReturnMessage = async (message, receiver) => {
@@ -8,6 +8,14 @@ const processReturnMessage = async (message, receiver) => {
       ...(message.body.sbi != null && { sbi: message.body.sbi }),
       invoiceNumber: message.body.invoiceNumber
     })
+
+    const isBlocked = checkInvoiceNumberBlocked(message.body.invoiceNumber)
+
+    if (isBlocked) {
+      console.log(`Settlement with invoice number: ${message.body.invoiceNumber} is blocked, and will not be processed for payment request`)
+      await receiver.completeMessage(message)
+      return
+    }
 
     const settlementCompleted = await processSettlement(message.body)
 
