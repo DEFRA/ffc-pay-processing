@@ -40,10 +40,10 @@
     "@hapi/boom": "10.0.0",
     "@hapi/hapi": "21.4.8",
     "ffc-database": "2.0.2",
-    "ffc-pay-event-publisher": "2.0.1",
+    "ffc-pay-event-publisher": "2.0.2",
     "ffc-pay-schemes": "1.1.5",
     "hapi-pino": "13.0.0",
-    "joi": "18.3.1",
+    "joi": "18.3.2",
     "log-timestamp": "0.3.0",
     "moment": "2.31.0"
   },
@@ -58,10 +58,6 @@
     "nodemon": "3.1.14"
   },
   "overrides": {
-    "ffc-pay-event-publisher": {
-      "@azure/identity": "4.14.1",
-      "joi": "18.3.1"
-    },
     "@opentelemetry/instrumentation-http": "0.222.0"
   },
   "nodemonConfig": {
