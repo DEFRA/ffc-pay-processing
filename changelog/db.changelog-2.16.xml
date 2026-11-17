@@ -21,7 +21,11 @@
         public."v2TempCompletedInvoiceLines",
         public."v2TempHoldData",
         public."v2TempDualAccounting",
-        public."v2TempSettlementData";
+        public."v2TempSettlementData",
+        public."tempPaymentRequests",
+        public."tempInvoiceLines",
+        public."tempCompletedPaymentRequests",
+        public."tempSettlementData";
     </sql>
     </changeSet>
 
