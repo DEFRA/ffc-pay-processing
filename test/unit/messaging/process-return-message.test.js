@@ -1,7 +1,11 @@
 jest.mock('../../../app/settlement')
 jest.mock('../../../app/event')
 
-const { processSettlement: mockProcessSettlement } = require('../../../app/settlement')
+const {
+  processSettlement: mockProcessSettlement,
+  checkInvoiceNumberBlocked: mockCheckInvoiceNumberBlocked
+} = require('../../../app/settlement')
+
 const { sendProcessingErrorEvent: mockSendProcessingErrorEvent } = require('../../../app/event')
 
 const receiver = require('../../mocks/messaging/receiver')
@@ -13,14 +17,18 @@ describe('process return message', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockProcessSettlement.mockResolvedValue(true)
+    mockCheckInvoiceNumberBlocked.mockReturnValue(false)
     testMessage = structuredClone(require('../../mocks/messaging/return'))
   })
 
-  test('should block settlement if invoice number is blocked', async () => {
-    testMessage.body.invoiceNumber = 'F0000001C0000001V001'
+  test('should block FDMR settlement and complete message without processing', async () => {
+    testMessage.body.invoiceNumber = 'F0437125C1005501V001'
+    mockCheckInvoiceNumberBlocked.mockReturnValue(true)
 
     await processReturnMessage(testMessage, receiver)
 
+    expect(mockCheckInvoiceNumberBlocked).toHaveBeenCalledWith('F0437125C1005501V001')
+    expect(mockProcessSettlement).not.toHaveBeenCalled()
     expect(receiver.completeMessage).toHaveBeenCalledWith(testMessage)
     expect(receiver.deadLetterMessage).not.toHaveBeenCalled()
   })
@@ -43,6 +51,7 @@ describe('process return message', () => {
   test('should process settlement when invoice not blocked', async () => {
     await processReturnMessage(testMessage, receiver)
 
+    expect(mockCheckInvoiceNumberBlocked).toHaveBeenCalledWith(testMessage.body.invoiceNumber)
     expect(mockProcessSettlement).toHaveBeenCalledTimes(1)
     expect(mockProcessSettlement).toHaveBeenCalledWith(testMessage.body)
   })
