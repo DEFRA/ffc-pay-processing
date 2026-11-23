@@ -121,4 +121,5 @@
   <include file="changelog/db.changelog-2.14.xml"/>
   <include file="changelog/db.changelog-2.15.xml"/>
   <include file="changelog/db.changelog-2.16.xml"/>
+  <include file="changelog/db.changelog-2.17.xml"/>
 </databaseChangeLog>
